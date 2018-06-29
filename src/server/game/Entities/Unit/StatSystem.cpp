@@ -824,8 +824,8 @@ void Player::UpdateManaRegen()
 
 void Player::UpdateAllRunesRegen()
 {
-    if (getClass() != CLASS_DEATH_KNIGHT)
-        return;
+    //if (getClass() != CLASS_DEATH_KNIGHT)
+     //   return;
 
     uint32 runeIndex = GetPowerIndex(POWER_RUNES);
     if (runeIndex == MAX_POWERS)
@@ -1014,6 +1014,7 @@ void Creature::CalculateMinMaxDamage(WeaponAttackType attType, bool normalized, 
     maxDamage = ((weaponMaxDamage + baseValue) * dmgMultiplier * basePct + totalValue) * totalPct;
 }
 
+
 /*#######################################
 ########                         ########
 ########    PETS STAT SYSTEM     ########
@@ -1071,9 +1072,20 @@ void Guardian::UpdateArmor()
             {
                 // Mage
                 case ENTRY_WATER_ELEMENTAL:
+                case ENTRY_FIRE_ELEMENTAL:
                     pctFromOwnerArmor = 300.f;
                     break;
                 // Warlock
+                    // Start Darkon Changes
+                case ENTRY_INFERNAL_LORD_OF_FLAMES:
+                    pctFromOwnerArmor = 600.f;
+                    break;
+                case ENTRY_DOOMGUARD:
+                case ENTRY_DOOMGUARD_PET:
+                case ENTRY_INFERNAL:
+                case ENTRY_INFERNAL_PET:
+                    pctFromOwnerArmor = 500.f;
+                    break;
                 case ENTRY_FELGUARD:
                 case ENTRY_VOIDWALKER:
                     pctFromOwnerArmor = 400.f;
@@ -1081,11 +1093,24 @@ void Guardian::UpdateArmor()
                 case ENTRY_FELHUNTER:
                 case ENTRY_IMP:
                 case ENTRY_SUCCUBUS:
+                case ENTRY_WILD_IMP_DREADSTALKER:
+                case ENTRY_WILD_IMP:
+                case ENTRY_DREADSTALKER:
+                case ENTRY_DARKGLARE:
+                case ENTRY_CHAOS_TEAR:
+                case ENTRY_UNSTABLE_TEAR:
+                case ENTRY_SHADOWY_TEAR:
+                case ENTRY_TREANT:
+                case ENTRY_GHOUL:
+                case ENTRY_RISEN_SKULKER:
                     pctFromOwnerArmor = 300.f;
                     break;
+                    // Stop Darkon Changes
+                //Monk
                 case ENTRY_NIUZAO:
                     pctFromOwnerArmor = 400.f;
                 case ENTRY_XUEN:
+                case ENTRY_BLOODWORM:
                     pctFromOwnerArmor = 100.f;
                 default:
                     break;
@@ -1153,13 +1178,21 @@ void Guardian::UpdateMaxHealth()
                 case ENTRY_VOIDWALKER:
                 case ENTRY_INFERNAL:
                 case ENTRY_WATER_ELEMENTAL:
+                case ENTRY_TREANT:
                     pctFromOwnerHealth = 50.f;
                     break;
                 case ENTRY_FELHUNTER:
                 case ENTRY_SUCCUBUS:
+                case ENTRY_DREADSTALKER:
                     pctFromOwnerHealth = 40.f;
                     break;
                 case ENTRY_IMP:
+                case ENTRY_WILD_IMP:
+                case ENTRY_WILD_IMP_DREADSTALKER:
+                case ENTRY_DARKGLARE:
+                case ENTRY_CHAOS_TEAR:
+                case ENTRY_UNSTABLE_TEAR:
+                case ENTRY_SHADOWY_TEAR:
                     pctFromOwnerHealth = 30.f;
                     break;
                 default:
@@ -1233,13 +1266,46 @@ void Guardian::UpdateAttackPowerAndDamage(bool ranged)
                     // Bluetracker says 600% (needs ingame data)
                     break;
                 case ENTRY_NIUZAO:
+                case ENTRY_GHOUL:
+                case ENTRY_RISEN_SKULKER:
                     value = CalculatePct(m_owner->GetTotalAttackPowerValue(BASE_ATTACK), 100.f);
                     // Bluetracker says 100% (needs ingame data)
                     break;
+                    //Start Darkon Changes
+                case ENTRY_BLOODWORM:
+                    value = CalculatePct(m_owner->GetTotalAttackPowerValue(BASE_ATTACK), 15.f);
+                    break;
+
+                case ENTRY_WILD_IMP:
+                case ENTRY_WILD_IMP_DREADSTALKER:
+                case ENTRY_DREADSTALKER:
+                case ENTRY_SUCCUBUS:
+                case ENTRY_WATER_ELEMENTAL:
+                case ENTRY_TREANT:
                 case ENTRY_IMP:
+                case ENTRY_DARKGLARE:
+                case ENTRY_CHAOS_TEAR:
+                case ENTRY_UNSTABLE_TEAR:
+                case ENTRY_SHADOWY_TEAR:
                     value = CalculatePct(m_owner->SpellBaseDamageBonusDone(SPELL_SCHOOL_MASK_MAGIC), 100.f);
+                    break;
                 case ENTRY_VOIDWALKER:
+                case ENTRY_FELHUNTER:
                     value = CalculatePct(m_owner->SpellBaseDamageBonusDone(SPELL_SCHOOL_MASK_MAGIC), 120.f);
+                    break;
+                case ENTRY_FELGUARD:
+                    value = CalculatePct(m_owner->SpellBaseDamageBonusDone(SPELL_SCHOOL_MASK_MAGIC), 140.f);
+                    break;
+                case ENTRY_DOOMGUARD:
+                case ENTRY_DOOMGUARD_PET:
+                case ENTRY_INFERNAL:
+                case ENTRY_INFERNAL_PET:
+                    value = CalculatePct(m_owner->SpellBaseDamageBonusDone(SPELL_SCHOOL_MASK_MAGIC), 160.f);
+                    break;
+                case ENTRY_INFERNAL_LORD_OF_FLAMES:
+                    value = CalculatePct(m_owner->SpellBaseDamageBonusDone(SPELL_SCHOOL_MASK_MAGIC), 160.f);
+                    break;
+                    //end Darkon Changes
                 default:
                     break;
             }
