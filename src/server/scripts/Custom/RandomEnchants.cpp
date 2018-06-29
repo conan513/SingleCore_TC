@@ -33,8 +33,7 @@ public:
 	{
 		if(sConfigMgr->GetBoolDefault("RandomEnchants.OnQuestReward", true))
 			RollPossibleEnchant(player, item);
-	}
-	void RollPossibleEnchant(Player* player, Item* item)
+	}void RollPossibleEnchant(Player* player, Item* item)
 	{
 		uint32 Quality = item->GetTemplate()->GetQuality();
 		uint32 Class = item->GetTemplate()->GetClass();
@@ -43,21 +42,84 @@ public:
 		int slotRand[3] = { -1, -1, -1 };
 		uint32 slotEnch[3] = { 0, 1, 5 };
 		double roll1 = rand_chance();
-		if (roll1 >= 70.0)
+        switch (Quality)
+        {
+        case 0://grey
+            roll1 = rand_chance() * 0.8;
+            break;
+        case 1://white
+            roll1 = rand_chance();
+            break;
+        case 2://green
+            roll1 = rand_chance() * 1.1;
+            break;
+        case 3://blue
+            roll1 = 15.0 + rand_chance() * 1.2;
+            break;
+        case 4://purple
+            roll1 = 30.0 + rand_chance()*1.3;
+            break;
+        case 5://orange
+            roll1 = 45.0 + rand_chance()*1.4;
+            break;
+        }
+		if (roll1 >= 60.0)
 			slotRand[0] = getRandEnchantment(item);
 		if (slotRand[0] != -1)
 		{
 			double roll2 = rand_chance();
+            switch (Quality)
+            {
+            case 0://grey
+                roll2 = rand_chance() * 0.8;
+                break;
+            case 1://white
+                roll2 = rand_chance();
+                break;
+            case 2://green
+                roll2 = rand_chance() * 1.1;
+                break;
+            case 3://blue
+                roll2 = 15.0 + rand_chance() * 1.2;
+                break;
+            case 4://purple
+                roll2 = 30.0 + rand_chance()*1.3;
+                break;
+            case 5://orange
+                roll2 = 45.0 + rand_chance()*1.4;
+                break;
+            }
 			if (roll2 >= 65.0)
 				slotRand[1] = getRandEnchantment(item);
 			if (slotRand[1] != -1)
 			{
 				double roll3 = rand_chance();
-				if (roll3 >= 60.0)
+                switch (Quality)
+                {
+                case 0://grey
+                    roll3 = rand_chance() * 0.8;
+                    break;
+                case 1://white
+                    roll3 = rand_chance();
+                    break;
+                case 2://green
+                    roll3 = rand_chance() * 1.1;
+                    break;
+                case 3://blue
+                    roll3 = 15.0 + rand_chance() * 1.2;
+                    break;
+                case 4://purple
+                    roll3 = 30.0 + rand_chance()*1.3;
+                    break;
+                case 5://orange
+                    roll3 = 45.0 + rand_chance()*1.4;
+                    break;
+                }
+				if (roll3 >= 70.0)
 					slotRand[2] = getRandEnchantment(item);
 			}
 		}
-		for (int i = 0; i < 2; i++)
+		for (int i = 0; i < 3; i++)
 		{
 			if (slotRand[i] != -1)
 			{
