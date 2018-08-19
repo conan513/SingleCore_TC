@@ -50,9 +50,15 @@ else()
 endif()
 
 if(BUILD_PLAYERBOT)
-  message(STATUS "Build Playerbot       : Yes")
+  message(STATUS "Build Playerbot       : Yes (default)")
 else()
-  message(STATUS "Build Playerbot       : No  (default)")
+  message(STATUS "Build Playerbot       : No")
+endif()
+
+if(BUILD_IMMERSIVE)
+  message(STATUS "Build Immersive       : Yes (default)")
+else()
+  message(STATUS "Build Immersive       : No")
 endif()
 
 if(BUILD_EXTRACTORS)

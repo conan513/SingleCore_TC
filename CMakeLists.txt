@@ -111,7 +111,7 @@ endif()
 
 # Override configuration-types - we don't use anything else than debug and release
 if(CMAKE_CONFIGURATION_TYPES)
-  set(CMAKE_CONFIGURATION_TYPES "Release;Debug" CACHE STRING "Reset the configurations to what we need" FORCE)
+  set(CMAKE_CONFIGURATION_TYPES "Release;Debug;RelWithDebInfo;MinSizeRel;" CACHE STRING "Reset the configurations to what we need" FORCE)
 else()
   if(NOT CMAKE_BUILD_TYPE)
     if (NOT DEBUG)

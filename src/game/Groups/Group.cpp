@@ -30,11 +30,6 @@
 #include "Maps/MapManager.h"
 #include "Maps/MapPersistentStateMgr.h"
 #include "Spells/SpellAuras.h"
-#ifdef BUILD_PLAYERBOT
-#include "PlayerBot/Base/PlayerbotMgr.h"
-#include "Config/Config.h"
-extern Config botConfig;
-#endif
 
 GroupMemberStatus GetGroupMemberStatus(const Player* member = nullptr)
 {
@@ -346,15 +341,6 @@ bool Group::AddMember(ObjectGuid guid, const char* name)
 
 uint32 Group::RemoveMember(ObjectGuid guid, uint8 method)
 {
-#ifdef BUILD_PLAYERBOT
-    // if master leaves group, all bots leave group
-    if (!botConfig.GetBoolDefault("PlayerbotAI.DisableBots", false))
-    {
-        Player* const player = sObjectMgr.GetPlayer(guid);
-        if (player && player->GetPlayerbotMgr())
-            player->GetPlayerbotMgr()->RemoveAllBotsFromGroup();
-    }
-#endif
 
     Player* player = sObjectMgr.GetPlayer(guid);
     for (GroupReference* itr = GetFirstMember(); itr != nullptr; itr = itr->next())

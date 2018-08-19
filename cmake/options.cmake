@@ -6,7 +6,8 @@ option(BUILD_GAME_SERVER    "Build game server"                     ON)
 option(BUILD_LOGIN_SERVER   "Build login server"                    ON)
 option(BUILD_EXTRACTORS     "Build map/dbc/vmap/mmap extractors"    OFF)
 option(BUILD_SCRIPTDEV      "Build ScriptDev. (OFF Speedup build)"  ON)
-option(BUILD_PLAYERBOT      "Build Playerbot mod"                   OFF)
+option(BUILD_PLAYERBOT      "Build Player Bots"                     ON)
+option(BUILD_IMMERSIVE      "Build Immersive"                       ON)
 
 # TODO: options that should be checked/created:
 #option(CLI                  "With CLI"                              ON)
@@ -28,7 +29,8 @@ message(STATUS
     BUILD_LOGIN_SERVER      Build login server (auth server)
     BUILD_EXTRACTORS        Build map/dbc/vmap/mmap extractor
     BUILD_SCRIPTDEV         Build scriptdev. (Disable it to speedup build in dev mode by not including scripts)
-    BUILD_PLAYERBOT         Build Playerbot mod
+    BUILD_PLAYERBOT         Build Player Bots module
+    BUILD_IMMERSIVE         Build Immersive module
 
   To set an option simply type -D<OPTION>=<VALUE> after 'cmake <srcs>'.
   Also, you can specify the generator with -G. see 'cmake --help' for more details

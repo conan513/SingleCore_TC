@@ -401,11 +401,7 @@ void WorldSession::HandleCastSpellOpcode(WorldPacket& recvPacket)
     // client provided targets
     SpellCastTargets targets;
 
-#ifdef BUILD_PLAYERBOT
-    recvPacket >> targets.ReadForCaster(mover);
-#else
     recvPacket >> targets.ReadForCaster(_player);
-#endif
 
     // some spell cast packet including more data (for projectiles)
     targets.ReadAdditionalSpellData(recvPacket, cast_flags);

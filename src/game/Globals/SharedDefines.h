@@ -3064,4 +3064,9 @@ enum LootType
     LOOT_SPELL          = 24,
 };
 
+#ifdef ENABLE_PLAYERBOTS || ENABLE_IMMERSIVE
+#define MANGOSBOT_ONE
+#define CMANGOS
+#endif
+
 #endif
