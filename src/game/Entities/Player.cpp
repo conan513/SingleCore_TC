@@ -13968,6 +13968,10 @@ void Player::RewardQuest(Quest const* pQuest, uint32 reward, Object* questGiver,
 
     // resend quests status directly
     SendQuestGiverStatusMultiple();
+
+#ifdef ENABLE_IMMERSIVE
+    sImmersive.OnRewardQuest(this, pQuest);
+#endif
 }
 
 void Player::FailQuestForGroup(uint32 questId)
