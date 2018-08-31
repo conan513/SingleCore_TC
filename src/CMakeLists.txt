@@ -30,3 +30,7 @@ endif()
 if(BUILD_LOGIN_SERVER)
   add_subdirectory(realmd)
 endif()
+
+if(BUILD_TEST)
+  add_subdirectory(test)
+endif()

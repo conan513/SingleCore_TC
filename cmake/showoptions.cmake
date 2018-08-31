@@ -61,6 +61,12 @@ else()
   message(STATUS "Build Immersive       : No")
 endif()
 
+if(BUILD_TEST)
+  message(STATUS "Build tests           : Yes (default)")
+else()
+  message(STATUS "Build tests           : No")
+endif()
+
 if(BUILD_EXTRACTORS)
   message(STATUS "Build extractors      : Yes")
 else()
