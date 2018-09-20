@@ -123,7 +123,9 @@ void PlayerbotHolder::HandlePlayerBotLoginCallback(QueryResult * dummy, SqlQuery
     Player* bot = botSession->GetPlayer();
     if (!bot)
     {
-        sLog.outError("Error logging in bot %d, please try to reset all random bots", lqh->GetGuid().GetRawValue());
+        uint32 guid = lqh->GetGuid().GetRawValue();
+        sLog.outError("Error logging in bot %d", guid);
+        sRandomPlayerbotMgr.OnPlayerLoginError(guid);
         return;
     }
     PlayerbotMgr *mgr = bot->GetPlayerbotMgr();
