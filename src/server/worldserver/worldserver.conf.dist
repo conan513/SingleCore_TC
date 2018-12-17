@@ -4562,12 +4562,14 @@ Solocraft.Enable = 1
 Solocraft.Announce = 1
 
 # Difficulty Multipliers
-# Defaults: 5, 10, 25, 10
+# Defaults: 5, 10, 15, 10, 25, 30, 40
 
-Solocraft.Dungeon = 5 
+Solocraft.Dungeon = 5
 Solocraft.Heroic = 10
+Solocraft.Mythic = 15
+Solocraft.Raid10 = 10
 Solocraft.Raid25 = 25
-Solocraft.Raid40 = 10
+Solocraft.Raid30 = 30
 
 #
 ###################################################################################################
