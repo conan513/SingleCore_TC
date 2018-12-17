@@ -40,6 +40,8 @@ to make up the non-deal party makeup.
 ------------------------------------------------------------------------------------------------------------------
 - v2017.09.04 - Add config options for difficulty levels
 - v2017.09.05 - Update strings, Add module announce
+- v2018.12.17 - Changed difficulty type from int to float, to allow for more nuanced difficulties ie. 1.5
+    Added difficulties for more raid sizes, and assign them based on the map's maximum players
 
 
 ### Credits ###
@@ -93,36 +95,51 @@ namespace {
             if (sConfigMgr->GetBoolDefault("Solocraft.Enable", true))
             {
                 Map *map = player->GetMap();
-                int difficulty = CalculateDifficulty(map, player);
+                float difficulty = CalculateDifficulty(map, player);
                 int numInGroup = GetNumInGroup(player);
                 ApplyBuffs(player, map, difficulty, numInGroup);
             }
         }
 
     private:
-        std::map<ObjectGuid, int> _unitDifficulty;
+        std::map<ObjectGuid, float> _unitDifficulty;
 
         // Get difficulty values from config
-        const uint32 D5 = sConfigMgr->GetIntDefault("Solocraft.Dungeon", 5);
-        const uint32 D10 = sConfigMgr->GetIntDefault("Solocraft.Heroic", 10);
-        const uint32 D25 = sConfigMgr->GetIntDefault("Solocraft.Raid25", 25);
-        const uint32 D40 = sConfigMgr->GetIntDefault("Solocraft.Raid40", 40);
+        const float D5 = sConfigMgr->GetFloatDefault("Solocraft.Dungeon", 5.0);
+        const float D5H = sConfigMgr->GetFloatDefault("Solocraft.Heroic", 10.0);
+        const float D5M = sConfigMgr->GetFloatDefault("Solocraft.Mythic", 15.0);
+        const float D10 = sConfigMgr->GetFloatDefault("Solocraft.Raid10", 10.0);
+        const float D25 = sConfigMgr->GetFloatDefault("Solocraft.Raid25", 25.0);
+        const float D30 = sConfigMgr->GetFloatDefault("Solocraft.Raid30", 30.0);
 
         // Set the instance difficulty
-        int CalculateDifficulty(Map *map, Player *player) {
-            int difficulty = 1;
+        float CalculateDifficulty(Map *map, Player *player) {
+            float difficulty = 1.0;
             if (map) {
-                if (map->Is25ManRaid()) {
-                    difficulty = D25;
+                if (map->IsRaid())
+                {
+                    switch (map->GetMapDifficulty()->MaxPlayers)
+                    {
+                    case 10:
+                        difficulty = D10; break;
+                    case 25:
+                        difficulty = D25; break;
+                    case 30:
+                        difficulty = D30; break;
+                    default:
+                        TC_LOG_WARN("scripts.solocraft.player.instance", "[SoloCraft] Unrecognized max players %d, defaulting to 10 man difficulty",
+                            map->GetMapDifficulty()->MaxPlayers);
+                        difficulty = D10;
+                    }
                 }
-                else if (map->IsHeroic()) {
-                    difficulty = D10;
-                }
-                else if (map->IsRaid()) {
-                    difficulty = D40;
-                }
-                else if (map->IsDungeon()) {
-                    difficulty = D5;
+                else if (map->IsDungeon())
+                {
+                    if (map->IsMythic())
+                        difficulty = D5M;
+                    else if (map->IsHeroic())
+                        difficulty = D5H;
+                    else
+                        difficulty = D5;
                 }
             }
             return difficulty;
@@ -140,7 +157,7 @@ namespace {
         }
 
         // Apply the player buffs
-        void ApplyBuffs(Player *player, Map *map, int difficulty, int numInGroup)
+        void ApplyBuffs(Player *player, Map *map, float difficulty, int numInGroup)
         {
             ClearBuffs(player, map);
 
@@ -151,7 +168,7 @@ namespace {
 
                 // Announce to player
                 std::ostringstream ss;
-                ss << "|cffFF0000[SoloCraft] |cffFF8000" << player->GetName() << " entered %s - # of Players: %d - Difficulty Offset: %d.";
+                ss << "|cffFF0000[SoloCraft] |cffFF8000" << player->GetName() << " entered %s - # of Players: %d - Difficulty Offset: %0.2f.";
                 ChatHandler(player->GetSession()).PSendSysMessage(ss.str().c_str(), map->GetMapName(), numInGroup, difficulty);
 
                 // Adjust player stats
@@ -159,7 +176,7 @@ namespace {
                 for (int32 i = STAT_STRENGTH; i < MAX_STATS; ++i)
                 {
                     // Buff the player
-                    player->HandleStatModifier(UnitMods(UNIT_MOD_STAT_START + i), TOTAL_PCT, float(difficulty * 100), true);
+                    player->HandleStatModifier(UnitMods(UNIT_MOD_STAT_START + i), TOTAL_PCT, difficulty * 100.0, true);
                 }
 
                 // Set player health
@@ -174,21 +191,21 @@ namespace {
 
         void ClearBuffs(Player *player, Map *map)
         {
-            std::map<ObjectGuid, int>::iterator unitDifficultyIterator = _unitDifficulty.find(player->GetGUID());
+            std::map<ObjectGuid, float>::iterator unitDifficultyIterator = _unitDifficulty.find(player->GetGUID());
             if (unitDifficultyIterator != _unitDifficulty.end())
             {
-                int difficulty = unitDifficultyIterator->second;
+                float difficulty = unitDifficultyIterator->second;
                 _unitDifficulty.erase(unitDifficultyIterator);
 
                 // Inform the player
                 std::ostringstream ss;
-                ss << "|cffFF0000[SoloCraft] |cffFF8000" << player->GetName() << " exited to %s - Reverting Difficulty Offset: %d.";
+                ss << "|cffFF0000[SoloCraft] |cffFF8000" << player->GetName() << " exited to %s - Reverting Difficulty Offset: %0.2f.";
                 ChatHandler(player->GetSession()).PSendSysMessage(ss.str().c_str(), map->GetMapName(), difficulty);
 
                 // Clear the buffs
                 for (int32 i = STAT_STRENGTH; i < MAX_STATS; ++i)
                 {
-                    player->HandleStatModifier(UnitMods(UNIT_MOD_STAT_START + i), TOTAL_PCT, float(difficulty * 100), false);
+                    player->HandleStatModifier(UnitMods(UNIT_MOD_STAT_START + i), TOTAL_PCT, difficulty * 100.0, false);
                 }
             }
         }
