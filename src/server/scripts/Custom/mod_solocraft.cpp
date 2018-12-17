@@ -170,7 +170,7 @@ namespace {
                 // Announce to player
                 std::ostringstream ss;
                 ss << "|cffFF0000[SoloCraft] |cffFF8000" << player->GetName() << " entered %s - # of Players: %d - Difficulty Offset: %0.2f.";
-                ChatHandler(player->GetSession()).PSendSysMessage(ss.str().c_str(), map->GetMapName(), numInGroup, difficulty);
+                ChatHandler(player->GetSession()).PSendSysMessage(ss.str().c_str(), map->GetMapName(), numInGroup, difficulty + 1.0);
 
                 // Adjust player stats
                 _unitDifficulty[player->GetGUID()] = difficulty;
@@ -201,7 +201,7 @@ namespace {
                 // Inform the player
                 std::ostringstream ss;
                 ss << "|cffFF0000[SoloCraft] |cffFF8000" << player->GetName() << " exited to %s - Reverting Difficulty Offset: %0.2f.";
-                ChatHandler(player->GetSession()).PSendSysMessage(ss.str().c_str(), map->GetMapName(), difficulty);
+                ChatHandler(player->GetSession()).PSendSysMessage(ss.str().c_str(), map->GetMapName(), difficulty + 1.0);
 
                 // Clear the buffs
                 for (int32 i = STAT_STRENGTH; i < MAX_STATS; ++i)
