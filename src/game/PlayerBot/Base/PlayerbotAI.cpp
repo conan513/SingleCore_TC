@@ -3849,7 +3849,9 @@ void PlayerbotAI::UpdateAI(const uint32 /*p_time*/)
                 TellMaster("I was still waiting OOC but I just got out of combat...");
             ClearCombatOrder(ORDERS_TEMP);
         }
-        SetState(BOTSTATE_LOOTING);
+        //Give a hoot, don't combat loot
+        if (!(IsInCombat()))
+            SetState(BOTSTATE_LOOTING);
         m_attackerInfo.clear();
         if (HasCollectFlag(COLLECT_FLAG_COMBAT))
             m_lootTargets.unique();
@@ -3878,7 +3880,7 @@ void PlayerbotAI::UpdateAI(const uint32 /*p_time*/)
         return MovementReset();
 
     // do class specific non combat actions
-    if (GetClassAI() && !m_bot->IsMounted() && !IsRegenerating())
+    if (GetClassAI() && !m_bot->IsMounted() && !IsRegenerating() && !IsInCombat())
     {
         GetClassAI()->DoNonCombatActions();
 
