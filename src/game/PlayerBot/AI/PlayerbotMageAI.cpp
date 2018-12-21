@@ -441,7 +441,7 @@ void PlayerbotMageAI::DoNonCombatActions()
         if (Buff(&PlayerbotMageAI::BuffHelper, ARCANE_BRILLIANCE) & RETURN_CONTINUE)
             return;
     }
-    else if (Buff(&PlayerbotMageAI::BuffHelper, ARCANE_INTELLECT, JOB_MANAONLY) & RETURN_CONTINUE)
+    else if (Buff(&PlayerbotMageAI::BuffHelper, ARCANE_INTELLECT) & RETURN_CONTINUE)
         return;
 
     Item* gem = FindManaGem();
