@@ -210,9 +210,10 @@ CombatManeuverReturns PlayerbotHunterAI::DoNextCombatManeuverPVE(Unit* pTarget)
             m_ai->CastSpell(BERSERKING, *m_bot);
     */
     // check if ranged combat is possible: by default chose ranged combat
-    bool meleeReach = m_bot->CanReachWithMeleeAttack(pTarget);
+    //bool meleeReach = m_bot->CanReachWithMeleeAttack(pTarget);
 
-    if (!meleeReach && m_has_ammo)
+    // Check if we have ammo. If so, always prefer ranged.
+    if (m_has_ammo)
     {
         // switch to ranged combat
         m_rangedCombat = true;
@@ -224,7 +225,7 @@ CombatManeuverReturns PlayerbotHunterAI::DoNextCombatManeuverPVE(Unit* pTarget)
     }
     else
     {
-        // switch to melee combat (target in melee range, out of ammo)
+        // switch to melee combat (out of ammo)
         m_rangedCombat = false;
         m_ai->SetCombatStyle(PlayerbotAI::COMBAT_MELEE);
         if (!m_bot->GetUInt32Value(PLAYER_AMMO_ID))
@@ -273,7 +274,7 @@ CombatManeuverReturns PlayerbotHunterAI::DoNextCombatManeuverPVE(Unit* pTarget)
         return RETURN_CONTINUE;
     }
     // If below ranged combat distance and bot is not attacked by target
-    // make it flee from target for a few seconds to get in ranged distance again
+    // make it move away from target for a few seconds to get in ranged distance again
     // Do not do it if passive or stay orders.
     if (pVictim != m_bot && m_bot->GetDistance(pTarget, true, DIST_CALC_COMBAT_REACH_WITH_MELEE) <= 8.0f &&
             !(m_ai->GetCombatOrder() & PlayerbotAI::ORDERS_PASSIVE) &&
@@ -281,8 +282,22 @@ CombatManeuverReturns PlayerbotHunterAI::DoNextCombatManeuverPVE(Unit* pTarget)
     {
         m_ai->InterruptCurrentCastingSpell();
         m_ai->SetIgnoreUpdateTime(2);
+        // Make the bot face the target, unconditionally.
+        // Then turn 180 degrees, run to ~12 yards, and face the target again.
+        m_bot->SetFacingTo(m_bot->GetAngle(pTarget));
+        // Get each unit's absolute orientation
+        float bot_o = m_bot->GetOrientation();   //Direction bot is facing
+        float tgt_o = pTarget->GetOrientation(); //Direction target is facing
+        float theta = 2 * M_PI_F + tgt_o; // theta == our new 0, relative to the target
+        float angle = theta - bot_o;      
+        (angle > 2 * M_PI_F) ? angle -= 2 * M_PI_F : angle;
         m_bot->GetMotionMaster()->Clear(false);
-        m_bot->GetMotionMaster()->MoveFleeing(pTarget, 2);
+        //MoveChase orientation is relative to the target's orientation, not the world
+        //MoveChase(Unit* target, float dist, float angle, bool moveFurther, bool walk, bool combat)
+        m_bot->GetMotionMaster()->MoveChase(pTarget, 12.0f, angle, true, false, true);
+        m_bot->SetFacingTo(m_bot->GetAngle(pTarget));
+        //MoveFleeing() results in just total chaos
+        //m_bot->GetMotionMaster()->MoveFleeing(pTarget, 2);
         return RETURN_CONTINUE;
     }
 
