@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+ * Copyright (C) 2008-2019 TrinityCore <https://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -328,7 +328,6 @@ public:
         {
             _events.Reset();
             _events.ScheduleEvent(EVENT_DETERMINE_EVENT, Seconds(2));
-            me->SetDisplayId(me->GetCreatureTemplate()->GetRandomValidModelId());
         }
 
         void UpdateAI(uint32 diff) override

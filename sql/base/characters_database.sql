@@ -1706,7 +1706,6 @@ CREATE TABLE `characters` (
   `deleteDate` int(10) unsigned DEFAULT NULL,
   `honor` int(10) unsigned NOT NULL DEFAULT '0',
   `honorLevel` int(10) unsigned NOT NULL DEFAULT '1',
-  `prestigeLevel` int(10) unsigned NOT NULL DEFAULT '0',
   `honorRestState` tinyint(3) unsigned NOT NULL DEFAULT '2',
   `honorRestBonus` float NOT NULL DEFAULT '0',
   PRIMARY KEY (`guid`),

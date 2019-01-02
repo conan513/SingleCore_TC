@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+ * Copyright (C) 2008-2019 TrinityCore <https://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -62,7 +62,7 @@ class TC_GAME_API Pet : public Guardian
         void AddToWorld() override;
         void RemoveFromWorld() override;
 
-        void SetDisplayId(uint32 modelId) override;
+        void SetDisplayId(uint32 modelId, float displayScale = 1.f) override;
 
         PetType getPetType() const { return m_petType; }
         void setPetType(PetType type) { m_petType = type; }

@@ -9,10 +9,10 @@
  #define _SOURCE_DIRECTORY          R"(@CMAKE_SOURCE_DIR@)"
  #define _BUILD_DIRECTORY           R"(@BUILDDIR@)"
  #define _MYSQL_EXECUTABLE          R"(@MYSQL_EXECUTABLE@)"
- #define _FULL_DATABASE             "SPP_735.11_world.sql"
- #define _HOTFIXES_DATABASE         "SPP_735.11_hotfix.sql"
+ #define _FULL_DATABASE             "SPP_735.12_world.sql"
+ #define _HOTFIXES_DATABASE         "SPP_735.12_hotfix.sql"
  #define VER_COMPANYNAME_STR        "SingleCore Developers"
- #define VER_LEGALCOPYRIGHT_STR     "(c)2012-2018 Single Player Project"
+ #define VER_LEGALCOPYRIGHT_STR     "(c)2012-2019 Single Player Project"
  #define VER_FILEVERSION            0,0,0
  #define VER_FILEVERSION_STR        "@rev_hash@ @rev_date@ (@rev_branch@ branch)"
  #define VER_PRODUCTVERSION         VER_FILEVERSION

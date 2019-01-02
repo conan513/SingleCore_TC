@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+ * Copyright (C) 2008-2019 TrinityCore <https://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -245,11 +245,17 @@ uint32 Battlenet::Session::HandleLogon(authentication::v1::LogonRequest const* l
 
 uint32 Battlenet::Session::HandleVerifyWebCredentials(authentication::v1::VerifyWebCredentialsRequest const* verifyWebCredentialsRequest, std::function<void(ServiceBase*, uint32, ::google::protobuf::Message const*)>& continuation)
 {
-    return VerifyWebCredentials(verifyWebCredentialsRequest->web_credentials(), continuation);
+    if (verifyWebCredentialsRequest->has_web_credentials())
+        return VerifyWebCredentials(verifyWebCredentialsRequest->web_credentials(), continuation);
+
+    return ERROR_DENIED;
 }
 
 uint32 Battlenet::Session::VerifyWebCredentials(std::string const& webCredentials, std::function<void(ServiceBase*, uint32, ::google::protobuf::Message const*)>& continuation)
 {
+    if (webCredentials.empty())
+        return ERROR_DENIED;
+
     PreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_BNET_ACCOUNT_INFO);
     stmt->setString(0, webCredentials);
 
@@ -401,7 +407,7 @@ uint32 Battlenet::Session::HandleGetAccountState(account::v1::GetAccountStateReq
     if (request->options().field_privacy_info())
     {
         response->mutable_state()->mutable_privacy_info()->set_is_using_rid(false);
-        response->mutable_state()->mutable_privacy_info()->set_is_real_id_visible_for_view_friends(false);
+        response->mutable_state()->mutable_privacy_info()->set_is_visible_for_view_friends(false);
         response->mutable_state()->mutable_privacy_info()->set_is_hidden_from_friend_finder(true);
 
         response->mutable_tags()->set_privacy_info_tag(0xD7CA834D);

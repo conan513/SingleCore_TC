@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+ * Copyright (C) 2008-2019 TrinityCore <https://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -38,7 +38,9 @@ Transport::Transport() : GameObject(),
     _triggeredArrivalEvent(false), _triggeredDepartureEvent(false),
     _passengerTeleportItr(_passengers.begin()), _delayedAddModel(false), _delayedTeleport(false)
 {
-    m_updateFlag = UPDATEFLAG_TRANSPORT | UPDATEFLAG_STATIONARY_POSITION | UPDATEFLAG_ROTATION;
+    m_updateFlag.ServerTime = true;
+    m_updateFlag.Stationary = true;
+    m_updateFlag.Rotation = true;
 }
 
 Transport::~Transport()

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+ * Copyright (C) 2008-2019 TrinityCore <https://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -340,9 +340,9 @@ class HookList final
         typedef typename ContainerType::const_iterator const_iterator;
         typedef typename ContainerType::iterator iterator;
 
-        HookList<T>& operator+=(T t)
+        HookList<T>& operator+=(T&& t)
         {
-            _container.push_back(t);
+            _container.push_back(std::move(t));
             return *this;
         }
 
