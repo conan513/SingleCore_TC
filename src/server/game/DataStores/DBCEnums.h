@@ -712,9 +712,9 @@ enum FactionMasks
 // LockType.dbc (8.0.1)
 enum LockType
 {
-    LOCKTYPE_PICKLOCK               = 1,
-    LOCKTYPE_HERBALISM_1            = 2,
-    LOCKTYPE_MINING_1               = 3,
+    LOCKTYPE_LOCKPICKING            = 1,
+    LOCKTYPE_HERBALISM              = 2,
+    LOCKTYPE_MINING                 = 3,
     LOCKTYPE_DISARM_TRAP            = 4,
     LOCKTYPE_OPEN                   = 5,
     LOCKTYPE_TREASURE               = 6,
@@ -733,28 +733,28 @@ enum LockType
     LOCKTYPE_FISHING                = 19,
     LOCKTYPE_INSCRIPTION            = 20,
     LOCKTYPE_OPEN_FROM_VEHICLE      = 21,
-    LOCKTYPE_ARCHAELOGY             = 22,
+    LOCKTYPE_ARCHAEOLOGY            = 22,
     LOCKTYPE_PVP_OPEN_FAST          = 23,
     LOCKTYPE_LUMBER_MILL            = 28,
     LOCKTYPE_SKINNING_1             = 29,
     LOCKTYPE_ANCIENT_MANA           = 30,
     LOCKTYPE_WARBOARD               = 31,
-    LOCKTYPE_HERBALISM_2            = 32,
-    LOCKTYPE_HERBALISM_3            = 33,
-    LOCKTYPE_HERBALISM_4            = 34,
-    LOCKTYPE_HERBALISM_5            = 35,
-    LOCKTYPE_HERBALISM_6            = 36,
-    LOCKTYPE_HERBALISM_7            = 37,
-    LOCKTYPE_HERBALISM_8            = 38,
-    LOCKTYPE_HERBALISM_9            = 39,
-    LOCKTYPE_MINING_2               = 40,
-    LOCKTYPE_MINING_3               = 41,
-    LOCKTYPE_MINING_4               = 42,
-    LOCKTYPE_MINING_5               = 43,
-    LOCKTYPE_MINING_6               = 44,
-    LOCKTYPE_MINING_7               = 45,
-    LOCKTYPE_MINING_8               = 46,
-    LOCKTYPE_MINING_9               = 47,
+    LOCKTYPE_CLASSIC_HERBALISM      = 32,
+    LOCKTYPE_OUTLAND_HERBALISM      = 33,
+    LOCKTYPE_NORTHREND_HERBALISM    = 34,
+    LOCKTYPE_CATACLYSM_HERBALISM    = 35,
+    LOCKTYPE_PANDARIA_HERBALISM     = 36,
+    LOCKTYPE_DRAENOR_HERBALISM      = 37,
+    LOCKTYPE_LEGION_HERBALISM       = 38,
+    LOCKTYPE_KUL_TIRAN_HERBALISM    = 39,
+    LOCKTYPE_CLASSIC_MINING         = 40,
+    LOCKTYPE_OUTLAND_MINING         = 41,
+    LOCKTYPE_NORTHREND_MINING       = 42,
+    LOCKTYPE_CATACLYSM_MINING       = 43,
+    LOCKTYPE_PANDARIA_MINING        = 44,
+    LOCKTYPE_DRAENOR_MINING         = 45,
+    LOCKTYPE_LEGION_MINING          = 46,
+    LOCKTYPE_KUL_TIRAN_MINING       = 47,
     LOCKTYPE_SKINNING_2             = 48,
 };
 
@@ -961,26 +961,6 @@ enum ItemSpecStat
     ITEM_SPEC_STAT_RELIC_HOLY       = 39,
 
     ITEM_SPEC_STAT_NONE             = 40
-};
-
-enum ItemContext : uint8
-{
-    None            = 0,
-
-    DungeonNormal   = 1,
-    DungeonHeroic   = 2,
-    DungeonMythic   = 23,
-
-    RaidLfr         = 4,
-    RaidNormal      = 3,
-    RaidHeroic      = 5,
-    RaidMythic      = 6,
-
-    ScenarioNormal  = 9,
-    ScenarioHeroic  = 10,
-
-    Event           = 9,
-    TimeWalker      = 22,
 };
 
 enum JournalEncounterFlags : uint8

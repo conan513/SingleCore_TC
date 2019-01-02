@@ -4609,24 +4609,8 @@ inline SkillType SkillByLockType(LockType locktype)
 {
     switch (locktype)
     {
-        case LOCKTYPE_HERBALISM_1:
-        case LOCKTYPE_HERBALISM_2:
-        case LOCKTYPE_HERBALISM_3:
-        case LOCKTYPE_HERBALISM_4:
-        case LOCKTYPE_HERBALISM_5:
-        case LOCKTYPE_HERBALISM_6:
-        case LOCKTYPE_HERBALISM_7:
-        case LOCKTYPE_HERBALISM_8:
-        case LOCKTYPE_HERBALISM_9: return SKILL_HERBALISM;
-        case LOCKTYPE_MINING_1:
-        case LOCKTYPE_MINING_2:
-        case LOCKTYPE_MINING_3:
-        case LOCKTYPE_MINING_4:
-        case LOCKTYPE_MINING_5:
-        case LOCKTYPE_MINING_6:
-        case LOCKTYPE_MINING_7:
-        case LOCKTYPE_MINING_8:
-        case LOCKTYPE_MINING_9:    return SKILL_MINING;
+        case LOCKTYPE_HERBALISM:   return SKILL_HERBALISM;
+        case LOCKTYPE_MINING:      return SKILL_MINING;
         case LOCKTYPE_FISHING:     return SKILL_FISHING;
         case LOCKTYPE_INSCRIPTION: return SKILL_INSCRIPTION;
         case LOCKTYPE_ARCHAEOLOGY: return SKILL_ARCHAEOLOGY;

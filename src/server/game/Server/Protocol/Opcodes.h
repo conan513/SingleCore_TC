@@ -569,6 +569,7 @@ enum OpcodeClient : uint16
     CMSG_QUERY_PLAYER_NAME                            = 0x368B,
     CMSG_QUERY_QUEST_COMPLETION_NPCS                  = 0x3174,
     CMSG_QUERY_QUEST_INFO                             = 0x3273,
+    CMSG_QUERY_QUEST_REWARDS                          = 0x3336,
     CMSG_QUERY_REALM_NAME                             = 0x368D,
     CMSG_QUERY_SCENARIO_POI                           = 0x3656,
     CMSG_QUERY_TIME                                   = 0x34D6,

@@ -7389,7 +7389,7 @@ SpellCastResult Spell::CanOpenLock(uint32 effIndex, uint32 lockId, SkillType& sk
 
                     // castitem check: rogue using skeleton keys. the skill values should not be added in this case.
                     skillValue = 0;
-                    else if (lockInfo->Index[j] == LOCKTYPE_LOCKPICKING)
+                    if (lockInfo->Index[j] == LOCKTYPE_LOCKPICKING)
                         skillValue = m_caster->getLevel() * 5;
                     else if (!m_CastItem && m_caster->IsPlayer())
                         skillValue = m_caster->ToPlayer()->GetSkillValue(skillId);

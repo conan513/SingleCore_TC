@@ -29826,7 +29826,6 @@ const std::map<uint32, uint32> skillLearningSpells =
     { SkillType::SKILL_JEWELCRAFTING,   LegionProfessionSpells::JewelCrafting   },
     { SkillType::SKILL_LEATHERWORKING,  LegionProfessionSpells::LeatherWorking  },
     { SkillType::SKILL_TAILORING,       LegionProfessionSpells::Tailoring       },
-    { SkillType::SKILL_FIRST_AID,       LegionProfessionSpells::FirstAid        },
     { SkillType::SKILL_COOKING,         LegionProfessionSpells::Cooking         },
     { SkillType::SKILL_HERBALISM,       LegionProfessionSpells::Herbalism       },
     { SkillType::SKILL_MINING,          LegionProfessionSpells::Mining          },

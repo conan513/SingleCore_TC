@@ -2647,8 +2647,9 @@ void AuraEffect::HandleAuraMountedVisual(AuraApplication const* aurApp, uint8 mo
 
             if (!displayId)
             {
-                displayId = ObjectMgr::ChooseDisplayId(creatureInfo);
-                sObjectMgr->GetCreatureModelRandomGender(&displayId);
+                CreatureModel model = *ObjectMgr::ChooseDisplayId(creatureInfo);
+                sObjectMgr->GetCreatureModelRandomGender(&model, creatureInfo);
+                displayId = model.CreatureDisplayID;
             }
 
             //some spell has one aura of mount and one of vehicle

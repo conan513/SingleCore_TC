@@ -264,10 +264,11 @@ bool Loot::FillLoot(uint32 lootId, LootStore const& store, Player* lootOwner, bo
         return false;
 
     _itemContext = lootOwner->GetMap()->GetDifficultyLootItemContext();
-
+/* SPP NEED FIX
     if (LFGDungeonsEntry const* dungeonEntry = sLFGMgr->GetPlayerLFGDungeonEntry(lootOwner->GetGUID()))
         if (dungeonEntry->Flags & lfg::LfgFlags::LFG_FLAG_TIMEWALKER)
             _itemContext = ItemContext::TimeWalker;
+*/
 
     LootTemplate const* tab = store.GetLootFor(lootId);
 
