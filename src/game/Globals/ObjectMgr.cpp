@@ -6702,7 +6702,7 @@ void ObjectMgr::CheckSpellCones()
             if (uint32 firstRankId = sSpellMgr.GetFirstSpellInChain(i))
             {
                 SpellCone const* spellConeFirst = sSpellCones.LookupEntry<SpellCone>(firstRankId);
-                if (!spellConeFirst && !spellCone || !spellCone)
+                if ((!spellConeFirst && !spellCone) || !spellCone)
                     continue;
 
                 if (!spellConeFirst && spellCone)
@@ -7479,7 +7479,7 @@ bool PlayerCondition::Meets(Player const* player, Map const* map, WorldObject co
             return uint32(player->GetTeam()) == m_value1;
         }
         case CONDITION_SKILL:
-            return player->HasSkill(m_value1) && player->GetBaseSkillValue(m_value1) >= m_value2;
+            return player->HasSkill(m_value1) && player->GetSkillValueBase(m_value1) >= m_value2;
         case CONDITION_QUESTREWARDED:
             return player->GetQuestRewardStatus(m_value1);
         case CONDITION_QUESTTAKEN:
@@ -7615,7 +7615,7 @@ bool PlayerCondition::Meets(Player const* player, Map const* map, WorldObject co
         {
             if (m_value2 == 1)
                 return !player->HasSkill(m_value1);
-            return player->HasSkill(m_value1) && player->GetBaseSkillValue(m_value1) < m_value2;
+            return player->HasSkill(m_value1) && player->GetSkillValueBase(m_value1) < m_value2;
         }
         case CONDITION_REPUTATION_RANK_MAX:
         {
@@ -8484,6 +8484,30 @@ void ObjectMgr::LoadTrainers(char const* tableName, bool isTemplates)
         trainerSpell.conditionId   = fields[6].GetUInt16();
 
         trainerSpell.isProvidedReqLevel = trainerSpell.reqLevel > 0;
+
+        // calculate learned spell for profession case when stored cast-spell
+        trainerSpell.learnedSpell = spell;
+        for (int i = 0; i < MAX_EFFECT_INDEX; ++i)
+        {
+            if (spellinfo->Effect[i] == SPELL_EFFECT_LEARN_SPELL)
+            {
+                trainerSpell.learnedSpell = spellinfo->EffectTriggerSpell[i];
+
+                if (SpellMgr::IsProfessionOrRidingSpell(spellinfo->EffectTriggerSpell[i]))
+                {
+                    // prof spells sometime only additions to main spell learn that have level data
+                    for (int j = 0; j < MAX_EFFECT_INDEX; ++j)
+                    {
+                        if (spellinfo->Effect[j] == SPELL_EFFECT_LEARN_SPELL)
+                        {
+                            trainerSpell.learnedSpell = spellinfo->EffectTriggerSpell[j];
+                            break;
+                        }
+                    }
+                }
+                break;
+            }
+        }
 
         if (trainerSpell.reqLevel)
         {
