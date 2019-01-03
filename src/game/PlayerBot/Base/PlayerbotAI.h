@@ -24,6 +24,7 @@
 #include "../../Entities/Unit.h"
 #include "../../GameEvents/GameEventMgr.h"
 #include "../../Quests/QuestDef.h"
+#include "../../Groups/Group.h"
 
 class WorldPacket;
 class WorldObject;
@@ -328,6 +329,19 @@ class MANGOS_DLL_SPEC PlayerbotAI
             HL_AUCTION
         };
 
+        enum TargetIcons
+        {
+            TARGET_ICON_STAR      = 0,
+            TARGET_ICON_CIRCLE    = 1,
+            TARGET_ICON_DIAMOND   = 2,
+            TARGET_ICON_TRIANGLE  = 3,
+            TARGET_ICON_MOON      = 4,
+            TARGET_ICON_SQUARE    = 5,
+            TARGET_ICON_CROSS     = 6,
+            TARGET_ICON_SKULL     = 7,
+            TARGET_ICON_NONE      = TARGET_ICON_COUNT // Don't try to index an array with TARGET_ICON_NONE, it's out-of-bounds.
+        };
+
     public:
         PlayerbotAI(PlayerbotMgr* const mgr, Player* const bot);
         virtual ~PlayerbotAI();
@@ -614,6 +628,8 @@ class MANGOS_DLL_SPEC PlayerbotAI
         void _HandleCommandHelp(const char* szText, Player& fromPlayer) { std::string text = szText; _HandleCommandHelp(text, fromPlayer); }
         std::string _HandleCommandHelpHelper(std::string sCommand, std::string sExplain, HELPERLINKABLES reqLink = HL_NONE, bool bReqLinkMultiples = false, bool bCommandShort = false);
 
+        uint8 _ParseCommandForTargetIcon(std::string& text);
+
         // ****** Closed Actions ********************************
         // These actions may only be called at special times.
         // Trade methods are only applicable when the trade window is open
@@ -696,6 +712,8 @@ class MANGOS_DLL_SPEC PlayerbotAI
         SpellRanges m_spellRangeMap;
 
         float m_destX, m_destY, m_destZ; // latest coordinates for chase and point movement types
+
+        uint8 m_neutralizeTargetIcon;
 };
 
 #endif

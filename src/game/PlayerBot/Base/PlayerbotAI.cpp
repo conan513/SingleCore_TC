@@ -2161,8 +2161,51 @@ void PlayerbotAI::DoNextCombatManeuver()
     else
         Attack();
 
+    // We have orders to neutralize things marked with a specific target icon
+    // CC the target and keep it CCed if possible
+    // We don't want to continually cast CC while other people are breaking it 
+    //   instead of doing our regular job, but we also want to keep it locked down
+    //   until someone with authority breaks it (master or tank).
+    // Is there a better way to do this short of parsing the combat log
+    //   to see who spanked the sheep?
+    if (m_neutralizeTargetIcon && m_neutralizeTargetIcon != TARGET_ICON_NONE)
+    {
+        const ObjectGuid* neutralizeObject = m_bot->GetGroup()->GetGuidbyTargetIcon(m_neutralizeTargetIcon);
+        Unit* neutralizeTarget = ObjectAccessor::GetUnit(*m_bot, *neutralizeObject); 
+        if (neutralizeTarget && (!neutralizeTarget->isDead() && neutralizeTarget->IsInWorld() && m_bot->CanAttack(neutralizeTarget) && 
+            m_bot->IsInMap(neutralizeTarget) && !IsNeutralized(neutralizeTarget)))
+        {
+            TellMaster("CCing target %s", neutralizeTarget->GetName());
+            m_targetGuidCommand = *neutralizeObject;
+            // If we're in combat with more than 1 enemy (like on a pull),
+            //   check to see if there are any valid (not-dead, not-CCed) targets. 
+            // If so, keep it CCed. Our current target-to-be-neutralized counts as a valid target.
+            if (GetAttackerCount() > 1)
+            {
+                Unit* tgt = FindAttacker();
+                if (tgt)
+                {
+                    if (!CastNeutralize())
+                        TellMaster("Something went wrong neutralizing that %s", neutralizeTarget->GetName());
+                }
+            } else {
+                // Only one target, but unless the tank or master breaks it, keep it CCed
+                JOB_TYPE victimjob = JOB_HEAL; // Assume the worst
+                const Player* ntVictim = neutralizeTarget->getVictim()->GetControllingPlayer();
+                if (ntVictim)
+                    victimjob = GetClassAI()->GetTargetJob((Player*) ntVictim);
+                if (!(victimjob == JOB_TANK || victimjob == JOB_MASTER)) 
+                {
+                    if (!CastNeutralize())
+                        TellMaster("Something went wrong neutralizing that %s", neutralizeTarget->GetName());
+                }
+            }
+            return;
+        }
+    }
+
     // clear orders if current target for attacks doesn't make sense anymore
-    if (!m_targetCombat || m_targetCombat->isDead() || !m_targetCombat->IsInWorld() || !m_bot->CanAttack(m_targetCombat) || !m_bot->IsInMap(m_targetCombat))
+    if (!m_targetCombat || m_targetCombat->isDead() || !m_targetCombat->IsInWorld() || !m_bot->CanAttack(m_targetCombat) || !m_bot->IsInMap(m_targetCombat) || IsNeutralized(m_targetCombat))
     {
         m_bot->AttackStop();
         m_bot->SetSelectionGuid(ObjectGuid());
@@ -3305,16 +3348,38 @@ uint32 PlayerbotAI::EstRepair(uint16 pos)
 
 Unit* PlayerbotAI::FindAttacker(ATTACKERINFOTYPE ait, Unit* victim)
 {
+    Unit* a = nullptr;
     // list empty? why are we here?
     if (m_attackerInfo.empty())
         return nullptr;
 
-    // not searching something specific - return first in list
+    // not searching something specific - return first in list that's not neutralized
+    //  (respecting target priority conventions if they are set up)
+    // Not sure if target priority logic should go here, but it works for now.
     if (!ait)
-        return (m_attackerInfo.begin())->second.attacker;
+    {
+        // Start with targets marked with skull and proceed down the list.
+        // Never attack a neutralized target if we can help it.
+        for (uint8 icon = TARGET_ICON_SKULL; icon > 0; --icon)
+        {
+            const ObjectGuid* tgt_o = m_bot->GetGroup()->GetGuidbyTargetIcon(icon);
+            if (tgt_o)
+                a = ObjectAccessor::GetUnit(*m_bot, *(m_bot->GetGroup()->GetGuidbyTargetIcon(icon)));
+            if (a && (!a->isDead() && a->IsInWorld() && m_bot->CanAttack(a) && m_bot->IsInMap(a) && !IsNeutralized(a)))
+                return a;
+        }
+        // Couldn't get a target from icons, so return first in list that's not neutralized
+        AttackerInfoList::iterator itr = m_attackerInfo.begin();
+        for (; itr != m_attackerInfo.end(); ++itr)
+        {
+            a = itr->second.attacker;
+            if (!IsNeutralized(a))
+                return a;
+        }        
+        return a;
+    }
 
     float t = ((ait & AIT_HIGHESTTHREAT) ? 0.00 : 9999.00);
-    Unit* a = nullptr;
     AttackerInfoList::iterator itr = m_attackerInfo.begin();
     for (; itr != m_attackerInfo.end(); ++itr)
     {
@@ -6690,15 +6755,50 @@ void PlayerbotAI::_HandleCommandPull(std::string& text, Player& fromPlayer)
     //(5) when target is in melee range of tank, wait 2 seconds (healers continue to do group heal checks, all do self-heal checks), then return to normal functioning
 }
 
+uint8 PlayerbotAI::_ParseCommandForTargetIcon(std::string& text)
+{
+    if (ExtractCommand("star", text))
+        return TARGET_ICON_STAR;
+    else if (ExtractCommand("circle", text))
+        return TARGET_ICON_CIRCLE;
+    else if (ExtractCommand("diamond", text))
+        return TARGET_ICON_DIAMOND;
+    else if (ExtractCommand("triangle", text))
+        return TARGET_ICON_TRIANGLE;
+    else if (ExtractCommand("moon", text))
+        return TARGET_ICON_MOON;
+    else if (ExtractCommand("square", text))
+        return TARGET_ICON_SQUARE;
+    else if (ExtractCommand("cross", text))
+        return TARGET_ICON_CROSS;
+    else if (ExtractCommand("skull", text))
+        return TARGET_ICON_SKULL;
+    else 
+        return TARGET_ICON_NONE;
+}
+
 void PlayerbotAI::_HandleCommandNeutralize(std::string& text, Player& fromPlayer)
 {
     if (!m_bot) return;
 
+    // Parse the text to see what we want to neutralize
+    uint8 target_icon = _ParseCommandForTargetIcon(text);
+
+    if (target_icon != TARGET_ICON_NONE)
+        TellMaster("I got target icon %u", target_icon);
+
+    m_neutralizeTargetIcon = target_icon;
+
+    // If we successfully parsed a neutralize_target above,
+    //  the text variable should be empty.
     if (text != "")
     {
         SendWhisper("See 'help neutralize' for details on using the neutralize command.", fromPlayer);
         return;
     }
+
+    // No changes below--we want to be able to use the 'neutralize' command 
+    //   with a target and no args to CC said target.
 
     // Check for valid target
     m_bot->SetSelectionGuid(fromPlayer.GetSelectionGuid());

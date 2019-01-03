@@ -79,6 +79,7 @@ class MANGOS_DLL_SPEC PlayerbotClassAI
         time_t GetWaitUntil() { return m_WaitUntil; }
         void SetWait(uint8 t) { m_WaitUntil = m_ai->CurrentTime() + t; }
         void ClearWait() { m_WaitUntil = 0; }
+        JOB_TYPE GetTargetJob(Player* target);
         //void SetWaitUntil(time_t t) { m_WaitUntil = t; }
 
     protected:
@@ -95,7 +96,6 @@ class MANGOS_DLL_SPEC PlayerbotClassAI
         Player* GetHealTarget(JOB_TYPE type = JOB_ALL);
         Player* GetDispelTarget(DispelType dispelType, JOB_TYPE type = JOB_ALL, bool bMustBeOOC = false);
         Player* GetResurrectionTarget(JOB_TYPE type = JOB_ALL, bool bMustBeOOC = true);
-        JOB_TYPE GetTargetJob(Player* target);
 
         bool FleeFromAoEIfCan(uint32 spellId, Unit* pTarget);
         bool FleeFromTrapGOIfCan(uint32 goEntry, Unit* pTarget);
