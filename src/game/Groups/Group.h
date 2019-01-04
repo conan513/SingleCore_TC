@@ -87,6 +87,19 @@ enum GroupUpdateFlags
     GROUP_UPDATE_FULL                   = 0x0007FFFF,       // all known flags
 };
 
+enum TargetIcons
+{
+    TARGET_ICON_STAR      = 0,
+    TARGET_ICON_CIRCLE    = 1,
+    TARGET_ICON_DIAMOND   = 2,
+    TARGET_ICON_TRIANGLE  = 3,
+    TARGET_ICON_MOON      = 4,
+    TARGET_ICON_SQUARE    = 5,
+    TARGET_ICON_CROSS     = 6,
+    TARGET_ICON_SKULL     = 7,
+    TARGET_ICON_NONE      = TARGET_ICON_COUNT // Don't try to index an array with TARGET_ICON_NONE, it's out-of-bounds.
+};
+
 #define GROUP_UPDATE_FLAGS_COUNT          20
 // 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,11,12,13,14,15,16,17,18,19
 static const uint8 GroupUpdateLength[GROUP_UPDATE_FLAGS_COUNT] = { 0, 2, 2, 2, 1, 2, 2, 2, 2, 4, 8, 8, 1, 2, 2, 2, 1, 2, 2, 8};
@@ -230,6 +243,7 @@ class Group
 
         void SetTargetIcon(uint8 id, ObjectGuid targetGuid);
         const ObjectGuid* GetGuidbyTargetIcon(uint8 id);
+        const char* GetTargetIconName(uint8 id);
         uint16 InInstance();
         bool InCombatToInstance(uint32 instanceId);
         void ResetInstances(InstanceResetMethod method, Player* SendMsgTo);
