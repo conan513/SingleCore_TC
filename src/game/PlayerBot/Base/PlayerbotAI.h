@@ -23,8 +23,8 @@
 #include "../../Entities/ObjectGuid.h"
 #include "../../Entities/Unit.h"
 #include "../../GameEvents/GameEventMgr.h"
-#include "../../Quests/QuestDef.h"
 #include "../../Groups/Group.h"
+#include "../../Quests/QuestDef.h"
 
 class WorldPacket;
 class WorldObject;
@@ -327,19 +327,6 @@ class MANGOS_DLL_SPEC PlayerbotAI
             HL_TARGET,
             HL_NAME,
             HL_AUCTION
-        };
-
-        enum TargetIcons
-        {
-            TARGET_ICON_STAR      = 0,
-            TARGET_ICON_CIRCLE    = 1,
-            TARGET_ICON_DIAMOND   = 2,
-            TARGET_ICON_TRIANGLE  = 3,
-            TARGET_ICON_MOON      = 4,
-            TARGET_ICON_SQUARE    = 5,
-            TARGET_ICON_CROSS     = 6,
-            TARGET_ICON_SKULL     = 7,
-            TARGET_ICON_NONE      = TARGET_ICON_COUNT // Don't try to index an array with TARGET_ICON_NONE, it's out-of-bounds.
         };
 
     public:
