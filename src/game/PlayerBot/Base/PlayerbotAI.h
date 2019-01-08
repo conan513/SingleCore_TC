@@ -23,6 +23,7 @@
 #include "../../Entities/ObjectGuid.h"
 #include "../../Entities/Unit.h"
 #include "../../GameEvents/GameEventMgr.h"
+#include "../../Groups/Group.h"
 #include "../../Quests/QuestDef.h"
 
 class WorldPacket;
@@ -614,6 +615,8 @@ class MANGOS_DLL_SPEC PlayerbotAI
         void _HandleCommandHelp(const char* szText, Player& fromPlayer) { std::string text = szText; _HandleCommandHelp(text, fromPlayer); }
         std::string _HandleCommandHelpHelper(std::string sCommand, std::string sExplain, HELPERLINKABLES reqLink = HL_NONE, bool bReqLinkMultiples = false, bool bCommandShort = false);
 
+        uint8 _ParseCommandForTargetIcon(std::string& text);
+
         // ****** Closed Actions ********************************
         // These actions may only be called at special times.
         // Trade methods are only applicable when the trade window is open
@@ -696,6 +699,8 @@ class MANGOS_DLL_SPEC PlayerbotAI
         SpellRanges m_spellRangeMap;
 
         float m_destX, m_destY, m_destZ; // latest coordinates for chase and point movement types
+
+        uint8 m_neutralizeTargetIcon;
 };
 
 #endif

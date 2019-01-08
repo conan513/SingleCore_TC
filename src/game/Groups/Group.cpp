@@ -468,6 +468,42 @@ void Group::SetTargetIcon(uint8 id, ObjectGuid targetGuid)
     BroadcastPacket(data, true);
 }
 
+// Return the name of the given target icon
+const char* Group::GetTargetIconName(uint8 id)
+{
+    switch (id)
+    {
+        case TARGET_ICON_STAR:
+            return "star";
+        case TARGET_ICON_CIRCLE:
+            return "circle";
+        case TARGET_ICON_DIAMOND:
+            return "diamond";
+        case TARGET_ICON_TRIANGLE:
+            return "triangle";
+        case TARGET_ICON_MOON:
+            return "moon";
+        case TARGET_ICON_SQUARE:
+            return "square";
+        case TARGET_ICON_CROSS:
+            return "cross";
+        case TARGET_ICON_SKULL:
+            return "skull";
+        case TARGET_ICON_NONE:
+        default:
+            return "none";
+    }
+}
+
+// Get the GO identified by a target icon
+const ObjectGuid* Group::GetGuidbyTargetIcon(uint8 id)
+{
+    if (id >= TARGET_ICON_COUNT)
+        return nullptr;
+    const ObjectGuid* guid = &m_targetIcons[id];
+    return guid;
+}
+
 static void GetDataForXPAtKill_helper(Player* player, Unit const* victim, uint32& sum_level, Player*& member_with_max_level, Player*& not_gray_member_with_max_level)
 {
     sum_level += player->getLevel();
