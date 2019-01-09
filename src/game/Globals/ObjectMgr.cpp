@@ -7580,7 +7580,7 @@ bool PlayerCondition::Meets(Player const* player, Map const* map, WorldObject co
 
             bool isSkillOk = false;
 
-            SkillLineAbilityMapBounds bounds = sSpellMgr.GetSkillLineAbilityMapBounds(m_value1);
+            SkillLineAbilityMapBounds bounds = sSpellMgr.GetSkillLineAbilityMapBoundsBySpellId(m_value1);
 
             for (SkillLineAbilityMap::const_iterator itr = bounds.first; itr != bounds.second; ++itr)
             {
@@ -8069,7 +8069,7 @@ bool PlayerCondition::IsValid(uint16 entry, ConditionType condition, uint32 valu
             break;
         case CONDITION_LEARNABLE_ABILITY:
         {
-            SkillLineAbilityMapBounds bounds = sSpellMgr.GetSkillLineAbilityMapBounds(value1);
+            SkillLineAbilityMapBounds bounds = sSpellMgr.GetSkillLineAbilityMapBoundsBySpellId(value1);
 
             if (bounds.first == bounds.second)
             {
@@ -8485,26 +8485,16 @@ void ObjectMgr::LoadTrainers(char const* tableName, bool isTemplates)
 
         trainerSpell.isProvidedReqLevel = trainerSpell.reqLevel > 0;
 
-        // calculate learned spell for profession case when stored cast-spell
+        // By default, lets assume the specified spell is the one we want to teach the player...
         trainerSpell.learnedSpell = spell;
+        // ...but first, lets inspect this spell...
         for (int i = 0; i < MAX_EFFECT_INDEX; ++i)
         {
-            if (spellinfo->Effect[i] == SPELL_EFFECT_LEARN_SPELL)
+            if (spellinfo->Effect[i] == SPELL_EFFECT_LEARN_SPELL && spellinfo->EffectTriggerSpell[i])
             {
+                // ...looks like the specified spell is actually a trainer's spell casted on player to teach another spell
+                // Trainer's spells can teach more than one spell (up to number of effects), but we will stick to the first one
                 trainerSpell.learnedSpell = spellinfo->EffectTriggerSpell[i];
-
-                if (SpellMgr::IsProfessionOrRidingSpell(spellinfo->EffectTriggerSpell[i]))
-                {
-                    // prof spells sometime only additions to main spell learn that have level data
-                    for (int j = 0; j < MAX_EFFECT_INDEX; ++j)
-                    {
-                        if (spellinfo->Effect[j] == SPELL_EFFECT_LEARN_SPELL)
-                        {
-                            trainerSpell.learnedSpell = spellinfo->EffectTriggerSpell[j];
-                            break;
-                        }
-                    }
-                }
                 break;
             }
         }
