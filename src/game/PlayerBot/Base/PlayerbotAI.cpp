@@ -2953,7 +2953,9 @@ void PlayerbotAI::DoLoot()
         }
         else
         {
-            TellMaster("I do not have the required skill.");
+            // Stop spamming the master with failures to skin
+            if (skillId != SKILL_SKINNING)
+                TellMaster("I do not have the required skill.");
             skillFailed = true;
         }
 
