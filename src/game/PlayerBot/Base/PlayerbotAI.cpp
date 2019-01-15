@@ -2170,40 +2170,50 @@ void PlayerbotAI::DoNextCombatManeuver()
     //   to see who spanked the sheep?
     if (m_neutralizeTargetIcon != TARGET_ICON_NONE)
     {
-        const ObjectGuid* neutralizeObject = m_bot->GetGroup()->GetGuidbyTargetIcon(m_neutralizeTargetIcon);
-        Unit* neutralizeTarget = ObjectAccessor::GetUnit(*m_bot, *neutralizeObject); 
-        if (neutralizeTarget && (!neutralizeTarget->isDead() && neutralizeTarget->IsInWorld() && m_bot->CanAttack(neutralizeTarget) && 
-            m_bot->IsInMap(neutralizeTarget) && !IsNeutralized(neutralizeTarget)))
+        const ObjectGuid* neutralizeObject = 
+            m_bot->GetGroup()->GetGuidbyTargetIcon(m_neutralizeTargetIcon);
+        if (neutralizeObject)
         {
-            TellMaster("Neutralizing this %s", neutralizeTarget->GetName());
-            m_targetGuidCommand = *neutralizeObject;
-            // If we're in combat with more than 1 enemy (like on a pull),
-            //   check to see if there are any valid (not-dead, not-CCed) targets. 
-            // If so, keep it CCed. 
-            // Our current target-to-be-neutralized counts as a valid target,
-            //   so this isn't perfect.
-            if (GetAttackerCount() > 1)
+            Unit* neutralizeTarget = ObjectAccessor::GetUnit(*m_bot, *neutralizeObject); 
+            if (neutralizeTarget && (!neutralizeTarget->isDead() && 
+                neutralizeTarget->IsInWorld() && m_bot->CanAttack(neutralizeTarget) && 
+                m_bot->IsInMap(neutralizeTarget) && !IsNeutralized(neutralizeTarget)))
             {
-                Unit* tgt = FindAttacker();
-                if (tgt)
-                { 
-                    if (!CastNeutralize())
-                        TellMaster("Something went wrong neutralizing that %s", neutralizeTarget->GetName());
-                    return;
-                }
-            } else {
-                // Only one target, but unless the tank or master breaks it, keep it CCed
-                JOB_TYPE victimjob = JOB_HEAL; // Assume the worst
-                if (neutralizeTarget->getVictim()->GetTypeId() == TYPEID_PLAYER)
+                TellMaster("Neutralizing this %s", neutralizeTarget->GetName());
+                m_targetGuidCommand = *neutralizeObject;
+                // If we're in combat with more than 1 enemy (like on a pull),
+                //   check to see if there are any valid (not-dead, not-CCed) targets. 
+                // If so, keep it CCed. 
+                // Our current target-to-be-neutralized counts as a valid target,
+                //   so this isn't perfect.
+                if (GetAttackerCount() > 1)
                 {
-                    const Player* ntVictim = neutralizeTarget->getVictim()->GetControllingPlayer();
-                    victimjob = GetClassAI()->GetTargetJob((Player*) ntVictim);
+                    Unit* tgt = FindAttacker();
+                    if (tgt)
+                    { 
+                        if (!CastNeutralize())
+                            TellMaster("Something went wrong neutralizing that %s", 
+                                neutralizeTarget->GetName());
+                        return;
+                    }
                 }
-                if (!(victimjob == JOB_TANK || victimjob == JOB_MASTER)) 
+                else 
                 {
-                    if (!CastNeutralize())
-                        TellMaster("Something went wrong neutralizing that %s", neutralizeTarget->GetName());
-                    return;
+                    // Only one target, but unless the tank or master breaks it, keep it CCed
+                    JOB_TYPE victimjob = JOB_HEAL; // Assume the worst
+                    if (neutralizeTarget->getVictim()->GetTypeId() == TYPEID_PLAYER)
+                    {
+                        const Player* ntVictim = 
+                            neutralizeTarget->getVictim()->GetControllingPlayer();
+                        victimjob = GetClassAI()->GetTargetJob((Player*) ntVictim);
+                    }
+                    if (!(victimjob == JOB_TANK || victimjob == JOB_MASTER)) 
+                    {
+                        if (!CastNeutralize())
+                            TellMaster("Something went wrong neutralizing that %s", 
+                                neutralizeTarget->GetName());
+                        return;
+                    }
                 }
             }
         }
