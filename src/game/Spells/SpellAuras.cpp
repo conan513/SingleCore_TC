@@ -2865,6 +2865,7 @@ void Aura::HandleAuraModSchoolImmunity(bool apply, bool Real)
             ++next;
             SpellEntry const* spell = iter->second->GetSpellProto();
             if ((GetSpellSchoolMask(spell) & school_mask)   // Check for school mask
+                    && !iter->second->IsPassive()
                     && !spell->HasAttribute(SPELL_ATTR_UNAFFECTED_BY_INVULNERABILITY)   // Spells unaffected by invulnerability
                     && !iter->second->IsPositive()          // Don't remove positive spells
                     && spell->Id != GetId())                // Don't remove self
@@ -4403,7 +4404,7 @@ void Aura::PeriodicTick()
             uint32 procVictim   = PROC_FLAG_ON_TAKE_PERIODIC;// | PROC_FLAG_TAKEN_HARMFUL_SPELL_HIT;
             pdamage = (pdamage <= absorb + resist) ? 0 : (pdamage - absorb - resist);
 
-            SpellPeriodicAuraLogInfo pInfo(this, pdamage, absorb, resist, 0.0f);
+            SpellPeriodicAuraLogInfo pInfo(this, pdamage, absorb, int32(resist), 0.0f);
             target->SendPeriodicAuraLog(&pInfo);
 
             if (pdamage)

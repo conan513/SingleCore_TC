@@ -5269,7 +5269,7 @@ void Unit::SendPeriodicAuraLog(SpellPeriodicAuraLogInfo* pInfo) const
             data << uint32(pInfo->damage);                  // damage
             data << uint32(aura->GetSpellProto()->School);
             data << uint32(pInfo->absorb);                  // absorb
-            data << uint32(pInfo->resist);                  // resist
+            data << int32(pInfo->resist);                   // resist
             break;
         case SPELL_AURA_PERIODIC_HEAL:
         case SPELL_AURA_OBS_MOD_HEALTH:
@@ -5428,7 +5428,7 @@ void Unit::SendAttackStateUpdate(CalcDamageInfo* calcDamageInfo) const
         data << float(line.damage) / float(calcDamageInfo->totalDamage);   // Float coefficient of subdamage
         data << uint32(line.damage);
         data << uint32(line.absorb);
-        data << uint32(line.resist);
+        data << int32(line.resist);
     }
 
     data << uint32(calcDamageInfo->TargetState);
@@ -10666,6 +10666,8 @@ void Unit::Uncharm(Unit* charmed, uint32 spellId)
     Creature* charmedCreature = nullptr;
     CharmInfo* charmInfo = charmed->GetCharmInfo();
 
+    charmed->SetEvade(EVADE_NONE); // if charm expires mid evade clear evade since movement is also cleared - TODO: maybe should be done on HomeMovementGenerator::MovementExpires?
+
     if (charmed->GetTypeId() == TYPEID_UNIT)
     {
         // now we have to clean threat list to be able to restore normal creature behavior
@@ -10737,7 +10739,6 @@ void Unit::Uncharm(Unit* charmed, uint32 spellId)
         charmedPlayer->DeleteThreatList(); // TODO: Add threat management for player during charm, only entries with 0 threat
     }
 
-    charmed->SetEvade(EVADE_NONE); // if charm expires mid evade clear evade since movement is also cleared - TODO: maybe should be done on HomeMovementGenerator::MovementExpires?
     // Update possessed's client control status after altering flags
     if (const Player* controllingClientPlayer = charmed->GetClientControlling())
         controllingClientPlayer->UpdateClientControl(charmed, true);
