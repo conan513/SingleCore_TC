@@ -2,7 +2,7 @@
  * MaNGOS is a full featured server for World of Warcraft, supporting
  * the following clients: 1.12.x, 2.4.3, 3.3.5a, 4.3.4a and 5.4.8
  *
- * Copyright (C) 2005-2018  MaNGOS project <https://getmangos.eu>
+ * Copyright (C) 2005-2019  MaNGOS project <https://getmangos.eu>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -434,7 +434,7 @@ void MySqlPreparedStatement::addParam(unsigned int nIndex, const SqlStmtFieldDat
 
     MYSQL_BIND& pData = m_pInputArgs[nIndex];
 
-    my_bool bUnsigned = 0;
+    bool bUnsigned = false;
     enum_field_types dataType = ToMySQLType(data, bUnsigned);
 
     // setup MYSQL_BIND structure
@@ -479,24 +479,24 @@ bool MySqlPreparedStatement::execute()
     return true;
 }
 
-enum_field_types MySqlPreparedStatement::ToMySQLType(const SqlStmtFieldData& data, my_bool& bUnsigned)
+enum_field_types MySqlPreparedStatement::ToMySQLType(const SqlStmtFieldData& data, bool& bUnsigned)
 {
-    bUnsigned = 0;
+    bUnsigned = false;
     enum_field_types dataType = MYSQL_TYPE_NULL;
 
     switch (data.type())
     {
         case FIELD_NONE:    dataType = MYSQL_TYPE_NULL;                     break;
             // MySQL does not support MYSQL_TYPE_BIT as input type
-        case FIELD_BOOL:    // dataType = MYSQL_TYPE_BIT;      bUnsigned = 1;  break;
-        case FIELD_UI8:     dataType = MYSQL_TYPE_TINY;     bUnsigned = 1;  break;
+        case FIELD_BOOL:    // dataType = MYSQL_TYPE_BIT;      bUnsigned = true;  break;
+        case FIELD_UI8:     dataType = MYSQL_TYPE_TINY;     bUnsigned = true;  break;
         case FIELD_I8:      dataType = MYSQL_TYPE_TINY;                     break;
         case FIELD_I16:     dataType = MYSQL_TYPE_SHORT;                    break;
-        case FIELD_UI16:    dataType = MYSQL_TYPE_SHORT;    bUnsigned = 1;  break;
+        case FIELD_UI16:    dataType = MYSQL_TYPE_SHORT;    bUnsigned = true;  break;
         case FIELD_I32:     dataType = MYSQL_TYPE_LONG;                     break;
-        case FIELD_UI32:    dataType = MYSQL_TYPE_LONG;     bUnsigned = 1;  break;
+        case FIELD_UI32:    dataType = MYSQL_TYPE_LONG;     bUnsigned = true;  break;
         case FIELD_I64:     dataType = MYSQL_TYPE_LONGLONG;                 break;
-        case FIELD_UI64:    dataType = MYSQL_TYPE_LONGLONG; bUnsigned = 1;  break;
+        case FIELD_UI64:    dataType = MYSQL_TYPE_LONGLONG; bUnsigned = true;  break;
         case FIELD_FLOAT:   dataType = MYSQL_TYPE_FLOAT;                    break;
         case FIELD_DOUBLE:  dataType = MYSQL_TYPE_DOUBLE;                   break;
         case FIELD_STRING:  dataType = MYSQL_TYPE_STRING;                   break;

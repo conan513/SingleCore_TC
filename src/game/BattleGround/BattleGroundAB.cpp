@@ -2,7 +2,7 @@
  * MaNGOS is a full featured server for World of Warcraft, supporting
  * the following clients: 1.12.x, 2.4.3, 3.3.5a, 4.3.4a and 5.4.8
  *
- * Copyright (C) 2005-2018  MaNGOS project <https://getmangos.eu>
+ * Copyright (C) 2005-2019  MaNGOS project <https://getmangos.eu>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -594,15 +594,19 @@ void BattleGroundAB::UpdatePlayerScore(Player* source, uint32 type, uint32 value
     }
 }
 
+/// <summary>
+/// Gets the premature finish winning team.
+/// </summary>
 Team BattleGroundAB::GetPrematureWinner()
 {
     int32 hordeScore = m_TeamScores[TEAM_INDEX_HORDE];
     int32 allianceScore = m_TeamScores[TEAM_INDEX_ALLIANCE];
 
     if (hordeScore > allianceScore)
-        { return HORDE; }
+      { return HORDE; }
+
     if (allianceScore > hordeScore)
-        { return ALLIANCE; }
+      { return ALLIANCE; }
 
     // If the values are equal, fall back to number of players on each team
     return BattleGround::GetPrematureWinner();

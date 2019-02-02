@@ -2,7 +2,7 @@
  * MaNGOS is a full featured server for World of Warcraft, supporting
  * the following clients: 1.12.x, 2.4.3, 3.3.5a, 4.3.4a and 5.4.8
  *
- * Copyright (C) 2005-2018  MaNGOS project <https://getmangos.eu>
+ * Copyright (C) 2005-2019  MaNGOS project <https://getmangos.eu>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -236,6 +236,11 @@ class BattleGroundQueue
         class SelectionPool
         {
             public:
+                /**
+                 * @brief
+                 *
+                 * Constructor
+                 */
                 SelectionPool() : PlayerCount(0) {}
                 /**
                  * @brief
@@ -547,11 +552,22 @@ class BattleGroundMgr
         void ScheduleQueueUpdate(uint32 arenaRating, ArenaType arenaType, BattleGroundQueueTypeId bgQueueTypeId, BattleGroundTypeId bgTypeId, BattleGroundBracketId bracket_id);
         uint32 GetMaxRatingDifference() const;
         uint32 GetRatingDiscardTimer()  const;
+
+        /**
+         * @brief
+         *
+         * @return uint32
+         */
         uint32 GetPrematureFinishTime() const;
 
         void InitAutomaticArenaPointDistribution();
         void DistributeArenaPoints();
         void ToggleArenaTesting();
+
+        /**
+         * @brief
+         *
+         */
         void ToggleTesting();
 
         /**
@@ -606,11 +622,23 @@ class BattleGroundMgr
         }
 
         bool isArenaTesting() const { return m_ArenaTesting; }
+
+        /**
+         * @brief
+         *
+         * @return bool
+         */
         bool isTesting() const { return m_Testing; }
 
         static bool IsArenaType(BattleGroundTypeId bgTypeId);
         static bool IsBattleGroundType(BattleGroundTypeId bgTypeId) { return !IsArenaType(bgTypeId); }
         static BattleGroundQueueTypeId BGQueueTypeId(BattleGroundTypeId bgTypeId, ArenaType arenaType);
+        /**
+         * @brief
+         *
+         * @param bgQueueTypeId
+         * @return BattleGroundTypeId
+         */
         static BattleGroundTypeId BGTemplateId(BattleGroundQueueTypeId bgQueueTypeId);
         static ArenaType BGArenaType(BattleGroundQueueTypeId bgQueueTypeId);
 

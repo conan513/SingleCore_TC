@@ -2,7 +2,7 @@
  * MaNGOS is a full featured server for World of Warcraft, supporting
  * the following clients: 1.12.x, 2.4.3, 3.3.5a, 4.3.4a and 5.4.8
  *
- * Copyright (C) 2005-2018  MaNGOS project <https://getmangos.eu>
+ * Copyright (C) 2005-2019  MaNGOS project <https://getmangos.eu>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -820,6 +820,7 @@ bool ChatHandler::HandleReloadBattleEventCommand(char* /*args*/)
 
 bool ChatHandler::HandleReloadEventAITextsCommand(char* /*args*/)
 {
+
     sLog.outString("Re-Loading Texts from `creature_ai_texts`...");
     sEventAIMgr.LoadCreatureEventAI_Texts(true);
     SendGlobalSysMessage("DB table `creature_ai_texts` reloaded.", SEC_MODERATOR);
@@ -6170,12 +6171,12 @@ bool ChatHandler::HandleInstanceUnbindCommand(char* args)
                                     save->GetDifficulty() == DUNGEON_DIFFICULTY_NORMAL ? "normal" : "heroic", save->CanReset() ? "yes" : "no", timeleft.c_str());
                 }
                 else
-                    PSendSysMessage("bound for a nonexistent map %u", itr->first);
+                    { PSendSysMessage("bound for a nonexistent map %u", itr->first); }
                 player->UnbindInstance(itr, Difficulty(i));
                 ++counter;
             }
             else
-                ++itr;
+                { ++itr; }
         }
     }
     PSendSysMessage("instances unbound: %d", counter);

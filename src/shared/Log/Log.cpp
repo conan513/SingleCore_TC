@@ -2,7 +2,7 @@
  * MaNGOS is a full featured server for World of Warcraft, supporting
  * the following clients: 1.12.x, 2.4.3, 3.3.5a, 4.3.4a and 5.4.8
  *
- * Copyright (C) 2005-2018  MaNGOS project <https://getmangos.eu>
+ * Copyright (C) 2005-2019  MaNGOS project <https://getmangos.eu>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -901,32 +901,36 @@ void Log::outWarden(const char* str, ...)
     {
         return;
     }
-
-    if (m_colored)
+    if (m_logLevel >= LOG_LVL_DETAIL)
     {
-        SetColor(true, m_colors[LogNormal]);
+        if (m_colored)
+        {
+            SetColor(true, m_colors[LogNormal]);
+        }
+
+        if (m_includeTime)
+        {
+            outTime();
+        }
+
+        va_list ap;
+
+        va_start(ap, str);
+        vutf8printf(stdout, str, &ap);
+        va_end(ap);
+
+        if (m_colored)
+        {
+            ResetColor(true);
+        }
+
+        printf("\n");
     }
 
-    if (m_includeTime)
+    if (wardenLogfile && m_logFileLevel >= LOG_LVL_DETAIL)
     {
-        outTime();
-    }
+        va_list ap;
 
-    va_list ap;
-
-    va_start(ap, str);
-    vutf8printf(stdout, str, &ap);
-    va_end(ap);
-
-    if (m_colored)
-    {
-        ResetColor(true);
-    }
-
-    printf("\n");
-
-    if (wardenLogfile)
-    {
         outTimestamp(wardenLogfile);
         fprintf(wardenLogfile, "[Warden]: ");
 

@@ -1,7 +1,7 @@
 # MaNGOS is a full featured server for World of Warcraft, supporting
 # the following clients: 1.12.x, 2.4.3, 3.3.5a, 4.3.4a and 5.4.8
 #
-# Copyright (C) 2005-2018  MaNGOS project <https://getmangos.eu>
+# Copyright (C) 2005-2019  MaNGOS project <https://getmangos.eu>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -36,22 +36,19 @@ endif()
 
 if(WIN32)
 include(generate_product_version)
-generate_product_version(
-    VersionFilesOutputVariable
-    NAME "mangosd.exe"
-    ICON ${CMAKE_SOURCE_DIR}/src/mangosd/mangosd.ico
-    VERSION_MAJOR 0
-    VERSION_MINOR 21
-    VERSION_PATH ${BUILD_COUNTER}
-    VERSION_REVISION ${BUILD_REVISION}
-	COMPANY_NAME "getmangos.eu"
-# Do not alter, remove or prevent COMPANY_COPYRIGHT from displaying
-	COMPANY_COPYRIGHT
-	FILE_DESCRIPTION "Mangos One Server Daemon"
-)
-endif()
-
-if(WIN32)
+    generate_product_version(
+        VersionFilesOutputVariable
+        NAME "mangosd.exe"
+        ICON ${CMAKE_SOURCE_DIR}/src/mangosd/mangosd.ico
+        VERSION_MAJOR 0
+        VERSION_MINOR 21
+        VERSION_PATH ${BUILD_COUNTER}
+        VERSION_REVISION ${BUILD_REVISION}
+        COMPANY_NAME "getmangos.eu"
+        # Do not alter, remove or prevent COMPANY_COPYRIGHT from displaying
+        COMPANY_COPYRIGHT
+        FILE_DESCRIPTION "Mangos One Server Daemon"
+    )
     # add resource file to windows build
     set(EXECUTABLE_SRCS ${EXECUTABLE_SRCS} VersionResource.rc)
 endif()

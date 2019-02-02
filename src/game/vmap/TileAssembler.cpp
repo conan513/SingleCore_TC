@@ -2,7 +2,7 @@
  * MaNGOS is a full featured server for World of Warcraft, supporting
  * the following clients: 1.12.x, 2.4.3, 3.3.5a, 4.3.4a and 5.4.8
  *
- * Copyright (C) 2005-2018  MaNGOS project <https://getmangos.eu>
+ * Copyright (C) 2005-2019  MaNGOS project <https://getmangos.eu>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -216,14 +216,13 @@ namespace VMAP
             return false;
         }
         printf("Read coordinate mapping...\n");
-        uint32 mapID, tileX, tileY, check = 0;
+        uint32 mapID, tileX, tileY;
         G3D::Vector3 v1, v2;
         ModelSpawn spawn;
         while (!feof(dirf))
         {
-            check = 0;
             // read mapID, tileX, tileY, Flags, adtID, ID, Pos, Rot, Scale, Bound_lo, Bound_hi, name
-            check += fread(&mapID, sizeof(uint32), 1, dirf);
+            uint32 check = fread(&mapID, sizeof(uint32), 1, dirf);
             if (check == 0) // EoF...
                 { break; }
             check += fread(&tileX, sizeof(uint32), 1, dirf);
