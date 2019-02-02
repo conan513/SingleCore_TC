@@ -397,7 +397,7 @@ void Player::UpdateAttackPowerAndDamage(bool ranged)
     else
     {
         UpdateDamagePhysical(BASE_ATTACK);
-        if (CanDualWield() && haveOffhandWeapon())          // allow update offhand damage only if player knows DualWield Spec and has equipped offhand weapon
+        if (CanDualWield() && hasOffhandWeaponForAttack())          // allow update offhand damage only if player knows DualWield Spec and has equipped offhand weapon
             UpdateDamagePhysical(OFF_ATTACK);
     }
 }
@@ -420,7 +420,7 @@ uint32 Player::GetEnchantmentModifier(WeaponAttackType attType)
     return m_enchantmentFlatMod[attType];
 }
 
-void Player::CalculateMinMaxDamage(WeaponAttackType attType, bool normalized, float& min_damage, float& max_damage)
+void Player::CalculateMinMaxDamage(WeaponAttackType attType, bool normalized, float& min_damage, float& max_damage, uint8 index)
 {
     UnitMods unitMod;
 
@@ -445,8 +445,8 @@ void Player::CalculateMinMaxDamage(WeaponAttackType attType, bool normalized, fl
     float total_value = GetModifierValue(unitMod, TOTAL_VALUE);
     float total_pct   = GetModifierValue(unitMod, TOTAL_PCT);
 
-    float weapon_mindamage = GetWeaponDamageRange(attType, MINDAMAGE);
-    float weapon_maxdamage = GetWeaponDamageRange(attType, MAXDAMAGE);
+    float weapon_mindamage = GetBaseWeaponDamage(attType, MINDAMAGE, index);
+    float weapon_maxdamage = GetBaseWeaponDamage(attType, MAXDAMAGE, index);
 
     if (IsInFeralForm())                                    // check if player is druid and in cat or bear forms, non main hand attacks not allowed for this mode so not check attack type
     {
@@ -469,6 +469,12 @@ void Player::CalculateMinMaxDamage(WeaponAttackType attType, bool normalized, fl
         {
             weapon_mindamage += GetAmmoDPS() * att_speed;
             weapon_maxdamage += GetAmmoDPS() * att_speed;
+    }
+
+    if (index != 0)
+    {
+        base_value = 0.0f;
+        total_value = 0.0f;
         }
     }
 
@@ -522,7 +528,7 @@ void Player::UpdateBlockPercentage()
         value += GetRatingBonusValue(CR_BLOCK);
         real = value;
         // Set UI display value: modify value from defense skill against same level target
-        value += (int32(GetDefenseSkillValue()) - int32(GetMaxSkillValueForLevel())) * 0.04f;
+        value += (int32(GetDefenseSkillValue()) - int32(GetSkillMaxForLevel())) * 0.04f;
     }
     m_modBlockChance = real;
     SetStatFloatValue(PLAYER_BLOCK_PERCENTAGE, std::max(0.0f, std::min(value, 100.0f)));
@@ -557,7 +563,7 @@ void Player::UpdateCritPercentage(WeaponAttackType attType)
     float value = GetTotalPercentageModValue(modGroup) + GetRatingBonusValue(cr);
     m_modCritChance[attType] = value;
     // Modify crit from weapon skill and maximized defense skill of same level victim difference
-    value += (int32(GetWeaponSkillValue(attType)) - int32(GetMaxSkillValueForLevel())) * 0.04f;
+    value += (int32(GetWeaponSkillValue(attType)) - int32(GetSkillMaxForLevel())) * 0.04f;
     SetStatFloatValue(index, std::max(0.0f, std::min(value, 100.0f)));
 }
 
@@ -590,7 +596,7 @@ void Player::UpdateParryPercentage()
         // Set value for diminishing when in combat
         m_modDodgeChanceDiminishing = GetRatingBonusValue(CR_PARRY);
         // Set UI display value: modify value from defense skill against same level target
-        value += (int32(GetDefenseSkillValue()) - int32(GetMaxSkillValueForLevel())) * 0.04f;
+        value += (int32(GetDefenseSkillValue()) - int32(GetSkillMaxForLevel())) * 0.04f;
     }
     // Set current dodge chance
     m_modParryChance = real;
@@ -630,7 +636,7 @@ void Player::UpdateDodgePercentage()
     m_modDodgeChanceDiminishing = GetDodgeFromAgility((GetStat(STAT_AGILITY) - (GetCreateStat(STAT_AGILITY) * m_auraModifiersGroup[UNIT_MOD_STAT_START + STAT_AGILITY][BASE_PCT])));
     m_modDodgeChanceDiminishing += GetRatingBonusValue(CR_DODGE);
     // Set UI display value: modify value from defense skill against same level target
-    value += (int32(GetDefenseSkillValue()) - int32(GetMaxSkillValueForLevel())) * 0.04f;
+    value += (int32(GetDefenseSkillValue()) - int32(GetSkillMaxForLevel())) * 0.04f;
     SetStatFloatValue(PLAYER_DODGE_PERCENTAGE, std::max(0.0f, std::min(value, 100.0f)));
 }
 
@@ -893,11 +899,18 @@ void Creature::UpdateDamagePhysical(WeaponAttackType attType)
     float total_value = GetModifierValue(unitMod, TOTAL_VALUE);
     float total_pct   = GetModifierValue(unitMod, TOTAL_PCT);
 
-    float weapon_mindamage = GetWeaponDamageRange(attType, MINDAMAGE);
-    float weapon_maxdamage = GetWeaponDamageRange(attType, MAXDAMAGE);
+    float weapon_mindamage = GetBaseWeaponDamage(attType, MINDAMAGE);
+    float weapon_maxdamage = GetBaseWeaponDamage(attType, MAXDAMAGE);
 
     float mindamage = ((base_value + weapon_mindamage) * base_pct + total_value) * total_pct;
     float maxdamage = ((base_value + weapon_maxdamage) * base_pct + total_value) * total_pct;
+
+    // Disarm for creatures
+    if (hasWeapon(attType) && !hasWeaponForAttack(attType))
+    {
+        mindamage *= 0.5f;
+        maxdamage *= 0.5f;
+    }
 
     SetStatFloatValue(attType == BASE_ATTACK ? UNIT_FIELD_MINDAMAGE : UNIT_FIELD_MINOFFHANDDAMAGE, mindamage);
     SetStatFloatValue(attType == BASE_ATTACK ? UNIT_FIELD_MAXDAMAGE : UNIT_FIELD_MAXOFFHANDDAMAGE, maxdamage);
@@ -1098,8 +1111,8 @@ void Pet::UpdateDamagePhysical(WeaponAttackType attType)
     float total_value = GetModifierValue(unitMod, TOTAL_VALUE);
     float total_pct   = GetModifierValue(unitMod, TOTAL_PCT);
 
-    float weapon_mindamage = GetWeaponDamageRange(BASE_ATTACK, MINDAMAGE);
-    float weapon_maxdamage = GetWeaponDamageRange(BASE_ATTACK, MAXDAMAGE);
+    float weapon_mindamage = GetBaseWeaponDamage(BASE_ATTACK, MINDAMAGE);
+    float weapon_maxdamage = GetBaseWeaponDamage(BASE_ATTACK, MAXDAMAGE);
 
     float mindamage = ((base_value + weapon_mindamage) * base_pct + total_value) * total_pct;
     float maxdamage = ((base_value + weapon_maxdamage) * base_pct + total_value) * total_pct;

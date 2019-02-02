@@ -33,6 +33,9 @@ enum
     // Quest 10998
     NPC_VIMGOL_VISUAL_BUNNY     = 23040,
 
+    // Quest 10607
+    NPC_WHISPER_RAVEN_GOD_TEMPLATE = 21851,
+
     // Quest 10310
     GO_ROCKET_FIRE              = 183987,
     GO_ROCKET_SMOKE             = 183988,
@@ -47,6 +50,13 @@ enum
     NPC_ZAPETTA                 = 9566,
     NPC_SNURK_BUCKSQUICK        = 12136,
     NPC_SQUIBBY_OVERSPECK       = 12137,
+    NPC_HARROWMEISER            = 23823,
+    NPC_GREEB_RAMROCKET         = 26537,
+    NPC_NARGO_SCREWBORE         = 26538,
+    NPC_MEEFI_FARTHROTTLE       = 26539,
+    NPC_DRENK_SPANNERSPARK      = 26540,
+    NPC_ZELLI_HOTNOZZLE         = 34765,
+    NPC_KRENDLE_BIGPOCKETS      = 34766,
 
     // Quest 8868
     TYPE_OMEN                   = 0,
@@ -67,6 +77,14 @@ enum
     GO_WATER_RIFT               = 179665,
     GO_FIRE_RIFT                = 179666,
     GO_AIR_RIFT                 = 179667,
+
+    // Deaths Door gates
+    NPC_DEATHS_DOOR_NORTH_WARP_GATE = 22471,
+    NPC_DEATHS_DOOR_SOUTH_WARP_GATE = 22472,
+
+    TYPE_DEATHS_DOOR_NORTH      = 0,
+    TYPE_DEATHS_DOOR_SOUTH      = 1,
+    TYPE_SHARTUUL               = 2,
 };
 
 enum ElementalInvasionIndexes

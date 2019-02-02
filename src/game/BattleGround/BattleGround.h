@@ -65,7 +65,9 @@ enum BattleGroundQuests
     SPELL_AV_QUEST_KILLED_BOSS      = 23658,
     SPELL_EY_QUEST_REWARD           = 43477,
     SPELL_AB_QUEST_REWARD_4_BASES   = 24061,
-    SPELL_AB_QUEST_REWARD_5_BASES   = 24064
+    SPELL_AB_QUEST_REWARD_5_BASES   = 24064,
+    SPELL_SA_QUEST_REWARD           = 61213,
+    SPELL_IC_QUEST_REWARD           = 67033,
 };
 
 enum BattleGroundMarks
@@ -76,6 +78,8 @@ enum BattleGroundMarks
     SPELL_AB_MARK_WINNER            = 24953,                // not create marks now
     SPELL_AV_MARK_LOSER             = 24954,                // not create marks now
     SPELL_AV_MARK_WINNER            = 24955,                // not create marks now
+    SPELL_SA_MARK_LOSER             = 61159,
+    SPELL_SA_MARK_WINNER            = 61160,
 
     SPELL_WG_MARK_VICTORY           = 24955,                // honor + mark
     SPELL_WG_MARK_DEFEAT            = 58494,                // honor + mark
@@ -186,7 +190,7 @@ enum ScoreType
     // WS
     SCORE_FLAG_CAPTURES         = 7,
     SCORE_FLAG_RETURNS          = 8,
-    // AB
+    // AB and IC
     SCORE_BASES_ASSAULTED       = 9,
     SCORE_BASES_DEFENDED        = 10,
     // AV
@@ -194,7 +198,10 @@ enum ScoreType
     SCORE_GRAVEYARDS_DEFENDED   = 12,
     SCORE_TOWERS_ASSAULTED      = 13,
     SCORE_TOWERS_DEFENDED       = 14,
-    SCORE_SECONDARY_OBJECTIVES  = 15
+    SCORE_SECONDARY_OBJECTIVES  = 15,
+    // SA
+    SCORE_GATES_DESTROYED       = 16,
+    SCORE_DEMOLISHERS_DESTROYED = 17,
 };
 
 enum BattleGroundType
@@ -427,6 +434,7 @@ class BattleGround
         static void BlockMovement(Player* plr);
 
         void SendMessageToAll(int32 entry, ChatMsg type, Player const* source = nullptr);
+        void SendMessageToAll(int32 entry, ChatMsg type, uint32 language, ObjectGuid guid);
         void SendYellToAll(int32 entry, uint32 language, ObjectGuid guid);
         void PSendMessageToAll(int32 entry, ChatMsg type, Player const* source, ...);
 
@@ -465,7 +473,7 @@ class BattleGround
         virtual void HandleKillUnit(Creature* /*unit*/, Player* /*killer*/) {}
 
         // Process Capture event
-        virtual bool HandleEvent(uint32 /*eventId*/, GameObject* /*go*/) { return false; }
+        virtual bool HandleEvent(uint32 /*eventId*/, GameObject* /*go*/, Unit* /*invoker*/) { return false; }
 
         // Called when a creature is created
         virtual void HandleCreatureCreate(Creature* /*creature*/) {}
@@ -525,6 +533,12 @@ class BattleGround
         static Team GetOtherTeam(Team team) { return (team == ALLIANCE || team == HORDE) ? ((team == ALLIANCE) ? HORDE : ALLIANCE) : TEAM_NONE; }
         static PvpTeamIndex GetOtherTeamIndex(PvpTeamIndex teamIdx) { return teamIdx == TEAM_INDEX_ALLIANCE ? TEAM_INDEX_HORDE : TEAM_INDEX_ALLIANCE; }
         bool IsPlayerInBattleGround(ObjectGuid guid);
+
+        // Handle script condition fulfillment
+        virtual bool IsConditionFulfilled(Player const* /*source*/, uint32 /*conditionId*/, WorldObject const* /*conditionSource*/, uint32 /*conditionSourceType*/) { return false; }
+
+        // Handle achievement criteria requirements
+        virtual bool CheckAchievementCriteriaMeet(uint32 /*criteria_id*/, Player const* /*source*/, Unit const* /*target*/, uint32 /*miscvalue1*/) { return false; }
 
         /* virtual score-array - get's used in bg-subclasses */
         int32 m_TeamScores[PVP_TEAM_COUNT];

@@ -104,6 +104,7 @@ bool AchievementCriteriaRequirement::IsValid(AchievementCriteriaEntry const* cri
         case ACHIEVEMENT_CRITERIA_REQUIRE_BG_LOSS_TEAM_SCORE:
         case ACHIEVEMENT_CRITERIA_REQUIRE_INSTANCE_SCRIPT:
         case ACHIEVEMENT_CRITERIA_REQUIRE_NTH_BIRTHDAY:
+        case ACHIEVEMENT_CRITERIA_REQUIRE_PVP_SCRIPT:
             return true;
         case ACHIEVEMENT_CRITERIA_REQUIRE_T_CREATURE:
             if (!creature.id || !ObjectMgr::GetCreatureTemplate(creature.id))
@@ -371,6 +372,25 @@ bool AchievementCriteriaRequirement::Meets(uint32 criteria_id, Player const* sou
                 return source && source->HasTitle(titleInfo->bit_index);
 
             return false;
+        }
+        case ACHIEVEMENT_CRITERIA_REQUIRE_PVP_SCRIPT:
+        {
+            if (!source->IsInWorld())
+                return false;
+
+            if (OutdoorPvP* outdoorPvP = sOutdoorPvPMgr.GetScript(source->GetCachedZoneId()))
+                return outdoorPvP->CheckAchievementCriteriaMeet(criteria_id, source, target, miscvalue1);
+            else if (source->InBattleGround())
+            {
+                if (BattleGround* bg = source->GetBattleGround())
+                    return bg->CheckAchievementCriteriaMeet(criteria_id, source, target, miscvalue1);
+            }
+            else
+            {
+                sLog.outErrorDb("Achievement system call ACHIEVEMENT_CRITERIA_REQUIRE_PVP_SCRIPT (%u) for achievement criteria %u for zone %u but zone does not have pvp script",
+                                ACHIEVEMENT_CRITERIA_REQUIRE_PVP_SCRIPT, criteria_id, source->GetZoneId());
+                return false;
+            }
         }
     }
     return false;
@@ -978,7 +998,7 @@ void AchievementMgr::UpdateAchievementCriteria(AchievementCriteriaTypes type, ui
                 // update at loading or specific skill update
                 if (miscvalue1 && miscvalue1 != achievementCriteria->reach_skill_level.skillID)
                     continue;
-                change = GetPlayer()->GetBaseSkillValue(achievementCriteria->reach_skill_level.skillID);
+                change = GetPlayer()->GetSkillValueBase(achievementCriteria->reach_skill_level.skillID);
                 progressType = PROGRESS_HIGHEST;
                 break;
             }
@@ -987,7 +1007,7 @@ void AchievementMgr::UpdateAchievementCriteria(AchievementCriteriaTypes type, ui
                 // update at loading or specific skill update
                 if (miscvalue1 && miscvalue1 != achievementCriteria->learn_skill_level.skillID)
                     continue;
-                change = GetPlayer()->GetPureMaxSkillValue(achievementCriteria->learn_skill_level.skillID);
+                change = GetPlayer()->GetSkillMaxPure(achievementCriteria->learn_skill_level.skillID);
                 progressType = PROGRESS_HIGHEST;
                 break;
             }
@@ -1528,7 +1548,7 @@ void AchievementMgr::UpdateAchievementCriteria(AchievementCriteriaTypes type, ui
                         spellIter != GetPlayer()->GetSpellMap().end();
                         ++spellIter)
                 {
-                    SkillLineAbilityMapBounds bounds = sSpellMgr.GetSkillLineAbilityMapBounds(spellIter->first);
+                    SkillLineAbilityMapBounds bounds = sSpellMgr.GetSkillLineAbilityMapBoundsBySpellId(spellIter->first);
                     for (SkillLineAbilityMap::const_iterator skillIter = bounds.first; skillIter != bounds.second; ++skillIter)
                     {
                         if (skillIter->second->skillId == achievementCriteria->learn_skillline_spell.skillLine)
@@ -1593,7 +1613,7 @@ void AchievementMgr::UpdateAchievementCriteria(AchievementCriteriaTypes type, ui
                         spellIter != GetPlayer()->GetSpellMap().end();
                         ++spellIter)
                 {
-                    SkillLineAbilityMapBounds bounds = sSpellMgr.GetSkillLineAbilityMapBounds(spellIter->first);
+                    SkillLineAbilityMapBounds bounds = sSpellMgr.GetSkillLineAbilityMapBoundsBySpellId(spellIter->first);
                     for (SkillLineAbilityMap::const_iterator skillIter = bounds.first; skillIter != bounds.second; ++skillIter)
                         if (skillIter->second->skillId == achievementCriteria->learn_skill_line.skillLine)
                             ++spellCount;

@@ -16,8 +16,8 @@
 
 /* ScriptData
 SDName: Boss_Four_Horsemen
-SD%Complete: 90
-SDComment: Lady Blaumeux, Thane Korthazz, Sir Zeliek, Baron Rivendare; Berserk NYI.
+SD%Complete: 99
+SDComment: Is special text used when 100 marks are reached?
 SDCategory: Naxxramas
 EndScriptData */
 
@@ -56,12 +56,13 @@ enum
     SAY_ZELI_DEATH          = -1533064,
     EMOTE_CONDEMATION       = -1533157,
 
+    MAX_MARK_STACKS         = 100,              // Berserk is applied once 100 marks are casted
+
     // ***** Spells *****
     // all horsemen
     // SPELL_SHIELDWALL     = 29061,            // not used in 3.x.x
     SPELL_BESERK            = 26662,
     SPELL_ACHIEV_CHECK      = 59450,
-    // Note: Berserk should be applied once 100 marks are casted.
 
     // lady blaumeux
     SPELL_MARK_OF_BLAUMEUX  = 28833,
@@ -120,12 +121,14 @@ struct boss_lady_blaumeuxAI : public ScriptedAI
     uint32 m_uiMarkTimer;
     uint32 m_uiVoidZoneTimer;
     uint32 m_uiShadowBoltTimer;
+    uint32 m_uiMarkCounter;
 
     void Reset() override
     {
         m_uiMarkTimer       = 20000;
         m_uiVoidZoneTimer   = 15000;
         m_uiShadowBoltTimer = 10000;
+        m_uiMarkCounter     = 0;
         m_bIsCornerMovement = true;
     }
 
@@ -189,15 +192,24 @@ struct boss_lady_blaumeuxAI : public ScriptedAI
         if (m_uiMarkTimer < uiDiff)
         {
             if (DoCastSpellIfCan(m_creature, SPELL_MARK_OF_BLAUMEUX) == CAST_OK)
+            {
+                m_uiMarkCounter++;
                 m_uiMarkTimer = 12000;
+                if (m_uiMarkCounter == MAX_MARK_STACKS)
+                    DoCastSpellIfCan(m_creature, SPELL_BESERK, CAST_TRIGGERED | CAST_AURA_NOT_PRESENT);
+            }
         }
         else
             m_uiMarkTimer -= uiDiff;
 
         if (m_uiVoidZoneTimer < uiDiff)
         {
-            if (DoCastSpellIfCan(m_creature->getVictim(), m_bIsRegularMode ? SPELL_VOID_ZONE : SPELL_VOID_ZONE_H) == CAST_OK)
-                m_uiVoidZoneTimer = 15000;
+            Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0, SPELL_VOID_ZONE, SELECT_FLAG_PLAYER);
+            if (pTarget)
+            {
+                if (DoCastSpellIfCan(pTarget, m_bIsRegularMode ? SPELL_VOID_ZONE : SPELL_VOID_ZONE_H) == CAST_OK)
+                    m_uiVoidZoneTimer = 15000;
+            }
         }
         else
             m_uiVoidZoneTimer -= uiDiff;
@@ -241,11 +253,13 @@ struct boss_rivendare_naxxAI : public ScriptedAI
     bool m_bIsCornerMovement;
     uint32 m_uiMarkTimer;
     uint32 m_uiUnholyShadowTimer;
+    uint32 m_uiMarkCounter;
 
     void Reset() override
     {
         m_uiMarkTimer         = 20000;
         m_uiUnholyShadowTimer = 15000;
+        m_uiMarkCounter       = 0;
         m_bIsCornerMovement   = true;
     }
 
@@ -316,7 +330,12 @@ struct boss_rivendare_naxxAI : public ScriptedAI
         if (m_uiMarkTimer < uiDiff)
         {
             if (DoCastSpellIfCan(m_creature, SPELL_MARK_OF_RIVENDARE) == CAST_OK)
+            {
+                m_uiMarkCounter++;
                 m_uiMarkTimer = 12000;
+                if (m_uiMarkCounter == MAX_MARK_STACKS)
+                    DoCastSpellIfCan(m_creature, SPELL_BESERK, CAST_TRIGGERED | CAST_AURA_NOT_PRESENT);
+            }
         }
         else
             m_uiMarkTimer -= uiDiff;
@@ -353,11 +372,13 @@ struct boss_thane_korthazzAI : public ScriptedAI
     bool m_bIsCornerMovement;
     uint32 m_uiMarkTimer;
     uint32 m_uiMeteorTimer;
+    uint32 m_uiMarkCounter;
 
     void Reset() override
     {
         m_uiMarkTimer       = 20000;
         m_uiMeteorTimer     = 30000;
+        m_uiMarkCounter     = 0;
         m_bIsCornerMovement = true;
     }
 
@@ -423,7 +444,12 @@ struct boss_thane_korthazzAI : public ScriptedAI
         if (m_uiMarkTimer < uiDiff)
         {
             if (DoCastSpellIfCan(m_creature, SPELL_MARK_OF_KORTHAZZ) == CAST_OK)
+            {
+                m_uiMarkCounter++;
                 m_uiMarkTimer = 12000;
+                if (m_uiMarkCounter == MAX_MARK_STACKS)
+                    DoCastSpellIfCan(m_creature, SPELL_BESERK, CAST_TRIGGERED | CAST_AURA_NOT_PRESENT);
+            }
         }
         else
             m_uiMarkTimer -= uiDiff;
@@ -461,12 +487,14 @@ struct boss_sir_zeliekAI : public ScriptedAI
     uint32 m_uiMarkTimer;
     uint32 m_uiHolyWrathTimer;
     uint32 m_uiHolyBoltTimer;
+    uint32 m_uiMarkCounter;
 
     void Reset() override
     {
         m_uiMarkTimer       = 20000;
         m_uiHolyWrathTimer  = 12000;
         m_uiHolyBoltTimer   = 10000;
+        m_uiMarkCounter     = 0;
         m_bIsCornerMovement = true;
     }
 
@@ -530,7 +558,12 @@ struct boss_sir_zeliekAI : public ScriptedAI
         if (m_uiMarkTimer < uiDiff)
         {
             if (DoCastSpellIfCan(m_creature, SPELL_MARK_OF_ZELIEK) == CAST_OK)
+            {
+                m_uiMarkCounter++;
                 m_uiMarkTimer = 12000;
+                if (m_uiMarkCounter == MAX_MARK_STACKS)
+                    DoCastSpellIfCan(m_creature, SPELL_BESERK, CAST_TRIGGERED | CAST_AURA_NOT_PRESENT);
+            }
         }
         else
             m_uiMarkTimer -= uiDiff;

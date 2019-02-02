@@ -179,6 +179,7 @@ struct boss_nightbaneAI : public npc_escortAI
         if (uiPointId == 31)
         {
             SetEscortPaused(true);
+            m_creature->HandleEmote(EMOTE_ONESHOT_LAND);
             m_creature->SetCanFly(false);
             m_creature->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE_TO_PLAYER);
             m_creature->RemoveByteFlag(UNIT_FIELD_BYTES_1, 3, UNIT_BYTE1_FLAG_FLY_ANIM);
@@ -194,6 +195,19 @@ struct boss_nightbaneAI : public npc_escortAI
     {
         if (m_uiPhase != PHASE_GROUND && uiDamage >= m_creature->GetHealth())
             uiDamage = 0;
+    }
+
+    void PhaseTransitionTimersReset()
+    {
+        if (m_uiPhase == PHASE_GROUND)
+        {
+            m_uiBellowingRoarTimer = 10000;
+            m_uiSmolderingBreathTimer = 5000;
+        }
+        else
+        {
+            // TODO:
+        }
     }
 
     void MovementInform(uint32 uiMotionType, uint32 uiPointId) override
@@ -223,6 +237,7 @@ struct boss_nightbaneAI : public npc_escortAI
                     DoStartMovement(m_creature->getVictim());
                     break;
             }
+            PhaseTransitionTimersReset();
         }
     }
 
@@ -268,7 +283,7 @@ struct boss_nightbaneAI : public npc_escortAI
 
                 if (m_uiBellowingRoarTimer < uiDiff)
                 {
-                    if (DoCastSpellIfCan(m_creature, SPELL_BELLOWING_ROAR) == CAST_OK)
+                    if (DoCastSpellIfCan(nullptr, SPELL_BELLOWING_ROAR) == CAST_OK)
                         m_uiBellowingRoarTimer = urand(30000, 45000);
                 }
                 else
@@ -276,7 +291,7 @@ struct boss_nightbaneAI : public npc_escortAI
 
                 if (m_uiSmolderingBreathTimer < uiDiff)
                 {
-                    if (DoCastSpellIfCan(m_creature, SPELL_SMOLDERING_BREATH) == CAST_OK)
+                    if (DoCastSpellIfCan(nullptr, SPELL_SMOLDERING_BREATH) == CAST_OK)
                         m_uiSmolderingBreathTimer = urand(14000, 20000);
                 }
                 else
@@ -295,7 +310,7 @@ struct boss_nightbaneAI : public npc_escortAI
 
                 if (m_uiTailSweepTimer < uiDiff)
                 {
-                    if (DoCastSpellIfCan(m_creature, SPELL_TAIL_SWEEP) == CAST_OK)
+                    if (DoCastSpellIfCan(nullptr, SPELL_TAIL_SWEEP) == CAST_OK)
                         m_uiTailSweepTimer = urand(14000, 20000);
                 }
                 else
@@ -334,7 +349,7 @@ struct boss_nightbaneAI : public npc_escortAI
                 {
                     if (m_uiRainBonesTimer <= uiDiff)
                     {
-                        if (Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0))
+                        if (Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0, nullptr, SELECT_FLAG_PLAYER))
                         {
                             if (m_creature->CastSpell(pTarget, SPELL_RAIN_OF_BONES, TRIGGERED_NONE) == SPELL_CAST_OK)
                             {
@@ -349,7 +364,7 @@ struct boss_nightbaneAI : public npc_escortAI
 
                 if (m_uiSmokingBlastTimer < uiDiff)
                 {
-                    if (Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0))
+                    if (Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0, nullptr, SELECT_FLAG_PLAYER))
                     {
                         if (DoCastSpellIfCan(pTarget, SPELL_SMOKING_BLAST) == CAST_OK)
                             m_uiSmokingBlastTimer = urand(1000, 3000);
@@ -360,7 +375,7 @@ struct boss_nightbaneAI : public npc_escortAI
 
                 if (m_uiDistractingAshTimer < uiDiff)
                 {
-                    if (Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0))
+                    if (Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0, nullptr, SELECT_FLAG_PLAYER))
                     {
                         if (DoCastSpellIfCan(pTarget, SPELL_DISTRACTING_ASH) == CAST_OK)
                             m_uiDistractingAshTimer = urand(7000, 13000);

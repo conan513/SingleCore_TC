@@ -64,6 +64,11 @@ Map::~Map()
     m_weatherSystem = nullptr;
 }
 
+uint32 Map::GetCurrentMSTime() const
+{
+    return World::GetCurrentMSTime();
+}
+
 TimePoint Map::GetCurrentClockTime() const
 {
     return World::GetCurrentClockTime();
@@ -544,6 +549,31 @@ bool Map::loaded(const GridPair& p) const
     return (getNGrid(p.x_coord, p.y_coord) && isGridObjectDataLoaded(p.x_coord, p.y_coord));
 }
 
+void Map::VisitNearbyCellsOf(WorldObject* obj, TypeContainerVisitor<MaNGOS::ObjectUpdater, GridTypeMapContainer> &gridVisitor, TypeContainerVisitor<MaNGOS::ObjectUpdater, WorldTypeMapContainer> &worldVisitor)
+{
+    // lets update mobs/objects in ALL visible cells around player!
+    CellArea area = Cell::CalculateCellArea(obj->GetPositionX(), obj->GetPositionY(), GetVisibilityDistance());
+
+    for (uint32 x = area.low_bound.x_coord; x <= area.high_bound.x_coord; ++x)
+    {
+        for (uint32 y = area.low_bound.y_coord; y <= area.high_bound.y_coord; ++y)
+        {
+            // marked cells are those that have been visited
+            // don't visit the same cell twice
+            uint32 cell_id = (y * TOTAL_NUMBER_OF_CELLS_PER_MAP) + x;
+            if (!isCellMarked(cell_id))
+            {
+                markCell(cell_id);
+                CellPair pair(x, y);
+                Cell cell(pair);
+                cell.SetNoCreate();
+                Visit(cell, gridVisitor);
+                Visit(cell, worldVisitor);
+            }
+        }
+    }
+}
+
 void Map::Update(const uint32& t_diff)
 {
     m_dyn_tree.update(t_diff);
@@ -566,10 +596,7 @@ void Map::Update(const uint32& t_diff)
     {
         Player* plr = m_mapRefIter->getSource();
         if (plr && plr->IsInWorld())
-        {
-            WorldObject::UpdateHelper helper(plr);
-            helper.Update(t_diff);
-        }
+            plr->Update(t_diff);
     }
 
     /// update active cells around players and active objects
@@ -583,7 +610,8 @@ void Map::Update(const uint32& t_diff)
         m_messageVector.clear();
     }
 
-    MaNGOS::ObjectUpdater obj_updater(t_diff);
+    WorldObjectUnSet objToUpdate;
+    MaNGOS::ObjectUpdater obj_updater(objToUpdate);
     TypeContainerVisitor<MaNGOS::ObjectUpdater, GridTypeMapContainer  > grid_object_update(obj_updater);    // For creature
     TypeContainerVisitor<MaNGOS::ObjectUpdater, WorldTypeMapContainer > world_object_update(obj_updater);   // For pets
 
@@ -591,32 +619,15 @@ void Map::Update(const uint32& t_diff)
     // to make sure calls to Map::Remove don't invalidate it
     for (m_mapRefIter = m_mapRefManager.begin(); m_mapRefIter != m_mapRefManager.end(); ++m_mapRefIter)
     {
-        Player* plr = m_mapRefIter->getSource();
-
-        if (!plr->IsInWorld() || !plr->IsPositionValid())
+        Player* player = m_mapRefIter->getSource();
+        if (!player->IsInWorld() || !player->IsPositionValid())
             continue;
 
-        // lets update mobs/objects in ALL visible cells around player!
-        CellArea area = Cell::CalculateCellArea(plr->GetPositionX(), plr->GetPositionY(), GetVisibilityDistance());
+        VisitNearbyCellsOf(player, grid_object_update, world_object_update);
 
-        for (uint32 x = area.low_bound.x_coord; x <= area.high_bound.x_coord; ++x)
-        {
-            for (uint32 y = area.low_bound.y_coord; y <= area.high_bound.y_coord; ++y)
-            {
-                // marked cells are those that have been visited
-                // don't visit the same cell twice
-                uint32 cell_id = (y * TOTAL_NUMBER_OF_CELLS_PER_MAP) + x;
-                if (!isCellMarked(cell_id))
-                {
-                    markCell(cell_id);
-                    CellPair pair(x, y);
-                    Cell cell(pair);
-                    cell.SetNoCreate();
-                    Visit(cell, grid_object_update);
-                    Visit(cell, world_object_update);
-                }
-            }
-        }
+        // If player is using far sight, visit that object too
+        if (WorldObject* viewPoint = GetWorldObject(player->GetFarSightGuid()))
+            VisitNearbyCellsOf(viewPoint, grid_object_update, world_object_update);
     }
 
     // non-player active objects
@@ -657,6 +668,10 @@ void Map::Update(const uint32& t_diff)
             }
         }
     }
+
+    // update all objects
+    for (auto wObj : objToUpdate)
+        wObj->Update(t_diff);
 
     // Send world objects and item update field changes
     SendObjectUpdates();
@@ -1733,11 +1748,7 @@ void BattleGroundMap::UnloadAll(bool pForce)
 bool Map::CanEnter(Player* player)
 {
     if (player->GetMapRef().getTarget() == this)
-    {
-        sLog.outError("Map::CanEnter -%s already in map!", player->GetGuidStr().c_str());
-        MANGOS_ASSERT(false);
         return false;
-    }
 
     return true;
 }
@@ -2173,7 +2184,7 @@ bool Map::GetHeightInRange(uint32 phasemask, float x, float y, float& z, float m
         if (diffMaps < maxSearchDist)
         {
             // well we simply have to take the highest as normally there we cannot be on top of cavern is maxSearchDist is not too big
-            if (vmapHeight > mapHeight)
+            if (vmapHeight > mapHeight || std::fabs(mapHeight - z) > std::fabs(vmapHeight - z))
                 height = vmapHeight;
             else
                 height = mapHeight;

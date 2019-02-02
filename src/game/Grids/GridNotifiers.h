@@ -113,13 +113,15 @@ namespace MaNGOS
 
     struct ObjectUpdater
     {
-        uint32 i_timeDiff;
-        explicit ObjectUpdater(const uint32& diff) : i_timeDiff(diff) {}
+        explicit ObjectUpdater(WorldObjectUnSet& otus) : m_objectToUpdateSet(otus) {}
         template<class T> void Visit(GridRefManager<T>& m);
         void Visit(PlayerMapType&) {}
         void Visit(CorpseMapType&) {}
         void Visit(CameraMapType&) {}
         void Visit(CreatureMapType&);
+
+      private:
+      WorldObjectUnSet& m_objectToUpdateSet;
     };
 
     struct PlayerVisitObjectsNotifier
@@ -755,14 +757,17 @@ namespace MaNGOS
     class AllGameObjectEntriesListInPosRangeCheck
     {
         public:
-            AllGameObjectEntriesListInPosRangeCheck(WorldObject const& obj, float x, float y, float z, std::set<uint32>& entries, float range, bool is3D = true) : i_x(x), i_y(y), i_z(z), i_entries(entries), i_range(range), i_is3D(is3D), i_obj(obj) {}
-            WorldObject const& GetFocusObject() const { return i_obj; }
+            AllGameObjectEntriesListInPosRangeCheck(WorldObject const& obj, float x, float y, float z, std::set<uint32>& entries, float range, bool is3D = true) : i_obj(obj), i_x(x), i_y(y), i_z(z), i_entries(entries), i_range(range), i_is3D(is3D) {}
             bool operator()(GameObject* go)
             {
-                return go->IsSpawned() && i_entries.find(go->GetEntry()) != i_entries.end() && go->IsWithinDist3d(i_x, i_y, i_z, i_range);
+                if (go->IsSpawned() && i_entries.find(go->GetEntry()) != i_entries.end() && go->GetDistance(i_x, i_y, i_z, DIST_CALC_COMBAT_REACH) < i_range)
+                    return true;
+
+                return false;
             }
 
             std::vector<uint32> i_ranges;
+            WorldObject const& GetFocusObject() const { return i_obj; }
         private:
             float i_x, i_y, i_z;
             std::set<uint32>& i_entries;
@@ -889,11 +894,14 @@ namespace MaNGOS
     class MostHPMissingInRangeCheck
     {
         public:
-            MostHPMissingInRangeCheck(Unit const* obj, float range, float hp, bool onlyInCombat = true) : i_obj(obj), i_range(range), i_hp(hp), i_onlyInCombat(onlyInCombat) {}
+            MostHPMissingInRangeCheck(Unit const* obj, float range, float hp, bool onlyInCombat, bool targetSelf) : i_obj(obj), i_range(range), i_hp(hp), i_onlyInCombat(onlyInCombat), i_targetSelf(targetSelf) {}
             WorldObject const& GetFocusObject() const { return *i_obj; }
             bool operator()(Unit* u)
             {
                 if (!u->isAlive() || (i_onlyInCombat && !u->isInCombat()))
+                    return false;
+
+                if (!i_targetSelf && u == i_obj)
                     return false;
 
                 if (i_obj->CanAssist(u) && i_obj->IsWithinDistInMap(u, i_range))
@@ -911,16 +919,20 @@ namespace MaNGOS
             float i_range;
             float i_hp;
             bool i_onlyInCombat;
+            bool i_targetSelf;
     };
 
     class MostHPPercentMissingInRangeCheck
     {
         public:
-            MostHPPercentMissingInRangeCheck(Unit const* obj, float range, float hp, bool onlyInCombat = true) : i_obj(obj), i_range(range), i_hp(hp), i_onlyInCombat(onlyInCombat) {}
+            MostHPPercentMissingInRangeCheck(Unit const* obj, float range, float hp, bool onlyInCombat, bool targetSelf) : i_obj(obj), i_range(range), i_hp(hp), i_onlyInCombat(onlyInCombat), i_targetSelf(targetSelf) {}
             WorldObject const& GetFocusObject() const { return *i_obj; }
             bool operator()(Unit* u)
             {
                 if (!u->isAlive() || (i_onlyInCombat && !u->isInCombat()))
+                    return false;
+
+                if (!i_targetSelf && u == i_obj)
                     return false;
 
                 if (i_obj->CanAssist(u) && i_obj->IsWithinDistInMap(u, i_range))
@@ -938,6 +950,7 @@ namespace MaNGOS
             float i_range;
             float i_hp;
             bool i_onlyInCombat;
+            bool i_targetSelf;
     };
 
     class FriendlyCCedInRangeCheck
@@ -998,7 +1011,7 @@ namespace MaNGOS
                 return u->isAlive()
                        && i_obj->IsWithinDistInMap(u, i_range)
                        && i_obj->CanAssistSpell(u)
-                       && u->isVisibleForOrDetect(i_funit, i_funit, false);
+                       && u->IsVisibleForOrDetect(i_funit, i_funit, false);
             }
         private:
             WorldObject const* i_obj;
@@ -1122,7 +1135,7 @@ namespace MaNGOS
             {
                 if (currUnit->isAlive() && (m_source->IsAttackedBy(currUnit) || (m_owner && m_owner->IsAttackedBy(currUnit)) || m_source->IsEnemy(currUnit))
                     && m_source->CanAttack(currUnit)
-                    && currUnit->isVisibleForOrDetect(m_source, m_source, false)
+                    && currUnit->IsVisibleForOrDetect(m_source, m_source, false)
                     && m_source->IsWithinDistInMap(currUnit, m_range))
                 {
                     m_range = m_source->GetDistance(currUnit);        // use found unit range as new range limit for next check
@@ -1260,9 +1273,10 @@ namespace MaNGOS
             {
                 if (u->GetEntry() == i_entry && ((i_onlyAlive && u->isAlive()) || (i_onlyDead && u->IsCorpse()) || (!i_onlyAlive && !i_onlyDead)) && (!i_excludeSelf || (&i_obj != u)))
                 {
-                    if (i_obj.IsWithinDistInMap(u, i_range))
+                    float dist = sqrt(i_obj.GetDistance(u, true, DIST_CALC_NONE));
+                    if (dist < i_range)
                     {
-                        i_range = i_obj.GetDistance(u);         // use found unit range as new range limit for next check
+                        i_range = dist;         // use found unit range as new range limit for next check
                         return true;
                     }
                     i_foundOutOfRange = true;
@@ -1270,7 +1284,6 @@ namespace MaNGOS
                 return false;
             }
             float GetLastRange() const { return i_range; }
-            bool FoundOutOfRange() const { return i_foundOutOfRange; }
         private:
             WorldObject const& i_obj;
             WorldObject* i_objForPhaseMaskCheck;

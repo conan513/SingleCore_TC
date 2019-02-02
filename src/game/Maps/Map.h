@@ -37,6 +37,7 @@
 
 #include <bitset>
 #include <functional>
+#include <list>
 
 struct CreatureInfo;
 class Creature;
@@ -53,6 +54,7 @@ class BattleGround;
 class GridMap;
 class GameObjectModel;
 class WeatherSystem;
+namespace MaNGOS { struct ObjectUpdater; }
 
 // GCC have alternative #pragma pack(N) syntax and old gcc version not support pack(push,N), also any gcc version not support it at some platform
 #if defined( __GNUC__ )
@@ -135,6 +137,7 @@ class Map : public GridRefManager<NGridType>
 
         static void DeleteFromWorld(Player* pl);        // player object will deleted at call
 
+        void VisitNearbyCellsOf(WorldObject* obj, TypeContainerVisitor<MaNGOS::ObjectUpdater, GridTypeMapContainer> &gridVisitor, TypeContainerVisitor<MaNGOS::ObjectUpdater, WorldTypeMapContainer> &worldVisitor);
         virtual void Update(const uint32&);
 
         void MessageBroadcast(Player const*, WorldPacket const&, bool to_self);
@@ -339,6 +342,7 @@ class Map : public GridRefManager<NGridType>
         void AddToSpawnCount(const ObjectGuid& guid);
         void RemoveFromSpawnCount(const ObjectGuid& guid);
 
+        uint32 GetCurrentMSTime() const;
         TimePoint GetCurrentClockTime() const;
         uint32 GetCurrentDiff() const;
 

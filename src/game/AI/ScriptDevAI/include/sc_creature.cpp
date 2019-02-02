@@ -401,6 +401,8 @@ enum
     NPC_NETHERMANCER_SEPETHREA  = 19221,
     NPC_MOROES                  = 15687,
     NPC_MOROGRIM_TIDEWALKER     = 21213,
+    NPC_NAZAN                   = 17536,
+    NPC_VAZRUDEN                = 17537,
     NPC_ANUBARAK                = 29120,
     NPC_SINDRAGOSA              = 36853,
     NPC_ZARITHRIAN              = 39746,
@@ -445,7 +447,7 @@ bool ScriptedAI::EnterEvadeIfOutOfCombatArea(const uint32 diff)
             break;
         }
         case NPC_KARGATH_BLADEFIST:
-            if (x < 255.0f && x > 205.0f)
+            if (x < 270.0f && x > 185.0f)
                 return false;
             break;
         case NPC_NETHERMANCER_SEPETHREA:
@@ -453,7 +455,7 @@ bool ScriptedAI::EnterEvadeIfOutOfCombatArea(const uint32 diff)
                 return false;
             break;
         case NPC_MOROES:                                    // Moroes - Generate bounding box - TODO: Despawn Remaining Adds upon Evade after Death
-            if (x > -11027.73f && x < -10946.64f && y > -1952.38f && y < -1861.11f)
+            if (x > -11030.f && x < -10943.f && y > -1955.f && y < -1860.f)
                 return false;
             break;
         case NPC_MOROGRIM_TIDEWALKER:                       // Morogrim - Natural Box made by room
@@ -471,6 +473,11 @@ bool ScriptedAI::EnterEvadeIfOutOfCombatArea(const uint32 diff)
             if (z > 87.0f)
                 return false;
             break;
+        case NPC_VAZRUDEN:
+        case NPC_NAZAN:
+            if (x < -1336.0f)
+                return false;
+            break;
         default:
             script_error_log("EnterEvadeIfOutOfCombatArea used for creature entry %u, but does not have any definition.", m_creature->GetEntry());
             return false;
@@ -478,6 +485,14 @@ bool ScriptedAI::EnterEvadeIfOutOfCombatArea(const uint32 diff)
 
     EnterEvadeMode();
     return true;
+}
+
+void ScriptedAI::DespawnGuids(GuidVector& spawns)
+{
+    for (ObjectGuid& guid : spawns)
+        if (Creature* spawn = m_creature->GetMap()->GetCreature(guid))
+            spawn->ForcedDespawn();
+    spawns.clear();
 }
 
 void Scripted_NoMovementAI::GetAIInformation(ChatHandler& reader)

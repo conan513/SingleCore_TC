@@ -207,7 +207,30 @@ enum SpellSchoolMask
     SPELL_SCHOOL_MASK_MAGIC   = (SPELL_SCHOOL_MASK_HOLY | SPELL_SCHOOL_MASK_SPELL),
 
     // 127
-    SPELL_SCHOOL_MASK_ALL     = (SPELL_SCHOOL_MASK_NORMAL | SPELL_SCHOOL_MASK_MAGIC)
+    SPELL_SCHOOL_MASK_ALL     = (SPELL_SCHOOL_MASK_NORMAL | SPELL_SCHOOL_MASK_MAGIC),
+
+    // Multischools reference (officially introduced)
+    SPELL_SCHOOL_MULTI_ASTRAL       = (SPELL_SCHOOL_MASK_ARCANE | SPELL_SCHOOL_MASK_NATURE),
+    SPELL_SCHOOL_MULTI_CHAOS        = (SPELL_SCHOOL_MASK_ALL),
+    SPELL_SCHOOL_MULTI_DIVINE       = (SPELL_SCHOOL_MASK_ARCANE | SPELL_SCHOOL_MASK_HOLY),
+    SPELL_SCHOOL_MULTI_ELEMENTAL    = (SPELL_SCHOOL_MASK_FIRE | SPELL_SCHOOL_MASK_FROST | SPELL_SCHOOL_MASK_NATURE),
+    SPELL_SCHOOL_MULTI_FIRESTORM    = (SPELL_SCHOOL_MASK_FIRE | SPELL_SCHOOL_MASK_NATURE),
+    SPELL_SCHOOL_MULTI_FROSTFIRE    = (SPELL_SCHOOL_MASK_FROST | SPELL_SCHOOL_MASK_FIRE),
+    SPELL_SCHOOL_MULTI_PLAGUE       = (SPELL_SCHOOL_MASK_NATURE | SPELL_SCHOOL_MASK_SHADOW),
+    SPELL_SCHOOL_MULTI_RADIANT      = (SPELL_SCHOOL_MASK_FIRE | SPELL_SCHOOL_MASK_HOLY),
+    SPELL_SCHOOL_MULTI_SHADOWFLAME  = (SPELL_SCHOOL_MASK_SHADOW | SPELL_SCHOOL_MASK_FIRE),
+    SPELL_SCHOOL_MULTI_SHADOWFROST  = (SPELL_SCHOOL_MASK_SHADOW | SPELL_SCHOOL_MASK_FROST),
+    SPELL_SCHOOL_MULTI_SHADOWSTRIKE = (SPELL_SCHOOL_MASK_SHADOW | SPELL_SCHOOL_MASK_NORMAL),
+    SPELL_SCHOOL_MULTI_SPELLSHADOW  = (SPELL_SCHOOL_MASK_ARCANE | SPELL_SCHOOL_MASK_SHADOW),
+    SPELL_SCHOOL_MULTI_TWILIGHT     = (SPELL_SCHOOL_MASK_HOLY | SPELL_SCHOOL_MASK_SHADOW),
+
+     // Multischools reference (folklore naming)
+    SPELL_SCHOOL_MULTI_CHROMATIC    = (SPELL_SCHOOL_MASK_SPELL),
+    SPELL_SCHOOL_MULTI_FROSTSTORM   = (SPELL_SCHOOL_MASK_FROST | SPELL_SCHOOL_MASK_NATURE),
+    SPELL_SCHOOL_MULTI_HOLYFROST    = (SPELL_SCHOOL_MASK_HOLY | SPELL_SCHOOL_MASK_FROST),
+    SPELL_SCHOOL_MULTI_HOLYSTORM    = (SPELL_SCHOOL_MASK_HOLY | SPELL_SCHOOL_MASK_NATURE),
+    SPELL_SCHOOL_MULTI_SPELLFIRE    = (SPELL_SCHOOL_MASK_ARCANE | SPELL_SCHOOL_MASK_FIRE),
+    SPELL_SCHOOL_MULTI_SPELLFROST   = (SPELL_SCHOOL_MASK_ARCANE | SPELL_SCHOOL_MASK_FROST),
 };
 
 inline SpellSchools GetFirstSchoolInMask(SpellSchoolMask mask)
@@ -277,7 +300,7 @@ enum SpellAttributes
     SPELL_ATTR_CASTABLE_WHILE_DEAD             = 0x00800000,// 23 castable while dead TODO: Implement
     SPELL_ATTR_CASTABLE_WHILE_MOUNTED          = 0x01000000,// 24 castable while mounted
     SPELL_ATTR_DISABLED_WHILE_ACTIVE           = 0x02000000,// 25 Activate and start cooldown after aura fade or remove summoned creature or go
-    SPELL_ATTR_NEGATIVE                        = 0x04000000,// 26 Almost all negative spell have it
+    SPELL_ATTR_AURA_IS_DEBUFF                  = 0x04000000,// 26
     SPELL_ATTR_CASTABLE_WHILE_SITTING          = 0x08000000,// 27 castable while sitting
     SPELL_ATTR_CANT_USED_IN_COMBAT             = 0x10000000,// 28 Cannot be used in combat
     SPELL_ATTR_UNAFFECTED_BY_INVULNERABILITY   = 0x20000000,// 29 unaffected by invulnerability (hmm possible not...)
@@ -359,7 +382,7 @@ enum SpellAttributesEx2
 
 enum SpellAttributesEx3
 {
-    SPELL_ATTR_EX3_UNK0                        = 0x00000001,// 0
+    SPELL_ATTR_EX3_OUT_OF_COMBAT_ATTACK        = 0x00000001,// 0 Spell landed counts as hostile action against enemy even if it doesn't trigger combat state, propagates PvP flags
     SPELL_ATTR_EX3_UNK1                        = 0x00000002,// 1
     SPELL_ATTR_EX3_UNK2                        = 0x00000004,// 2
     SPELL_ATTR_EX3_BLOCKABLE_SPELL             = 0x00000008,// 3 TODO: Investigate more
@@ -433,7 +456,7 @@ enum SpellAttributesEx5
 {
     SPELL_ATTR_EX5_CAN_CHANNEL_WHEN_MOVING     = 0x00000001,// 0 don't interrupt channeling spells when moving
     SPELL_ATTR_EX5_NO_REAGENT_WHILE_PREP       = 0x00000002,// 1 not need reagents if UNIT_FLAG_PREPARATION
-    SPELL_ATTR_EX5_REMOVE_AT_ENTER_ARENA       = 0x00000004,// 2 removed at enter arena (e.g. 31850 since 3.3.3)
+    SPELL_ATTR_EX5_REMOVE_ON_ARENA_ENTER       = 0x00000004,// 2 removed at enter arena (e.g. 31850 since 3.3.3)
     SPELL_ATTR_EX5_USABLE_WHILE_STUNNED        = 0x00000008,// 3 usable while stunned
     SPELL_ATTR_EX5_UNK4                        = 0x00000010,// 4
     SPELL_ATTR_EX5_SINGLE_TARGET_SPELL         = 0x00000020,// 5 Only one target can be apply at a time
@@ -628,6 +651,7 @@ enum PvpTeamIndex
 
 #define PVP_TEAM_COUNT    2
 
+static inline Team GetTeamIdByTeamIndex(PvpTeamIndex teamIndex) { return teamIndex == TEAM_INDEX_ALLIANCE ? ALLIANCE : HORDE; }
 static inline PvpTeamIndex GetTeamIndexByTeamId(Team team) { return team == ALLIANCE ? TEAM_INDEX_ALLIANCE : TEAM_INDEX_HORDE; }
 
 enum SpellEffects
@@ -3062,6 +3086,8 @@ enum LootType
     LOOT_INSIGNIA       = 22,
     LOOT_MAIL           = 23,
     LOOT_SPELL          = 24,
+
+    LOOT_DEBUG          = 100
 };
 
 #ifdef ENABLE_PLAYERBOTS || ENABLE_IMMERSIVE

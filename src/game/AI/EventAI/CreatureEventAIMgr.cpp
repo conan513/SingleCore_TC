@@ -223,6 +223,7 @@ bool IsValidTargetType(EventAI_Type eventType, EventAI_ActionType actionType, ui
                 case EVENT_T_FRIENDLY_MISSING_BUFF:
                 case EVENT_T_RECEIVE_EMOTE:
                 case EVENT_T_RECEIVE_AI_EVENT:
+                case EVENT_T_SPELLHIT_TARGET:
                     return true;
                 default:
                     sLog.outErrorEventAI("Event %u Action%u uses incorrect Target type %u for event-type %u", eventId, action, targetType, eventType);
@@ -368,13 +369,10 @@ void CreatureEventAIMgr::LoadCreatureEventAI_Scripts()
                         sLog.outErrorEventAI("Creature %u are using repeatable event(%u) with param4 < param3 (RepeatMax < RepeatMin). Event will never repeat.", temp.creature_id, i);
                     break;
                 case EVENT_T_OOC_LOS:
-                    if (temp.ooc_los.conditionId)
+                    if (temp.ooc_los.conditionId && !sConditionStorage.LookupEntry<PlayerCondition>(temp.ooc_los.conditionId))
                     {
-                        if (!sConditionStorage.LookupEntry<PlayerCondition>(temp.ooc_los.conditionId))
-                        {
-                            sLog.outErrorDb("Creature %u has `ConditionId` = %u but does not exist. Setting ConditionId to 0 for event %u.", temp.creature_id, temp.ooc_los.conditionId, i);
-                            temp.ooc_los.conditionId = 0;
-                        }
+                        sLog.outErrorDb("Creature %u has `ConditionId` = %u but does not exist. Setting ConditionId to 0 for event %u.", temp.creature_id, temp.ooc_los.conditionId, i);
+                        temp.ooc_los.conditionId = 0;
                     }
 
                     if (temp.ooc_los.repeatMax < temp.ooc_los.repeatMin)
@@ -447,13 +445,11 @@ void CreatureEventAIMgr::LoadCreatureEventAI_Scripts()
                     continue;
                 case EVENT_T_DEATH:
                 {
-                    if (temp.death.conditionId)
+                    if (temp.death.conditionId && !sConditionStorage.LookupEntry<PlayerCondition>(temp.death.conditionId))
                     {
-                        if (!sConditionStorage.LookupEntry<PlayerCondition>(temp.death.conditionId)) // condition does not exist for some reason
-                        {
-                            sLog.outErrorDb("Creature %u has `ConditionId` = %u but does not exist. Setting ConditionId to 0 for event %u.", temp.creature_id, temp.death.conditionId, i);
-                            temp.death.conditionId = 0;
-                        }
+                        // condition does not exist for some reason
+                        sLog.outErrorDb("Creature %u has `ConditionId` = %u but does not exist. Setting ConditionId to 0 for event %u.", temp.creature_id, temp.death.conditionId, i);
+                        temp.death.conditionId = 0;
                     }
                 }
                 case EVENT_T_AGGRO:
@@ -557,6 +553,26 @@ void CreatureEventAIMgr::LoadCreatureEventAI_Scripts()
                         sLog.outErrorEventAI("Creature %u is using repeatable event(%u) with param4 < param3 (RepeatMax < RepeatMin). Event will never repeat.", temp.creature_id, i);
                     break;
                 }
+                case EVENT_T_SPELLHIT_TARGET:
+                    if (temp.spell_hit_target.spellId)
+                    {
+                        SpellEntry const* spellInfo = sSpellTemplate.LookupEntry<SpellEntry>(temp.spell_hit_target.spellId);
+                        if (!spellInfo)
+                        {
+                            sLog.outErrorEventAI("Creature %u has nonexistent SpellID(%u) defined in event %u.", temp.creature_id, temp.spell_hit_target.spellId, i);
+                            continue;
+                        }
+
+                        if ((temp.spell_hit_target.schoolMask & spellInfo->SchoolMask) != spellInfo->SchoolMask)
+                            sLog.outErrorEventAI("Creature %u has param1(spellId %u) but param2 is not -1 and not equal to spell's school mask. Event %u can never trigger.", temp.creature_id, temp.spell_hit.schoolMask, i);
+                    }
+
+                    if (!temp.spell_hit_target.schoolMask)
+                        sLog.outErrorEventAI("Creature %u is using invalid SpellSchoolMask(%u) defined in event %u.", temp.creature_id, temp.spell_hit_target.schoolMask, i);
+
+                    if (temp.spell_hit_target.repeatMax < temp.spell_hit_target.repeatMin)
+                        sLog.outErrorEventAI("Creature %u are using repeatable event(%u) with param4 < param3 (RepeatMax < RepeatMin). Event will never repeat.", temp.creature_id, i);
+                    break;
                 default:
                     sLog.outErrorEventAI("Creature %u using not checked at load event (%u) in event %u. Need check code update?", temp.creature_id, temp.event_id, i);
                     break;
@@ -1011,11 +1027,34 @@ void CreatureEventAIMgr::LoadCreatureEventAI_Scripts()
                             sLog.outErrorEventAI("Event %u Action %u uses nonexistent ranged mode type %u. Setting to 0.", i, j + 1, action.rangedMode.type);
                             action.rangedMode.type = 0;
                         }
-                        if(action.rangedMode.chaseDistance > 200)
+                        if (action.rangedMode.chaseDistance > 200)
                         {
                             sLog.outErrorEventAI("Event %u Action %u uses too large chase distance %u. Setting to 30.", i, j + 1, action.rangedMode.chaseDistance);
                             action.rangedMode.chaseDistance = 30;
                         }
+                        break;
+                    case ACTION_T_SET_WALK:
+                        switch (action.walkSetting.type)
+                        {
+                            case WALK_DEFAULT:
+                            case RUN_DEFAULT:
+                            case WALK_CHASE:
+                            case RUN_CHASE:
+                                break; // correct values
+                            default:
+                                sLog.outErrorEventAI("Event %u Action %u uses invalid walking mode %u. Setting to RUN_DEFAULT.", i, j + 1, action.walkSetting.type);
+                                action.walkSetting.type = RUN_DEFAULT;
+                                break;
+                        }
+                        break;
+                    case ACTION_T_SET_FACING:
+                        if (action.setFacing.reset > 1)
+                        {
+                            sLog.outErrorEventAI("Event %u Action %u uses invalid facing setting %u. Setting to 0.", i, j + 1, action.setFacing.reset);
+                            action.setFacing.reset = 0;
+                            break;
+                        }
+                        IsValidTargetType(temp.event_type, action.type, action.setFacing.target, i, j + 1);
                         break;
                     default:
                         sLog.outErrorEventAI("Event %u Action %u have currently not checked at load action type (%u). Need check code update?", i, j + 1, temp.action[j].type);
@@ -1026,6 +1065,29 @@ void CreatureEventAIMgr::LoadCreatureEventAI_Scripts()
             // Add to list
             m_CreatureEventAI_Event_Map[creature_id].push_back(temp);
             ++Count;
+
+            switch (temp.event_type)
+            {
+                case EVENT_T_FRIENDLY_HP:
+                {
+                    // compute data at the end
+                    CreatureEventAI_EventComputedData data;
+                    data.friendlyHp.targetSelf = true;
+                    for (uint32 j = 0; j < MAX_ACTIONS; ++j)
+                    {
+                        CreatureEventAI_Action& action = temp.action[j];
+                        if (temp.action[j].type == ACTION_T_CAST && temp.action[j].cast.target == TARGET_T_EVENT_SPECIFIC)
+                        {
+                            SpellEntry const* spellInfo = sSpellTemplate.LookupEntry<SpellEntry>(temp.action[j].cast.spellId);
+                            if (spellInfo->HasAttribute(SPELL_ATTR_EX_CANT_TARGET_SELF))
+                                data.friendlyHp.targetSelf = false;
+                        }
+                    }
+                    m_creatureEventAI_ComputedDataMap.emplace(temp.event_id, data);
+                    break;
+                }
+                default: break;
+            }
         }
         while (result->NextRow());
 

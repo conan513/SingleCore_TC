@@ -24,6 +24,9 @@ EndScriptData */
 #include "AI/ScriptDevAI/include/precompiled.h"
 #include "world_map_scripts.h"
 #include "World/WorldState.h"
+#include "World/WorldStateDefines.h"
+#include <array>
+#include <ctime>
 
 /* *********************************************************
  *                  EASTERN KINGDOMS
@@ -39,6 +42,7 @@ struct world_map_eastern_kingdoms : public ScriptedMap
             case NPC_NEZRAZ:
             case NPC_HINDENBURG:
             case NPC_ZAPETTA:
+            case NPC_MEEFI_FARTHROTTLE:
             case NPC_SQUIBBY_OVERSPECK:
             case NPC_JONATHAN:
             case NPC_WRYNN:
@@ -98,6 +102,9 @@ struct world_map_kalimdor : public ScriptedMap
     {
         switch (pCreature->GetEntry())
         {
+            case NPC_KRENDLE_BIGPOCKETS:
+            case NPC_ZELLI_HOTNOZZLE:
+            case NPC_GREEB_RAMROCKET:
             case NPC_FREZZA:
             case NPC_SNURK_BUCKSQUICK:
             case NPC_MURKDEEP:
@@ -382,24 +389,49 @@ struct world_map_outland : public ScriptedMap
     world_map_outland(Map* pMap) : ScriptedMap(pMap) { Initialize(); }
 
     uint8 m_uiEmissaryOfHate_KilledAddCount;
+    uint8 m_uiRazaan_KilledAddCount;
 
-    void Initialize()
+    // Worldstate variables
+    uint32 m_deathsDoorEventActive;
+    int32 m_deathsDoorNorthHP;
+    int32 m_deathsDoorSouthHP;
+
+    uint32 m_shartuulEventActive;
+    uint32 m_shartuulShieldPercent;
+
+    std::tm m_bashirTime;
+    uint32 m_bashirTimer;
+
+    void Initialize() override
     {
         m_uiEmissaryOfHate_KilledAddCount = 0;
+        m_uiRazaan_KilledAddCount = 0;
+
+        m_deathsDoorEventActive = 1;
+        m_deathsDoorNorthHP = 100;
+        m_deathsDoorSouthHP = 100;
+
+        m_shartuulEventActive = 1;
+        m_shartuulShieldPercent = 100;
+
+        std::time_t now = time(nullptr);
+        m_bashirTime = *std::gmtime(&now);
+        m_bashirTimer = (60 - m_bashirTime.tm_sec) * IN_MILLISECONDS;
     }
 
     void OnCreatureCreate(Creature* pCreature)
     {
         switch (pCreature->GetEntry())
         {
-            case NPC_EMISSARY_OF_HATE:
-                m_npcEntryGuidStore[NPC_EMISSARY_OF_HATE] = pCreature->GetObjectGuid();
-                break;
             case NPC_VIMGOL_VISUAL_BUNNY:
                 m_npcEntryGuidCollection[pCreature->GetEntry()].push_back(pCreature->GetObjectGuid());
                 break;
+            case NPC_EMISSARY_OF_HATE:
+            case NPC_WHISPER_RAVEN_GOD_TEMPLATE:
             case NPC_SOCRETHAR:
-                m_npcEntryGuidStore[NPC_SOCRETHAR] = pCreature->GetObjectGuid();
+            case NPC_DEATHS_DOOR_NORTH_WARP_GATE:
+            case NPC_DEATHS_DOOR_SOUTH_WARP_GATE:
+                m_npcEntryGuidStore[pCreature->GetEntry()] = pCreature->GetObjectGuid();
                 break;
         }
     }
@@ -435,7 +467,91 @@ struct world_map_outland : public ScriptedMap
         }
     }
 
-    void SetData(uint32 /*uiType*/, uint32 /*uiData*/) override {}
+    void SetData(uint32 type, uint32 data) override
+    {
+        switch (type)
+        {
+            case TYPE_DEATHS_DOOR_NORTH:
+                m_deathsDoorNorthHP = std::max(0, 100 - int32(data * 15));
+                sWorldState.ExecuteOnAreaPlayers(AREAID_DEATHS_DOOR, [=](Player* player)->void {player->SendUpdateWorldState(WORLD_STATE_DEATHS_DOOR_NORTH_WARP_GATE_HEALTH, m_deathsDoorNorthHP); });
+                break;
+            case TYPE_DEATHS_DOOR_SOUTH:
+                m_deathsDoorSouthHP = std::max(0, 100 - int32(data * 15));
+                sWorldState.ExecuteOnAreaPlayers(AREAID_DEATHS_DOOR, [=](Player* player)->void {player->SendUpdateWorldState(WORLD_STATE_DEATHS_DOOR_SOUTH_WARP_GATE_HEALTH, m_deathsDoorSouthHP); });
+                break;
+            case TYPE_SHARTUUL:
+                // TODO: add calculation
+                break;
+        }
+    }
+
+    bool CheckConditionCriteriaMeet(Player const* player, uint32 instanceConditionId, WorldObject const* conditionSource, uint32 conditionSourceType) const override
+    {
+        switch (instanceConditionId)
+        {
+            case INSTANCE_CONDITION_ID_SOCRETHAR_GOSSIP:
+            {
+                Creature const* socrethar = GetSingleCreatureFromStorage(NPC_SOCRETHAR);
+                if (!socrethar || !socrethar->isAlive() || socrethar->isInCombat())
+                    return true;
+                return false;
+            }
+            case INSTANCE_CONDITION_ID_BASHIR_FLYING: // TODO: Implement
+            case INSTANCE_CONDITION_ID_BASHIR_IN_PROGRESS:
+                return false;
+        }
+
+        script_error_log("instance_serpentshrine_cavern::CheckConditionCriteriaMeet called with unsupported Id %u. Called with param plr %s, src %s, condition source type %u",
+            instanceConditionId, player ? player->GetGuidStr().c_str() : "nullptr", conditionSource ? conditionSource->GetGuidStr().c_str() : "nullptr", conditionSourceType);
+        return false;
+    }
+
+    uint32 CalculateBashirTimerValue()
+    {
+        return 60 - m_bashirTime.tm_min + 60 * (m_bashirTime.tm_hour % 2);
+    }
+
+    void FillInitialWorldStates(ByteBuffer& data, uint32& count, uint32 /*zoneId*/, uint32 areaId) override
+    {
+        switch (areaId)
+        {
+            case AREAID_DEATHS_DOOR:
+            {
+                FillInitialWorldStateData(data, count, WORLD_STATE_DEATHS_DOOR_NORTH_WARP_GATE_HEALTH, m_deathsDoorNorthHP);
+                FillInitialWorldStateData(data, count, WORLD_STATE_DEATHS_DOOR_SOUTH_WARP_GATE_HEALTH, m_deathsDoorSouthHP);
+                FillInitialWorldStateData(data, count, WORLD_STATE_DEATHS_DOOR_EVENT_ACTIVE, m_deathsDoorEventActive);
+                break;
+            }
+            case AREAID_SHARTUUL_TRANSPORTER:
+            {
+                FillInitialWorldStateData(data, count, WORLD_STATE_SHARTUUL_SHIELD_REMAINING, m_shartuulShieldPercent);
+                FillInitialWorldStateData(data, count, WORLD_STATE_SHARTUUL_EVENT_ACTIVE, m_shartuulEventActive);
+                break;
+            }
+            case AREAID_SKYGUARD_OUTPOST:
+            {
+                FillInitialWorldStateData(data, count, WORLD_STATE_BASHIR_TIMER_WOTLK, CalculateBashirTimerValue());
+                break;
+            }
+            default: break;
+        }
+    }
+
+    void Update(const uint32 diff) override
+    {
+        if (m_bashirTimer <= diff)
+        {
+            std::time_t now = time(nullptr);
+            m_bashirTime = *std::gmtime(&now);
+            m_bashirTimer = 60 * IN_MILLISECONDS;
+            uint32 timerValue = CalculateBashirTimerValue();
+            sWorldState.ExecuteOnAreaPlayers(AREAID_SKYGUARD_OUTPOST, [=](Player* player)->void
+            {
+                player->SendUpdateWorldState(WORLD_STATE_BASHIR_TIMER_WOTLK, timerValue);
+            });
+        }
+        else m_bashirTimer -= diff;
+    }
 };
 
 InstanceData* GetInstanceData_world_map_outland(Map* pMap)
@@ -450,6 +566,18 @@ struct world_map_northrend : public ScriptedMap
 {
     world_map_northrend(Map* pMap) : ScriptedMap(pMap) {}
 
+    void OnCreatureCreate(Creature* pCreature)
+    {
+        switch (pCreature->GetEntry())
+        {
+            case NPC_NARGO_SCREWBORE:
+            case NPC_HARROWMEISER:
+            case NPC_DRENK_SPANNERSPARK:
+                m_npcEntryGuidStore[pCreature->GetEntry()] = pCreature->GetObjectGuid();
+                break;
+        }
+    }
+
     void SetData(uint32 /*uiType*/, uint32 /*uiData*/) {}
 };
 
@@ -460,14 +588,31 @@ InstanceData* GetInstanceData_world_map_northrend(Map* pMap)
 
 enum
 {
+    SAY_DUROTAR_FROM_OG_ARRIVAL   = -1020001,
+    SAY_TIRISFAL_FROM_UC_ARRIVAL  = -1020002,
+    SAY_ST_FROM_GROMGOL_ARRIVAL   = -1020003,
+    SAY_WK_DEPARTURE              = -1020004,
+    SAY_WK_ARRIVAL                = -1020005,
+    SAY_UC_FROM_VL_ARRIVAL        = -1020006,
+    SAY_OG_FROM_BT_ARRIVAL        = -1020007,
+    SAY_OG_FROM_TB_ARRIVAL        = -1020008,
+
     EVENT_UC_FROM_GROMGOL_ARRIVAL = 15312,
     EVENT_GROMGOL_FROM_UC_ARRIVAL = 15314,
-    EVENT_OG_FROM_UC_ARRIVAL = 15318,
-    EVENT_UC_FROM_OG_ARRIVAL = 15320,
+    EVENT_OG_FROM_UC_ARRIVAL      = 15318,
+    EVENT_UC_FROM_OG_ARRIVAL      = 15320,
     EVENT_OG_FROM_GROMGOL_ARRIVAL = 15322,
     EVENT_GROMGOL_FROM_OG_ARRIVAL = 15324,
+    EVENT_WK_DEPARTURE            = 15430,
+    EVENT_WK_ARRIVAL              = 15431,
+    EVENT_VL_FROM_UC_ARRIVAL      = 19126,
+    EVENT_UC_FROM_VL_ARRIVAL      = 19127,
+    EVENT_OG_FROM_BT_ARRIVAL      = 19137,
+    EVENT_BT_FROM_OG_ARRIVAL      = 19139,
+    EVENT_OG_FROM_TB_ARRIVAL      = 21868,
+    EVENT_TB_FROM_OG_ARRIVAL      = 21870,
 
-    SOUND_ZEPPELIN_HORN = 11804,
+    SOUND_ZEPPELIN_HORN           = 11804,
 };
 
 bool ProcessEventTransports(uint32 uiEventId, Object* pSource, Object* pTarget, bool bIsStart)
@@ -476,31 +621,72 @@ bool ProcessEventTransports(uint32 uiEventId, Object* pSource, Object* pTarget, 
 
     WorldObject* transport = (WorldObject*)pSource;
     uint32 entry = 0;
+    int32 text_entry = 0;
     switch (uiEventId)
     {
-        case EVENT_UC_FROM_GROMGOL_ARRIVAL: // UC arrival from gromgol
+        case EVENT_UC_FROM_GROMGOL_ARRIVAL:         // UC arrival from gromgol
             entry = NPC_HINDENBURG;
+            text_entry = SAY_ST_FROM_GROMGOL_ARRIVAL;
             break;
-        case EVENT_GROMGOL_FROM_UC_ARRIVAL: // gromgol arrival from UC
+        case EVENT_GROMGOL_FROM_UC_ARRIVAL:         // gromgol arrival from UC
             entry = NPC_SQUIBBY_OVERSPECK;
+            text_entry = SAY_TIRISFAL_FROM_UC_ARRIVAL;
             break;
-        case EVENT_OG_FROM_UC_ARRIVAL:      // OG arrival from UC
+        case EVENT_OG_FROM_UC_ARRIVAL:              // OG arrival from UC
             entry = NPC_FREZZA;
+            text_entry = SAY_TIRISFAL_FROM_UC_ARRIVAL;
             break;
-        case EVENT_UC_FROM_OG_ARRIVAL:      // UC arrival from OG
+        case EVENT_UC_FROM_OG_ARRIVAL:              // UC arrival from OG
             entry = NPC_ZAPETTA;
+            text_entry = SAY_DUROTAR_FROM_OG_ARRIVAL;
             break;
-        case EVENT_OG_FROM_GROMGOL_ARRIVAL: // OG arrival from gromgol
+        case EVENT_OG_FROM_GROMGOL_ARRIVAL:         // OG arrival from gromgol
             entry = NPC_SNURK_BUCKSQUICK;
+            text_entry = SAY_ST_FROM_GROMGOL_ARRIVAL;
             break;
-        case EVENT_GROMGOL_FROM_OG_ARRIVAL: // gromgol arrival from OG
+        case EVENT_GROMGOL_FROM_OG_ARRIVAL:         // gromgol arrival from OG
             entry = NPC_NEZRAZ;
+            text_entry = SAY_DUROTAR_FROM_OG_ARRIVAL;
+            break;
+        case EVENT_WK_ARRIVAL:                      // WestGuard Keep arrival
+            entry = NPC_HARROWMEISER;
+            text_entry = SAY_WK_ARRIVAL;
+            break;
+        case EVENT_WK_DEPARTURE:                    // WestGuard Keep departure
+            entry = NPC_HARROWMEISER;
+            text_entry = SAY_WK_DEPARTURE;
+            break;
+        case EVENT_VL_FROM_UC_ARRIVAL:              // Vengance Landing arrival from UC
+            entry = NPC_DRENK_SPANNERSPARK;
+            text_entry = SAY_TIRISFAL_FROM_UC_ARRIVAL;
+            break;
+        case EVENT_UC_FROM_VL_ARRIVAL:              // UC arrival from Vengance Landing
+            entry = NPC_MEEFI_FARTHROTTLE;
+            text_entry = SAY_UC_FROM_VL_ARRIVAL;
+            break;
+        case EVENT_OG_FROM_BT_ARRIVAL:              // OG arrival from BT
+            entry = NPC_GREEB_RAMROCKET;
+            text_entry = SAY_OG_FROM_BT_ARRIVAL;
+            break;
+        case EVENT_BT_FROM_OG_ARRIVAL:              // BT arrival from OG
+            entry = NPC_NARGO_SCREWBORE;
+            text_entry = SAY_DUROTAR_FROM_OG_ARRIVAL;
+            break;
+        case EVENT_OG_FROM_TB_ARRIVAL:              // OG arrival from TB
+            entry = NPC_ZELLI_HOTNOZZLE;
+            text_entry = SAY_OG_FROM_TB_ARRIVAL;
+            break;
+        case EVENT_TB_FROM_OG_ARRIVAL:              // TB arrival from OG
+            entry = NPC_KRENDLE_BIGPOCKETS;
+            text_entry = SAY_DUROTAR_FROM_OG_ARRIVAL;
             break;
     }
     if (entry)
         if (Creature* zeppelinMaster = ((ScriptedInstance*)transport->GetMap()->GetInstanceData())->GetSingleCreatureFromStorage(entry))
+        {
             zeppelinMaster->PlayDistanceSound(SOUND_ZEPPELIN_HORN);
-
+            DoScriptText(text_entry, zeppelinMaster);
+        }
     return true;
 }
 

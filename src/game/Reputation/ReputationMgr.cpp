@@ -378,8 +378,8 @@ bool ReputationMgr::SetOneFactionReputation(FactionEntry const* factionEntry, in
         else if (standing < Reputation_Bottom)
             standing = Reputation_Bottom;
 
-        ReputationRank old_rank = ReputationToRank(faction.Standing + BaseRep);
-        ReputationRank new_rank = ReputationToRank(standing);
+        ReputationRank rankOld = ReputationToRank(faction.Standing + BaseRep);
+        ReputationRank rankNew = ReputationToRank(standing);
 
         faction.Standing = standing - BaseRep;
         faction.needSend = true;
@@ -387,10 +387,18 @@ bool ReputationMgr::SetOneFactionReputation(FactionEntry const* factionEntry, in
 
         SetVisible(&faction);
 
-        if (new_rank <= REP_HOSTILE)
-            SetAtWar(&faction, true);
+        if (rankNew != rankOld)
+        {
+            // Server alters "At war" flag on two occasions:
+            // * When reputation dips to "Hostile": forced tick and now locked for manual changes
+            if (rankNew < REP_UNFRIENDLY && rankNew < rankOld && rankOld > REP_HOSTILE)
+                SetAtWar(&itr->second, true);
+            // * When reputation improves to "Neutral": untick by id, can be manually overriden for eligible factions
+            else if (rankNew > REP_UNFRIENDLY && rankNew > rankOld && rankOld < REP_NEUTRAL)
+                SetAtWar(RepListID(factionEntry->reputationListID), false);
+        }
 
-        UpdateRankCounters(old_rank, new_rank);
+        UpdateRankCounters(rankOld, rankNew);
 
         m_player->ReputationChanged(factionEntry);
 
@@ -401,7 +409,7 @@ bool ReputationMgr::SetOneFactionReputation(FactionEntry const* factionEntry, in
         achievementManager.UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_GAIN_REVERED_REPUTATION, factionEntry->ID);
         achievementManager.UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_GAIN_HONORED_REPUTATION, factionEntry->ID);
 
-        if (new_rank > old_rank)
+        if (rankNew > rankOld)
             return true;
     }
     return false;
@@ -469,17 +477,17 @@ void ReputationMgr::SetAtWar(FactionState* faction, bool atWar)
         return;
 
     // not allow declare war to faction unless already hated or less
-    if (atWar && (faction->Flags & FACTION_FLAG_PEACE_FORCED) && ReputationToRank(faction->Standing) > REP_HATED)
+    if (atWar && (faction->Flags & FACTION_FLAG_PEACE_FORCED) != 0 && ReputationToRank(faction->Standing) > REP_HATED)
         return;
 
     // already set
-    if (((faction->Flags & FACTION_FLAG_AT_WAR) != 0) == atWar)
+    if (((faction->Flags & FACTION_FLAG_AT_WAR) != 0) && atWar)
         return;
 
     if (atWar)
         faction->Flags |= FACTION_FLAG_AT_WAR;
     else
-        faction->Flags &= ~FACTION_FLAG_AT_WAR;
+        faction->Flags &= ~uint32(FACTION_FLAG_AT_WAR);
 
     faction->needSend = true;
     faction->needSave = true;

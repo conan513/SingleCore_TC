@@ -48,6 +48,14 @@ enum InstanceConditionIDs                                   // Suggested values 
     // to check water event in SSC
     INSTANCE_CONDITION_ID_LURKER            = 21217,
     INSTANCE_CONDITION_ID_SCALDING_WATER    = 37284,
+
+    INSTANCE_CONDITION_ID_SOCRETHAR_GOSSIP  = 8215,
+
+    INSTANCE_CONDITION_ID_SAAT_BEACON               = 20201,
+
+    INSTANCE_CONDITION_ID_BASHIR_FLYING             = 87361,
+    INSTANCE_CONDITION_ID_BASHIR_IN_PROGRESS        = 87362,
+
     // to check vehicles in Ulduar
     INSTANCE_CONDITION_ID_ULDUAR            = 33113,
 };

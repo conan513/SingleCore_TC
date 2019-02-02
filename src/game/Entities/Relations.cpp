@@ -133,7 +133,7 @@ static ReputationRank GetFactionReaction(FactionTemplateEntry const* thisTemplat
 
     if (thisTemplate)
     {
-        if (const FactionTemplateEntry* unitFactionTemplate = unit->getFactionTemplateEntry())
+        if (const FactionTemplateEntry* unitFactionTemplate = unit->GetFactionTemplateEntry())
         {
             if (unit->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PLAYER_CONTROLLED))
             {
@@ -205,7 +205,7 @@ ReputationRank Unit::GetReactionTo(Unit const* unit) const
 
                 // WotLK+ group check: faction to unit
                 if (thisPlayer->IsInGroup(unitPlayer))
-                    return GetFactionReaction(getFactionTemplateEntry(), unit);
+                    return GetFactionReaction(GetFactionTemplateEntry(), unit);
             }
 
             // WotLK+ FFA check
@@ -215,7 +215,7 @@ ReputationRank Unit::GetReactionTo(Unit const* unit) const
 
         if (thisPlayer)
         {
-            if (const FactionTemplateEntry* unitFactionTemplate = unit->getFactionTemplateEntry())
+            if (const FactionTemplateEntry* unitFactionTemplate = unit->GetFactionTemplateEntry())
             {
                 if (const ReputationRank* rank = thisPlayer->GetReputationMgr().GetForcedRankIfAny(unitFactionTemplate))
                     return (*rank);
@@ -234,7 +234,7 @@ ReputationRank Unit::GetReactionTo(Unit const* unit) const
         }
     }
     // Default fallback if player-specific checks didn't catch anything: facton to unit
-    return GetFactionReaction(getFactionTemplateEntry(), unit);
+    return GetFactionReaction(GetFactionTemplateEntry(), unit);
 }
 
 /////////////////////////////////////////////////
@@ -252,7 +252,7 @@ ReputationRank Unit::GetReactionTo(const Corpse* corpse) const
 
     // Original logic begins
 
-    if (const FactionTemplateEntry* thisTemplate = getFactionTemplateEntry())
+    if (const FactionTemplateEntry* thisTemplate = GetFactionTemplateEntry())
     {
         if (const uint32 corpseTemplateId = corpse->getFaction())
         {
@@ -594,9 +594,9 @@ bool Unit::CanCooperate(const Unit* unit) const
     if (GetCharmerGuid() || unit->GetCharmerGuid())
         return false;
 
-    if (const FactionTemplateEntry* thisFactionTemplate = getFactionTemplateEntry())
+    if (const FactionTemplateEntry* thisFactionTemplate = GetFactionTemplateEntry())
     {
-        if (const FactionTemplateEntry* unitFactionTemplate = unit->getFactionTemplateEntry())
+        if (const FactionTemplateEntry* unitFactionTemplate = unit->GetFactionTemplateEntry())
         {
             if (thisFactionTemplate->factionGroupMask == unitFactionTemplate->factionGroupMask)
                 return (!CanAttack(unit));
@@ -1066,7 +1066,7 @@ bool DynamicObject::IsFriend(Unit const* unit) const
 /// Dynamic objects act as serverside proxy casters for units.
 /// It utilizes owners CanAttackSpell if owner exists
 /////////////////////////////////////////////////
-bool DynamicObject::CanAttackSpell(const Unit* target, SpellEntry const* spellInfo, bool isAOE) const
+bool DynamicObject::CanAttackSpell(Unit const* target, SpellEntry const* spellInfo, bool isAOE) const
 {
     if (Unit* owner = GetCaster())
         return owner->CanAttackSpell(target, spellInfo, isAOE);
@@ -1082,7 +1082,7 @@ bool DynamicObject::CanAttackSpell(const Unit* target, SpellEntry const* spellIn
 /// Dynamic objects act as serverside proxy casters for units.
 /// It utilizes owners CanAssistSpell if owner exists
 /////////////////////////////////////////////////
-bool DynamicObject::CanAssistSpell(const Unit* target, SpellEntry const* spellInfo) const
+bool DynamicObject::CanAssistSpell(Unit const* target, SpellEntry const* spellInfo) const
 {
     if (Unit* owner = GetCaster())
         return owner->CanAttackSpell(target, spellInfo);
@@ -1098,11 +1098,14 @@ bool DynamicObject::CanAssistSpell(const Unit* target, SpellEntry const* spellIn
 /// Some gameobjects can be involved in spell casting, so server needs additional API support.
 /// It utilizes owners CanAttackSpell if owner exists
 /////////////////////////////////////////////////
-bool GameObject::CanAttackSpell(const Unit* target, SpellEntry const* spellInfo, bool isAOE) const
+bool GameObject::CanAttackSpell(Unit const* target, SpellEntry const* spellInfo, bool isAOE) const
 {
     Unit* owner = GetOwner();
     if (owner)
         return owner->CanAttackSpell(target, spellInfo, isAOE);
+
+    if (target->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PLAYER_CONTROLLED))
+        return !IsFriend(target);
 
     return IsEnemy(target);
 }
@@ -1116,11 +1119,14 @@ bool GameObject::CanAttackSpell(const Unit* target, SpellEntry const* spellInfo,
 /// Some gameobjects can be involved in spell casting, so server needs additional API support.
 /// It utilizes owners CanAssistSpell if owner exists
 /////////////////////////////////////////////////
-bool GameObject::CanAssistSpell(const Unit* target, SpellEntry const* spellInfo) const
+bool GameObject::CanAssistSpell(Unit const* target, SpellEntry const* spellInfo) const
 {
     Unit* owner = GetOwner();
     if (owner)
         return owner->CanAssistSpell(target, spellInfo);
+
+    if (target->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PLAYER_CONTROLLED))
+        return !IsEnemy(target);
 
     return IsFriend(target);
 }
@@ -1135,7 +1141,7 @@ bool GameObject::CanAssistSpell(const Unit* target, SpellEntry const* spellInfo)
 /// Also an additional fine grained check needs to be done for AOE spells, because they
 /// need to skip PVP enabled targets in some special cases. (Chain spells, AOE)
 /////////////////////////////////////////////////
-bool Unit::CanAttackSpell(const Unit* target, SpellEntry const* spellInfo, bool isAOE) const
+bool Unit::CanAttackSpell(Unit const* target, SpellEntry const* spellInfo, bool isAOE) const
 {
     if (spellInfo)
     {
@@ -1191,7 +1197,7 @@ bool Unit::CanAttackSpell(const Unit* target, SpellEntry const* spellInfo, bool 
 /// This function is not intented to have client-side counterpart by original design.
 /// It utilizes owners CanAssistSpell if owner exists
 /////////////////////////////////////////////////
-bool Unit::CanAssistSpell(const Unit* target, SpellEntry const* spellInfo) const
+bool Unit::CanAssistSpell(Unit const* target, SpellEntry const* spellInfo) const
 {
     return CanAssist(target);
 }
@@ -1205,9 +1211,9 @@ bool Unit::CanAssistSpell(const Unit* target, SpellEntry const* spellInfo) const
 /// It utilizes CanAttack with a small exclusion for Feign-Death targets and a hostile-only check.
 /// Typically used in AIs in MoveInLineOfSight
 /////////////////////////////////////////////////
-bool Unit::CanAttackOnSight(const Unit* target)
+bool Unit::CanAttackOnSight(Unit const* target) const
 {
-    return CanAttack(target) && !target->IsFeigningDeathSuccessfully() && IsEnemy(target);
+    return CanAttack(target) && !target->IsFeigningDeathSuccessfully() && target->GetEvade() != EVADE_HOME && IsEnemy(target);
 }
 
 /////////////////////////////////////////////////
@@ -1273,4 +1279,27 @@ bool Unit::IsFogOfWarVisibleStats(Unit const* other) const
         case 1:  return CanCooperate(other);
         case 2:  return true;
     }
+}
+
+/////////////////////////////////////////////////
+/// [Serverside] Opposition: this can assist who in attacking enemy
+///
+/// @note Relations API Tier 3
+///
+/// This function is not intented to have client-side counterpart by original design.
+/// A helper function used to determine if current unit can assist who against enemy
+/// Used in several assistance checks
+/////////////////////////////////////////////////
+bool Unit::CanAssistInCombatAgainst(Unit const* who, Unit const* enemy) const
+{
+    if (GetMap()->Instanceable()) // in dungeons nothing else needs to be evaluated
+        return true;
+
+    if (isInCombat()) // if fighting something else, do not assist
+        return false;
+
+    if (CanAssist(who) && CanAttackOnSight(enemy))
+        return true;
+
+    return false;
 }

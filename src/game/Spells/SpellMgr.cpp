@@ -893,8 +893,14 @@ uint32 GetAffectedTargets(SpellEntry const* spellInfo, Unit* caster)
         }
         case SPELLFAMILY_MAGE:
         {
-            if (spellInfo->Id == 38194)                   // Blink
-                return 1;
+            switch (spellInfo->Id)
+            {
+                case 23603:								// Wild Polymorph (BWL, Nefarian)
+                case 38194:								// Blink
+                    return 1;
+                default:
+                    break;
+            }
             break;
         }
         case SPELLFAMILY_WARRIOR:
@@ -935,10 +941,10 @@ SpellCastResult GetErrorAtShapeshiftedCast(SpellEntry const* spellInfo, uint32 f
 
     uint32 stanceMask = (form ? 1 << (form - 1) : 0);
 
-    if (stanceMask & spellInfo->StancesNot)                 // can explicitly not be casted in this stance
+    if (stanceMask & spellInfo->StancesNot[0])                 // can explicitly not be casted in this stance
         return SPELL_FAILED_NOT_SHAPESHIFT;
 
-    if (stanceMask & spellInfo->Stances)                    // can explicitly be casted in this stance
+    if (stanceMask & spellInfo->Stances[0])                    // can explicitly be casted in this stance
         return SPELL_CAST_OK;
 
     bool actAsShifted = false;
@@ -957,13 +963,13 @@ SpellCastResult GetErrorAtShapeshiftedCast(SpellEntry const* spellInfo, uint32 f
     {
         if (spellInfo->HasAttribute(SPELL_ATTR_NOT_SHAPESHIFT)) // not while shapeshifted
             return SPELL_FAILED_NOT_SHAPESHIFT;
-        if (spellInfo->Stances != 0)                   // needs other shapeshift
+        if (spellInfo->Stances[0] != 0)                   // needs other shapeshift
             return SPELL_FAILED_ONLY_SHAPESHIFT;
     }
     else
     {
         // needs shapeshift
-        if (!spellInfo->HasAttribute(SPELL_ATTR_EX2_NOT_NEED_SHAPESHIFT) && spellInfo->Stances != 0)
+        if (!spellInfo->HasAttribute(SPELL_ATTR_EX2_NOT_NEED_SHAPESHIFT) && spellInfo->Stances[0] != 0)
             return SPELL_FAILED_ONLY_SHAPESHIFT;
     }
 
@@ -1566,7 +1572,7 @@ bool SpellMgr::IsSpellProcEventCanTriggeredBy(SpellProcEventEntry const* spellPr
         return false;
 
     // Always trigger for this
-    if (EventProcFlag & (PROC_FLAG_KILLED | PROC_FLAG_KILL | PROC_FLAG_ON_TRAP_ACTIVATION))
+    if (EventProcFlag & (PROC_FLAG_KILLED | PROC_FLAG_KILL | PROC_FLAG_ON_TRAP_ACTIVATION | PROC_FLAG_DEATH))
         return true;
 
     if (procFlags & PROC_FLAG_ON_DO_PERIODIC && EventProcFlag & PROC_FLAG_ON_DO_PERIODIC)
@@ -1798,44 +1804,6 @@ void SpellMgr::LoadSpellThreats()
 
     sLog.outString(">> Loaded %u spell threat entries", rankHelper.worker.count);
     sLog.outString();
-}
-
-bool SpellMgr::IsRankSpellDueToSpell(SpellEntry const* spellInfo_1, uint32 spellId_2) const
-{
-    SpellEntry const* spellInfo_2 = sSpellTemplate.LookupEntry<SpellEntry>(spellId_2);
-    if (!spellInfo_1 || !spellInfo_2) return false;
-    if (spellInfo_1->Id == spellId_2) return false;
-
-    return GetFirstSpellInChain(spellInfo_1->Id) == GetFirstSpellInChain(spellId_2);
-}
-
-bool SpellMgr::canStackSpellRanksInSpellBook(SpellEntry const* spellInfo) const
-{
-    if (IsPassiveSpell(spellInfo))                          // ranked passive spell
-        return false;
-    if (const SpellChainNode* node = GetSpellChainNode(spellInfo->Id))
-    {
-        // do not corrupt talent tree display by removing a rank from there, e.g. Faerie Fire (feral)
-        if (GetTalentSpellPos(node->first))
-            return true;
-    }
-    if (spellInfo->powerType != POWER_MANA && spellInfo->powerType != POWER_HEALTH)
-        return false;
-    if (IsProfessionOrRidingSpell(spellInfo->Id))
-        return false;
-
-    if (IsSkillBonusSpell(spellInfo->Id))
-        return false;
-
-    // All stances and stance-like spells
-    if (spellInfo->HasAttribute(SPELL_ATTR_EX2_DISPLAY_IN_STANCE_BAR) || IsSpellHaveAura(spellInfo, SPELL_AURA_MOD_SHAPESHIFT))
-        return false;
-
-    // FIXME: Seal of Righteousness, 2 version of same rank
-    if ((spellInfo->SpellFamilyFlags & uint64(0x0000000008000000)) && spellInfo->SpellIconID == 25)
-        return false;
-
-    return true;
 }
 
 bool SpellMgr::IsNoStackSpellDueToSpell(SpellEntry const* spellInfo_1, SpellEntry const* spellInfo_2) const
@@ -2544,7 +2512,7 @@ bool SpellMgr::IsNoStackSpellDueToSpell(SpellEntry const* spellInfo_1, SpellEntr
             return true;
     }
 
-    if (IsRankSpellDueToSpell(spellInfo_1, spellInfo_2->Id))
+    if (IsSpellAnotherRankOfSpell(spellInfo_1->Id, spellInfo_2->Id))
         return true;
 
     if (spellInfo_1->SpellFamilyName == 0 || spellInfo_2->SpellFamilyName == 0)
@@ -2641,7 +2609,7 @@ uint32 SpellMgr::GetProfessionSpellMinLevel(uint32 spellId) const
     if (rank >= 8)
         return 0;
 
-    SkillLineAbilityMapBounds bounds = GetSkillLineAbilityMapBounds(spellId);
+    SkillLineAbilityMapBounds bounds = GetSkillLineAbilityMapBoundsBySpellId(spellId);
     if (bounds.first == bounds.second)
         return 0;
 
@@ -2665,7 +2633,7 @@ bool SpellMgr::IsPrimaryProfessionFirstRankSpell(uint32 spellId) const
 
 bool SpellMgr::IsSkillBonusSpell(uint32 spellId) const
 {
-    SkillLineAbilityMapBounds bounds = GetSkillLineAbilityMapBounds(spellId);
+    SkillLineAbilityMapBounds bounds = GetSkillLineAbilityMapBoundsBySpellId(spellId);
 
     for (SkillLineAbilityMap::const_iterator _spell_idx = bounds.first; _spell_idx != bounds.second; ++_spell_idx)
     {
@@ -2696,7 +2664,7 @@ SpellEntry const* SpellMgr::SelectAuraRankForLevel(SpellEntry const* spellInfo, 
         // for simple aura in check apply to any non caster based targets, in rank search mode to any explicit targets
         if (((spellInfo->Effect[i] == SPELL_EFFECT_APPLY_AURA &&
                 (IsExplicitPositiveTarget(spellInfo->EffectImplicitTargetA[i]) ||
-                 IsAreaEffectPossitiveTarget(SpellTarget(spellInfo->EffectImplicitTargetA[i])))) ||
+                 IsAreaEffectPositiveTarget(SpellTarget(spellInfo->EffectImplicitTargetA[i])))) ||
                 spellInfo->Effect[i] == SPELL_EFFECT_APPLY_AREA_AURA_PARTY ||
                 spellInfo->Effect[i] == SPELL_EFFECT_APPLY_AREA_AURA_RAID) &&
                 IsPositiveEffect(spellInfo, SpellEffectIndex(i)))
@@ -2836,7 +2804,7 @@ void SpellMgr::LoadSpellChains()
     {
         // we can calculate ranks only after full data generation
         AbilitySpellPrevMap prevRanks;
-        for (SkillLineAbilityMap::const_iterator ab_itr = mSkillLineAbilityMap.begin(); ab_itr != mSkillLineAbilityMap.end(); ++ab_itr)
+        for (SkillLineAbilityMap::const_iterator ab_itr = mSkillLineAbilityMapBySpellId.begin(); ab_itr != mSkillLineAbilityMapBySpellId.end(); ++ab_itr)
         {
             uint32 spell_id = ab_itr->first;
 
@@ -2860,7 +2828,7 @@ void SpellMgr::LoadSpellChains()
                 continue;
 
             // some forward spells still exist but excluded from real use as ranks and not listed in skill abilities now
-            SkillLineAbilityMapBounds bounds = mSkillLineAbilityMap.equal_range(forward_id);
+            SkillLineAbilityMapBounds bounds = mSkillLineAbilityMapBySpellId.equal_range(forward_id);
             if (bounds.first == bounds.second)
                 continue;
 
@@ -3054,10 +3022,10 @@ void SpellMgr::LoadSpellChains()
         {
             bool skip = false;
             // some forward spells still exist but excluded from real use as ranks and not listed in skill abilities now
-            SkillLineAbilityMapBounds bounds = mSkillLineAbilityMap.equal_range(spell_id);
+            SkillLineAbilityMapBounds bounds = mSkillLineAbilityMapBySpellId.equal_range(spell_id);
             if (bounds.first == bounds.second)
             {
-                SkillLineAbilityMapBounds prev_bounds = mSkillLineAbilityMap.equal_range(node.prev);
+                SkillLineAbilityMapBounds prev_bounds = mSkillLineAbilityMapBySpellId.equal_range(node.prev);
                 for (SkillLineAbilityMap::const_iterator ab_itr = prev_bounds.first; ab_itr != prev_bounds.second; ++ab_itr)
                 {
                     // spell listed as forward and not listed as ability
@@ -3185,15 +3153,14 @@ void SpellMgr::LoadSpellLearnSkills()
                 SpellLearnSkillNode dbc_node;
                 dbc_node.skill    = entry->EffectMiscValue[i];
                 dbc_node.step     = entry->CalculateSimpleValue(SpellEffectIndex(i));
-                if (dbc_node.skill != SKILL_RIDING)
-                    dbc_node.value = 1;
-                else
-                    dbc_node.value = dbc_node.step * 75;
-                dbc_node.maxvalue = dbc_node.step * 75;
+                dbc_node.effect   = SpellEffects(entry->Effect[i]);
 
-                mSpellLearnSkills[spell] = dbc_node;
-                ++dbc_count;
-                break;
+                if (dbc_node.skill && dbc_node.step)
+                {
+                    mSpellLearnSkills[spell] = dbc_node;
+                    ++dbc_count;
+                    break;
+                }
             }
         }
     }
@@ -3917,15 +3884,23 @@ void SpellMgr::LoadSpellAreas()
                 continue;
             }
 
-            switch (spellInfo->EffectApplyAuraName[EFFECT_INDEX_0])
+            bool validSpellEffect = false;
+            for (uint32 i = EFFECT_INDEX_0; i < MAX_EFFECT_INDEX; ++i)
             {
-                case SPELL_AURA_DUMMY:
-                case SPELL_AURA_PHASE:
-                case SPELL_AURA_GHOST:
-                    break;
-                default:
-                    sLog.outErrorDb("Spell %u listed in `spell_area` have aura spell requirement (%u) without dummy/phase/ghost aura in effect 0", spell, abs(spellArea.auraSpell));
-                    continue;
+                switch (spellInfo->EffectApplyAuraName[i])
+                {
+                    case SPELL_AURA_DUMMY:
+                    case SPELL_AURA_PHASE:
+                    case SPELL_AURA_GHOST:
+                        validSpellEffect = true;
+                        break;
+                }
+            }
+
+            if (!validSpellEffect)
+            {
+                sLog.outErrorDb("Spell %u listed in `spell_area` have aura spell requirement (%u) without dummy/phase/ghost aura in spell effects", spell, abs(spellArea.auraSpell));
+                continue;
             }
 
             if (uint32(abs(spellArea.auraSpell)) == spellArea.spellId)
@@ -4132,25 +4107,27 @@ SpellCastResult SpellMgr::GetSpellAllowedInLocationError(SpellEntry const* spell
     return SPELL_CAST_OK;
 }
 
-void SpellMgr::LoadSkillLineAbilityMap()
+void SpellMgr::LoadSkillLineAbilityMaps()
 {
-    mSkillLineAbilityMap.clear();
+    mSkillLineAbilityMapBySpellId.clear();
+    mSkillLineAbilityMapBySkillId.clear();
 
-    BarGoLink bar(sSkillLineAbilityStore.GetNumRows());
+    const uint32 rows = sSkillLineAbilityStore.GetNumRows();
     uint32 count = 0;
 
-    for (uint32 i = 0; i < sSkillLineAbilityStore.GetNumRows(); ++i)
+    BarGoLink bar(rows);
+    for (uint32 row = 0; row < rows; ++row)
     {
         bar.step();
-        SkillLineAbilityEntry const* SkillInfo = sSkillLineAbilityStore.LookupEntry(i);
-        if (!SkillInfo)
-            continue;
-
-        mSkillLineAbilityMap.insert(SkillLineAbilityMap::value_type(SkillInfo->spellId, SkillInfo));
-        ++count;
+        if (SkillLineAbilityEntry const* entry = sSkillLineAbilityStore.LookupEntry(row))
+        {
+            mSkillLineAbilityMapBySpellId.insert(SkillLineAbilityMap::value_type(entry->spellId, entry));
+            mSkillLineAbilityMapBySkillId.insert(SkillLineAbilityMap::value_type(entry->skillId, entry));
+            ++count;
+        }
     }
 
-    sLog.outString(">> Loaded %u SkillLineAbility MultiMap Data", count);
+    sLog.outString(">> Loaded %u SkillLineAbility MultiMaps Data", count);
     sLog.outString();
 }
 
@@ -4625,6 +4602,17 @@ DiminishingReturnsType GetDiminishingReturnsGroupType(DiminishingGroup group)
     }
 
     return DRTYPE_NONE;
+}
+
+bool IsCreatureDRSpell(SpellEntry const* spellInfo)
+{
+    switch (spellInfo->Id)
+    {
+        case 36924: // Harbinger Skyriss - Mind Rend
+        case 31408: // Lesser Doomguard - War Stomp
+        case 31480: return true; // Kazrogal War Stomp - confirmed via video
+        default: return false;
+    }
 }
 
 bool SpellArea::IsFitToRequirements(Player const* player, uint32 newZone, uint32 newArea) const

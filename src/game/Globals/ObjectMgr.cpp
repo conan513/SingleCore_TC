@@ -558,13 +558,9 @@ void ObjectMgr::LoadCreatureTemplates()
         if (!ok)
             continue;
 
-        FactionTemplateEntry const* factionTemplate = sFactionTemplateStore.LookupEntry(cInfo->FactionAlliance);
+        FactionTemplateEntry const* factionTemplate = sFactionTemplateStore.LookupEntry(cInfo->Faction);
         if (!factionTemplate)
-            sLog.outErrorDb("Creature (Entry: %u) has nonexistent `FactionAlliance` template (%u)", cInfo->Entry, cInfo->FactionAlliance);
-
-        factionTemplate = sFactionTemplateStore.LookupEntry(cInfo->FactionHorde);
-        if (!factionTemplate)
-            sLog.outErrorDb("Creature (Entry: %u) has nonexistent `FactionHorde` template (%u)", cInfo->Entry, cInfo->FactionHorde);
+            sLog.outErrorDb("Creature (Entry: %u) has nonexistent Faction template (%u)", cInfo->Entry, cInfo->Faction);
 
         for (int k = 0; k < MAX_KILL_CREDIT; ++k)
         {
@@ -3075,6 +3071,116 @@ void ObjectMgr::LoadPlayerInfo()
 
             sLog.outString();
             sLog.outString(">> Loaded %u custom player create items", count);
+        }
+    }
+
+    // Load playercreate skills
+    {
+        //
+        QueryResult* result = WorldDatabase.Query("SELECT raceMask, classMask, skill, step FROM playercreateinfo_skills");
+
+        uint32 count = 0;
+
+        if (!result)
+        {
+            BarGoLink bar(1);
+
+            sLog.outString();
+            sLog.outString(">> Loaded %u player create skills", count);
+            sLog.outErrorDb("Error loading `playercreateinfo_skills` table or empty table.");
+        }
+        else
+        {
+            BarGoLink bar(result->GetRowCount());
+
+            do
+            {
+                Field* fields = result->Fetch();
+                uint32 raceMask = fields[0].GetUInt32();
+                uint32 classMask = fields[1].GetUInt32();
+                PlayerCreateInfoSkill skill;
+                skill.SkillId = fields[2].GetUInt16();
+                skill.Step = fields[3].GetUInt16();
+
+                if (skill.Step > MAX_SKILL_STEP)
+                {
+                    sLog.outErrorDb("Skill step %u out of bounds in `playercreateinfo_skills` table, ignoring.", skill.Step);
+                    continue;
+                }
+
+                if (raceMask && !(raceMask & RACEMASK_ALL_PLAYABLE))
+                {
+                    sLog.outErrorDb("Wrong race mask %u in `playercreateinfo_skills` table, ignoring.", raceMask);
+                    continue;
+                }
+
+                if (classMask && !(classMask & CLASSMASK_ALL_PLAYABLE))
+                {
+                    sLog.outErrorDb("Wrong class mask %u in `playercreateinfo_skills` table, ignoring.", classMask);
+                    continue;
+                }
+
+                if (!sSkillLineStore.LookupEntry(skill.SkillId))
+                {
+                    sLog.outErrorDb("Non existing skill %u in `playercreateinfo_skills` table, ignoring.", skill.SkillId);
+                    continue;
+                }
+
+                auto bounds = sSpellMgr.GetSkillRaceClassInfoMapBounds(skill.SkillId);
+
+                for (uint32 raceIndex = RACE_HUMAN; raceIndex < MAX_RACES; ++raceIndex)
+                {
+                    const uint32 raceIndexMask = (1 << (raceIndex - 1));
+                    if (!raceMask || (raceMask & raceIndexMask))
+                    {
+                        for (uint32 classIndex = CLASS_WARRIOR; classIndex < MAX_CLASSES; ++classIndex)
+                        {
+                            const uint32 classIndexMask = (1 << (classIndex - 1));
+                            if (!classMask || (classMask & classIndexMask))
+                            {
+                                bool obtainable = false;
+
+                                for (auto itr = bounds.first; (itr != bounds.second && !obtainable); ++itr)
+                                {
+                                    SkillRaceClassInfoEntry const* entry = itr->second;
+
+                                    if (!(entry->raceMask & raceIndexMask))
+                                        continue;
+
+                                    if (!(entry->classMask & classIndexMask))
+                                        continue;
+
+                                    if (skill.Step)
+                                    {
+                                        const uint32 stepIndex = (skill.Step - 1);
+                                        SkillTiersEntry const* steps = sSkillTiersStore.LookupEntry(entry->skillTierId);
+
+                                        if (!steps || !steps->maxSkillValue[stepIndex])
+                                            continue;
+                                    }
+
+                                    obtainable = true;
+                                }
+
+                                if (!obtainable)
+                                    continue;
+
+                                if (PlayerInfo* info = &playerInfo[raceIndex][classIndex])
+                                {
+                                    info->skill.push_back(skill);
+                                    ++count;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            while (result->NextRow());
+
+            delete result;
+
+            sLog.outString();
+            sLog.outString(">> Loaded %u player create skills", count);
         }
     }
 
@@ -7429,6 +7535,38 @@ void ObjectMgr::LoadSpellTemplate()
 
     sLog.outString(">> Loaded %u spell_dbc records", sSpellTemplate.GetRecordCount());
     sLog.outString();
+
+    sSpellCones.Load();
+    sLog.outString(">> Loaded %u spell_cone records", sSpellCones.GetRecordCount());
+    sLog.outString();
+}
+
+void ObjectMgr::CheckSpellCones()
+{
+    for (uint32 i = 1; i < sSpellTemplate.GetMaxEntry(); ++i)
+    {
+        SpellEntry const* spell = sSpellTemplate.LookupEntry<SpellEntry>(i);
+        SpellCone const* spellCone = sSpellCones.LookupEntry<SpellCone>(i);
+        if (spell)
+        {
+            if (uint32 firstRankId = sSpellMgr.GetFirstSpellInChain(i))
+            {
+                SpellCone const* spellConeFirst = sSpellCones.LookupEntry<SpellCone>(firstRankId);
+                if ((!spellConeFirst && !spellCone) || !spellCone)
+                    continue;
+
+                if (!spellConeFirst && spellCone)
+                {
+                    if (spellCone)
+                        sLog.outErrorDb("Table spell_cone is missing entry for spell %u - angle %d for its first rank %u. But has cone for this one.", i, spellCone->coneAngle, firstRankId);
+                    else
+                        sLog.outErrorDb("Table spell_cone is missing entry for spell %u for its first rank %u, no cone even for this rank.", i, firstRankId);
+                }
+                else if (spellCone->coneAngle != spellConeFirst->coneAngle)
+                    sLog.outErrorDb("Table spell_cone has different cone angle for spell Id %u - angle %d and first rank %u - angle %d", i, spellCone->coneAngle, firstRankId, spellConeFirst->coneAngle);
+            }
+        }
+    }
 }
 
 void ObjectMgr::LoadDungeonEncounters()
@@ -8222,7 +8360,7 @@ bool PlayerCondition::Meets(Player const* player, Map const* map, WorldObject co
             return uint32(player->GetTeam()) == m_value1;
         }
         case CONDITION_SKILL:
-            return player->HasSkill(m_value1) && player->GetBaseSkillValue(m_value1) >= m_value2;
+            return player->HasSkill(m_value1) && player->GetSkillValueBase(m_value1) >= m_value2;
         case CONDITION_QUESTREWARDED:
             return player->GetQuestRewardStatus(m_value1);
         case CONDITION_QUESTTAKEN:
@@ -8338,7 +8476,7 @@ bool PlayerCondition::Meets(Player const* player, Map const* map, WorldObject co
 
             bool isSkillOk = false;
 
-            SkillLineAbilityMapBounds bounds = sSpellMgr.GetSkillLineAbilityMapBounds(m_value1);
+            SkillLineAbilityMapBounds bounds = sSpellMgr.GetSkillLineAbilityMapBoundsBySpellId(m_value1);
 
             for (SkillLineAbilityMap::const_iterator itr = bounds.first; itr != bounds.second; ++itr)
             {
@@ -8373,7 +8511,7 @@ bool PlayerCondition::Meets(Player const* player, Map const* map, WorldObject co
         {
             if (m_value2 == 1)
                 return !player->HasSkill(m_value1);
-            return player->HasSkill(m_value1) && player->GetBaseSkillValue(m_value1) < m_value2;
+            return player->HasSkill(m_value1) && player->GetSkillValueBase(m_value1) < m_value2;
         }
         case CONDITION_REPUTATION_RANK_MAX:
         {
@@ -8487,6 +8625,11 @@ bool PlayerCondition::Meets(Player const* player, Map const* map, WorldObject co
         {
             if (OutdoorPvP* outdoorPvP = sOutdoorPvPMgr.GetScript(m_value1))
                 return outdoorPvP->IsConditionFulfilled(player, m_value2, source, conditionSourceType);
+            else if (player->InBattleGround() && player->GetZoneId() == m_value1)
+            {
+                if (BattleGround* bg = player->GetBattleGround())
+                    return bg->IsConditionFulfilled(player, m_value2, source, conditionSourceType);
+            }
 
             return false;
         }
@@ -8869,7 +9012,7 @@ bool PlayerCondition::IsValid(uint16 entry, ConditionType condition, uint32 valu
         }
         case CONDITION_LEARNABLE_ABILITY:
         {
-            SkillLineAbilityMapBounds bounds = sSpellMgr.GetSkillLineAbilityMapBounds(value1);
+            SkillLineAbilityMapBounds bounds = sSpellMgr.GetSkillLineAbilityMapBoundsBySpellId(value1);
 
             if (bounds.first == bounds.second)
             {
@@ -9350,23 +9493,23 @@ void ObjectMgr::LoadTrainers(char const* tableName, bool isTemplates)
 
         trainerSpell.isProvidedReqLevel = trainerSpell.reqLevel > 0;
 
-        // calculate learned spell for profession case when stored cast-spell
+        // By default, lets assume the specified spell is the one we want to teach the player...
         trainerSpell.learnedSpell = spell;
+        // ...but first, lets inspect this spell...
         for (int i = 0; i < MAX_EFFECT_INDEX; ++i)
         {
-            if (spellinfo->Effect[i] == SPELL_EFFECT_LEARN_SPELL &&
-                    SpellMgr::IsProfessionOrRidingSpell(spellinfo->EffectTriggerSpell[i]))
+            if (spellinfo->Effect[i] == SPELL_EFFECT_LEARN_SPELL && spellinfo->EffectTriggerSpell[i])
             {
-                // prof spells sometime only additions to main spell learn that have level data
-                for (int j = 0; j < MAX_EFFECT_INDEX; ++j)
+                switch (spellinfo->EffectImplicitTargetA[i])
                 {
-                    if (spellinfo->Effect[j] == SPELL_EFFECT_LEARN_SPELL)
-                    {
-                        trainerSpell.learnedSpell = spellinfo->EffectTriggerSpell[j];
+                    case TARGET_NONE:
+                    case TARGET_UNIT_CASTER:
+                        // ...looks like the specified spell is actually a trainer's spell casted on a player to teach another spell
+                        // Trainer's spells can teach more than one spell (up to number of effects), but we will stick to the first one
+                        // Self-casts listed in trainer's lists usually come from recipes which were made trainable in a later patch
+                        trainerSpell.learnedSpell = spellinfo->EffectTriggerSpell[i];
                         break;
-                    }
                 }
-                break;
             }
         }
 

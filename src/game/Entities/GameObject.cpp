@@ -226,7 +226,7 @@ bool GameObject::Create(uint32 guidlow, uint32 name_id, Map* map, uint32 phaseMa
     return true;
 }
 
-void GameObject::Update(uint32 update_diff, uint32 p_time)
+void GameObject::Update(const uint32 diff)
 {
     if (GetObjectGuid().IsMOTransport())
     {
@@ -479,7 +479,7 @@ void GameObject::Update(uint32 update_diff, uint32 p_time)
                     }
                     break;
                 case GAMEOBJECT_TYPE_CAPTURE_POINT:
-                    m_captureTimer += p_time;
+                    m_captureTimer += diff;
                     if (m_captureTimer >= 5000)
                     {
                         TickCapturePoint();
@@ -606,17 +606,17 @@ void GameObject::Update(uint32 update_diff, uint32 p_time)
 
     if (m_delayedActionTimer)
     {
-        if (m_delayedActionTimer <= update_diff)
+        if (m_delayedActionTimer <= diff)
         {
             m_delayedActionTimer = 0;
             TriggerDelayedAction();
         }
         else
-            m_delayedActionTimer -= update_diff;
+            m_delayedActionTimer -= diff;
     }
 
     if (m_AI)
-        m_AI->UpdateAI(update_diff);
+        m_AI->UpdateAI(diff);
 }
 
 void GameObject::Refresh()
@@ -1425,7 +1425,13 @@ void GameObject::Use(Unit* user)
                 if (info->goober.eventId)
                 {
                     DEBUG_FILTER_LOG(LOG_FILTER_AI_AND_MOVEGENSS, "Goober ScriptStart id %u for %s (Used by %s).", info->goober.eventId, GetGuidStr().c_str(), player->GetGuidStr().c_str());
-                    StartEvents_Event(GetMap(), info->goober.eventId, player, this);
+
+                    // for battleground events we need to allow the event id to be forwarded
+                    // Note: this exception is required in order not to change the legacy even handling in DB scripts
+                    if (GetMap()->IsBattleGround())
+                        StartEvents_Event(GetMap(), info->goober.eventId, this, player, true, player);
+                    else
+                        StartEvents_Event(GetMap(), info->goober.eventId, player, this);
                 }
 
                 // possible quest objective for active quests
@@ -2511,7 +2517,7 @@ void GameObject::TriggerSummoningRitual()
         spellId = 61993;
 
     if (caster)
-        caster->CastSpell(sObjectMgr.GetPlayer(m_actionTarget), spellId, TRIGGERED_OLD_TRIGGERED, nullptr, nullptr, GetObjectGuid());
+        caster->CastSpell(sObjectMgr.GetPlayer(m_actionTarget), spellId, TRIGGERED_OLD_TRIGGERED | TRIGGERED_INSTANT_CAST, nullptr, nullptr, GetObjectGuid());
 }
 
 void GameObject::TriggerDelayedAction()

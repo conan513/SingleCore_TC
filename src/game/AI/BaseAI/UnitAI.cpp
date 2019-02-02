@@ -34,12 +34,14 @@ UnitAI::UnitAI(Unit* unit) :
     m_attackDistance(0.0f),
     m_attackAngle(0.0f),
     m_moveFurther(false),
+    m_chaseRun(true),
     m_visibilityDistance(VISIBLE_RANGE),
     m_combatMovementStarted(false),
     m_dismountOnAggro(true),
     m_meleeEnabled(true),
     m_reactState(REACT_AGGRESSIVE),
-    m_combatScriptHappening(false)
+    m_combatScriptHappening(false),
+    m_currentAIOrder(ORDER_NONE)
 {
 }
 
@@ -116,8 +118,11 @@ CanCastResult UnitAI::CanCastSpell(Unit* target, const SpellEntry* spellInfo, bo
         if (m_unit->GetPower((Powers)spellInfo->powerType) < Spell::CalculatePowerCost(spellInfo, m_unit))
             return CAST_FAIL_POWER;
 
-        if (target && !IsIgnoreLosSpellCast(spellInfo) && !m_unit->IsWithinLOSInMap(target) && m_unit != target)
+        if (target && !IsIgnoreLosSpellCast(spellInfo) && !m_unit->IsWithinLOSInMap(target, true) && m_unit != target)
             return CAST_FAIL_NOT_IN_LOS;
+
+        if (m_unit->HasGCD(spellInfo))
+            return CAST_FAIL_COOLDOWN;
 
         if (!m_unit->IsSpellReady(*spellInfo))
             return CAST_FAIL_COOLDOWN;
@@ -158,6 +163,9 @@ CanCastResult UnitAI::DoCastSpellIfCan(Unit* target, uint32 spellId, uint32 cast
     }
     else if (castFlags & (CAST_FORCE_TARGET_SELF | CAST_SWITCH_CASTER_TARGET))
         return CAST_FAIL_OTHER;
+
+    if (GetAIOrder() == ORDER_EVADE && !(castFlags & CAST_TRIGGERED))
+        return CAST_FAIL_EVADE;
 
     // Allowed to cast only if not casting (unless we interrupt ourself) or if spell is triggered
     if (!caster->IsNonMeleeSpellCasted(false) || (castFlags & (CAST_TRIGGERED | CAST_INTERRUPT_PREVIOUS)))
@@ -204,7 +212,12 @@ CanCastResult UnitAI::DoCastSpellIfCan(Unit* target, uint32 spellId, uint32 cast
             if (flags == TRIGGERED_NONE)
                 flags |= TRIGGERED_NORMAL_COMBAT_CAST;
 
-            caster->CastSpell(target, spellInfo, flags, nullptr, nullptr, originalCasterGUID);
+            SpellCastResult result = caster->CastSpell(target, spellInfo, flags, nullptr, nullptr, originalCasterGUID);
+            if (result != SPELL_CAST_OK)
+            {
+                sLog.outBasic("DoCastSpellIfCan by %s attempt to cast spell %u but spell failed due to unknown result %u.", m_unit->GetObjectGuid().GetString().c_str(), spellId, result);
+                return CAST_FAIL_OTHER;
+            }
             return CAST_OK;
         }
         sLog.outErrorDb("DoCastSpellIfCan by %s attempt to cast spell %u but spell does not exist.", m_unit->GetGuidStr().c_str(), spellId);
@@ -230,7 +243,7 @@ void UnitAI::AttackStart(Unit* who)
 
 bool UnitAI::DoMeleeAttackIfReady() const
 {
-    return m_unit->hasUnitState(UNIT_STAT_MELEE_ATTACKING) && m_unit->UpdateMeleeAttackingState();
+    return m_unit->hasUnitState(UNIT_STAT_MELEE_ATTACKING) && GetAIOrder() == ORDER_NONE && m_unit->UpdateMeleeAttackingState();
 }
 
 void UnitAI::SetCombatMovement(bool enable, bool stopOrStartMovement /*=false*/)
@@ -245,7 +258,7 @@ void UnitAI::SetCombatMovement(bool enable, bool stopOrStartMovement /*=false*/)
         if (!m_unit->IsIncapacitated())
         {
             if (enable)
-                m_unit->GetMotionMaster()->MoveChase(m_unit->getVictim(), m_attackDistance, m_attackAngle, false);
+                DoStartMovement(m_unit->getVictim());
             else if (m_unit->GetMotionMaster()->GetCurrentMovementGeneratorType() == CHASE_MOTION_TYPE)
                 m_unit->StopMoving();
         }
@@ -287,7 +300,10 @@ void UnitAI::OnSpellCastStateChange(SpellEntry const* spellInfo, bool state, Wor
     // Targeting seems to be directly affected by eff index 0 targets, client does the same thing
     switch (spellInfo->EffectImplicitTargetA[EFFECT_INDEX_0])
     {
+        case TARGET_ENUM_UNITS_ENEMY_IN_CONE_24: // ignores everything and keeps turning
+            return;
         case TARGET_UNIT_ENEMY: forceTarget = true; break;
+        case TARGET_UNIT_SCRIPT_NEAR_CASTER:
         default: break;
     }
 
@@ -325,11 +341,24 @@ void UnitAI::OnChannelStateChange(SpellEntry const* spellInfo, bool state, World
             return;
     }
 
+    bool forceTarget = true; // Different default than normal cast
+
+    // Targeting seems to be directly affected by eff index 0 targets, client does the same thing
+    switch (spellInfo->EffectImplicitTargetA[EFFECT_INDEX_0])
+    {
+        case TARGET_UNIT:
+        case TARGET_UNIT_SCRIPT_NEAR_CASTER: forceTarget = false; break;
+        case TARGET_UNIT_ENEMY:
+        default: break;
+    }
+
+    if (spellInfo->HasAttribute(SPELL_ATTR_EX_CHANNEL_TRACK_TARGET))
+        forceTarget = true;
+
     if (state)
     {
-        if (spellInfo->ChannelInterruptFlags & CHANNEL_FLAG_TURNING && !spellInfo->HasAttribute(SPELL_ATTR_EX_CHANNEL_TRACK_TARGET)) // 30166 changes target to none
+        if ((spellInfo->ChannelInterruptFlags & CHANNEL_FLAG_TURNING && !spellInfo->HasAttribute(SPELL_ATTR_EX_CHANNEL_TRACK_TARGET)) || !forceTarget)
         {
-            m_unit->SetTurningOff(true);
             m_unit->SetFacingTo(m_unit->GetOrientation());
             m_unit->SetTarget(nullptr);
         }
@@ -346,9 +375,6 @@ void UnitAI::OnChannelStateChange(SpellEntry const* spellInfo, bool state, World
     }
     else
     {
-        if (spellInfo->ChannelInterruptFlags & CHANNEL_FLAG_TURNING)
-            m_unit->SetTurningOff(false);
-
         if (m_unit->getVictim())
             m_unit->SetTarget(m_unit->getVictim());
         else
@@ -363,6 +389,9 @@ void UnitAI::CheckForHelp(Unit* who, Unit* me, float distance)
     if (!victim)
         return;
 
+    if (me->isInCombat())
+        return;
+
     if (me->GetMap()->Instanceable())
         distance = distance / 2.5f;
 
@@ -370,17 +399,11 @@ void UnitAI::CheckForHelp(Unit* who, Unit* me, float distance)
     {
         if (me->IsWithinDistInMap(who, distance) && me->IsWithinLOSInMap(who))
         {
-            if (!me->getVictim())
+            if (me->CanAssistInCombatAgainst(who, victim))
             {
-                if (me->GetMap()->Instanceable()) // Instanceable case ignore family/faction checks
-                    AttackStart(victim);
-                else // In non-instanceable creature must belong to same family and faction to attack player.
-                {
-                    if (me->GetTypeId() == TYPEID_UNIT && who->GetTypeId() == TYPEID_UNIT
-                            && me->getFaction() == who->getFaction()
-                            && static_cast<Creature*>(me)->GetCreatureInfo()->Family == static_cast<Creature*>(who)->GetCreatureInfo()->Family)
-                        AttackStart(victim);
-                }
+                AttackStart(victim);
+                if (who->AI() && who->AI()->GetAIOrder() == ORDER_FLEEING)
+                    who->GetMotionMaster()->InterruptFlee();
             }
         }
     }
@@ -460,10 +483,15 @@ class AiDelayEventAround : public BasicEvent
                 {
                     pReceiver->AI()->ReceiveAIEvent(m_eventType, &m_owner, pInvoker, m_miscValue);
                     // Special case for type 0 (call-assistance)
-                    if (m_eventType == AI_EVENT_CALL_ASSISTANCE && pInvoker && pReceiver->CanAssist(&m_owner) && pReceiver->CanAttackOnSight(pInvoker))
+                    if (m_eventType == AI_EVENT_CALL_ASSISTANCE)
                     {
-                        pReceiver->SetNoCallAssistance(true);
-                        pReceiver->AI()->AttackStart(pInvoker);
+                        if (pReceiver->isInCombat() || !pInvoker)
+                            continue;
+                        if (pReceiver->CanAssist(&m_owner) && pReceiver->CanAttackOnSight(pInvoker))
+                        {
+                            pReceiver->SetNoCallAssistance(true);
+                            pReceiver->AI()->AttackStart(pInvoker);
+                        }
                     }
                 }
             }
@@ -507,7 +535,7 @@ void UnitAI::SendAIEventAround(AIEventType eventType, Unit* invoker, uint32 dela
         if (!receiverList.empty())
         {
             AiDelayEventAround* e = new AiDelayEventAround(eventType, invoker ? invoker->GetObjectGuid() : ObjectGuid(), *m_unit, receiverList, miscValue);
-            m_unit->m_Events.AddEvent(e, m_unit->m_Events.CalculateTime(delay));
+            m_unit->m_events.AddEvent(e, m_unit->m_events.CalculateTime(delay));
         }
     }
 }
@@ -520,23 +548,23 @@ void UnitAI::SendAIEvent(AIEventType eventType, Unit* invoker, Unit* receiver, u
 
 bool UnitAI::IsVisible(Unit* pl) const
 {
-    return m_unit->IsWithinDist(pl, m_visibilityDistance) && pl->isVisibleForOrDetect(m_unit, m_unit, true);
+    return m_unit->IsWithinDist(pl, m_visibilityDistance) && pl->IsVisibleForOrDetect(m_unit, m_unit, true);
 }
 
-Unit* UnitAI::DoSelectLowestHpFriendly(float range, float minMissing, bool percent)
+Unit* UnitAI::DoSelectLowestHpFriendly(float range, float minMissing, bool percent, bool targetSelf)
 {
     Unit* pUnit = nullptr;
 
     if (percent)
     {
-        MaNGOS::MostHPPercentMissingInRangeCheck u_check(m_unit, range, minMissing, true);
+        MaNGOS::MostHPPercentMissingInRangeCheck u_check(m_unit, range, minMissing, true, targetSelf);
         MaNGOS::UnitLastSearcher<MaNGOS::MostHPPercentMissingInRangeCheck> searcher(pUnit, u_check);
 
         Cell::VisitGridObjects(m_unit, searcher, range);
     }
     else
     {
-        MaNGOS::MostHPMissingInRangeCheck u_check(m_unit, range, minMissing, true);
+        MaNGOS::MostHPMissingInRangeCheck u_check(m_unit, range, minMissing, true, targetSelf);
         MaNGOS::UnitLastSearcher<MaNGOS::MostHPMissingInRangeCheck> searcher(pUnit, u_check);
 
         Cell::VisitGridObjects(m_unit, searcher, range);
@@ -571,5 +599,27 @@ void UnitAI::SetMeleeEnabled(bool state)
 void UnitAI::DoStartMovement(Unit* victim)
 {
     if (victim)
-        m_unit->GetMotionMaster()->MoveChase(victim, m_attackDistance, m_attackAngle, m_moveFurther);
+        m_unit->GetMotionMaster()->MoveChase(victim, m_attackDistance, m_attackAngle, m_moveFurther, !m_chaseRun);
+}
+
+void UnitAI::TimedFleeingEnded()
+{
+    if (GetAIOrder() != ORDER_FLEEING)
+        return; // prevent stack overflow by cyclic calls - TODO: remove once Motion Master is human again
+    SetAIOrder(ORDER_NONE);
+    SetCombatScriptStatus(false);
+    if (!m_unit->isAlive())
+        return;
+    DoStartMovement(m_unit->getVictim());
+}
+
+void UnitAI::DoFlee()
+{
+    Unit* victim = m_unit->getVictim();
+    if (!victim)
+        return;
+
+    SetAIOrder(ORDER_FLEEING);
+    SetCombatScriptStatus(true);
+    m_unit->SetFeared(true, victim->GetObjectGuid(), 0, sWorld.getConfig(CONFIG_UINT32_CREATURE_FAMILY_FLEE_DELAY));
 }

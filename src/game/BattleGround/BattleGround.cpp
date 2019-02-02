@@ -100,6 +100,38 @@ namespace MaNGOS
             va_list* i_args;
     };
 
+    class BattleGroundMessageBuilder
+    {
+        public:
+            BattleGroundMessageBuilder(ChatMsg msgtype, Language language, int32 textId, Creature const* source, va_list* args = nullptr)
+                : i_msgtype(msgtype), i_language(language), i_textId(textId), i_source(source), i_args(args) {}
+            void operator()(WorldPacket& data, int32 loc_idx)
+            {
+                char const* text = sObjectMgr.GetMangosString(i_textId, loc_idx);
+
+                if (i_args)
+                {
+                    // we need copy va_list before use or original va_list will corrupted
+                    va_list ap;
+                    va_copy(ap, *i_args);
+
+                    char str [2048];
+                    vsnprintf(str, 2048, text, ap);
+                    va_end(ap);
+
+                    ChatHandler::BuildChatPacket(data, i_msgtype, &str[0], i_language, CHAT_TAG_NONE, i_source->GetObjectGuid(), i_source->GetName());
+                }
+                else
+                    ChatHandler::BuildChatPacket(data, i_msgtype, text, i_language, CHAT_TAG_NONE, i_source->GetObjectGuid(), i_source->GetName());
+            }
+        private:
+            ChatMsg i_msgtype;
+            Language i_language;
+            int32 i_textId;
+            Creature const* i_source;
+            va_list* i_args;
+    };
+
     class BattleGround2ChatBuilder
     {
         public:
@@ -404,7 +436,9 @@ void BattleGround::Update(uint32 diff)
 
             StartingEventOpenDoors();
 
-            SendMessageToAll(m_StartMessageIds[BG_STARTING_EVENT_FOURTH], CHAT_MSG_BG_SYSTEM_NEUTRAL);
+            if (m_StartMessageIds[BG_STARTING_EVENT_FOURTH])
+                SendMessageToAll(m_StartMessageIds[BG_STARTING_EVENT_FOURTH], CHAT_MSG_BG_SYSTEM_NEUTRAL);
+
             SetStatus(STATUS_IN_PROGRESS);
             SetStartDelayTime(m_StartDelayTimes[BG_STARTING_EVENT_FOURTH]);
 
@@ -416,7 +450,7 @@ void BattleGround::Update(uint32 diff)
                     if (Player* player = sObjectMgr.GetPlayer(itr->first))
                     {
                         player->RemoveAurasDueToSpell(SPELL_ARENA_PREPARATION);
-                        player->RemoveAurasWithAttribute(SPELL_ATTR_EX5_REMOVE_AT_ENTER_ARENA);
+                        player->RemoveAurasWithAttribute(SPELL_ATTR_EX5_REMOVE_ON_ARENA_ENTER);
                     }
                 }
 
@@ -881,6 +915,8 @@ uint32 BattleGround::GetBattlemasterEntry() const
         case BATTLEGROUND_AB: return 14879;
         case BATTLEGROUND_EY: return 22516;
         case BATTLEGROUND_NA: return 20200;
+        case BATTLEGROUND_SA: return 29234;
+        case BATTLEGROUND_IC: return 34437;
         default:              return 0;
     }
 }
@@ -907,7 +943,14 @@ void BattleGround::RewardMark(Player* plr, uint32 count)
             else
                 RewardSpellCast(plr, SPELL_AB_MARK_LOSER);
             break;
+        case BATTLEGROUND_SA:
+            if (count == ITEM_WINNER_COUNT)
+                RewardSpellCast(plr, SPELL_SA_MARK_WINNER);
+            else
+                RewardSpellCast(plr, SPELL_SA_MARK_LOSER);
+            break;
         case BATTLEGROUND_EY:                               // no rewards
+        case BATTLEGROUND_IC:
         default:
             break;
     }
@@ -1004,6 +1047,12 @@ void BattleGround::RewardQuestComplete(Player* plr)
             break;
         case BATTLEGROUND_EY:
             quest = SPELL_EY_QUEST_REWARD;
+            break;
+        case BATTLEGROUND_SA:
+            quest = SPELL_SA_QUEST_REWARD;
+            break;
+        case BATTLEGROUND_IC:
+            quest = SPELL_IC_QUEST_REWARD;
             break;
         default:
             return;
@@ -1626,6 +1675,16 @@ void BattleGround::SendYellToAll(int32 entry, uint32 language, ObjectGuid guid)
         return;
     MaNGOS::BattleGroundYellBuilder bg_builder(Language(language), entry, source);
     MaNGOS::LocalizedPacketDo<MaNGOS::BattleGroundYellBuilder> bg_do(bg_builder);
+    BroadcastWorker(bg_do);
+}
+
+void BattleGround::SendMessageToAll(int32 entry, ChatMsg type, uint32 language, ObjectGuid guid)
+{
+    Creature* source = GetBgMap()->GetCreature(guid);
+    if (!source)
+        return;
+    MaNGOS::BattleGroundMessageBuilder bg_builder(type, Language(language), entry, source);
+    MaNGOS::LocalizedPacketDo<MaNGOS::BattleGroundMessageBuilder> bg_do(bg_builder);
     BroadcastWorker(bg_do);
 }
 

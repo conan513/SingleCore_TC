@@ -30,6 +30,7 @@
 #include "Globals/ObjectMgr.h"
 #include "Entities/ObjectGuid.h"
 #include "Spells/SpellMgr.h"
+#include "Cinematics/M2Stores.h"
 
 bool ChatHandler::HandleDebugSendSpellFailCommand(char* args)
 {
@@ -227,6 +228,23 @@ bool ChatHandler::HandleDebugPlayCinematicCommand(char* args)
         return false;
     }
 
+    // Dump camera locations
+    if (CinematicSequencesEntry const* cineSeq = sCinematicSequencesStore.LookupEntry(dwId))
+    {
+        std::unordered_map<uint32, FlyByCameraCollection>::const_iterator itr = sFlyByCameraStore.find(cineSeq->cinematicCamera);
+        if (itr != sFlyByCameraStore.end())
+        {
+            PSendSysMessage("Waypoints for sequence %u, camera %u", dwId, cineSeq->cinematicCamera);
+            uint32 count = 1;
+            for (FlyByCamera cam : itr->second)
+            {
+                PSendSysMessage("%02u - %7ums [%f, %f, %f] Facing %f (%f degrees)", count, cam.timeStamp, cam.locations.x, cam.locations.y, cam.locations.z, cam.locations.w, cam.locations.w * (180 / M_PI));
+                count++;
+            }
+            PSendSysMessage("%u waypoints dumped", uint32(itr->second.size()));
+        }
+    }
+
     m_session->GetPlayer()->SendCinematicStart(dwId);
     return true;
 }
@@ -347,6 +365,20 @@ bool ChatHandler::HandleDebugSendChatMsgCommand(char* args)
     WorldPacket data;
     ChatHandler::BuildChatPacket(data, ChatMsg(type), msg, LANG_UNIVERSAL, CHAT_TAG_NONE, m_session->GetPlayer()->GetObjectGuid(), m_session->GetPlayerName());
     m_session->SendPacket(data);
+    return true;
+}
+
+bool ChatHandler::HandleDebugSendQuestFailedMsgCommand(char* args)
+{
+    uint32 questId;
+    if (!ExtractUInt32(&args, questId))
+        return false;
+
+    uint32 reason;
+    if (!ExtractUInt32(&args, reason))
+        return false;
+
+    m_session->GetPlayer()->SendQuestFailed(questId, InventoryResult(reason));
     return true;
 }
 
@@ -1220,6 +1252,51 @@ bool ChatHandler::HandleDebugWaypoint(char* args)
     return true;
 }
 
+bool ChatHandler::HandleDebugByteFields(char* args)
+{
+    Creature* target = getSelectedCreature();
+    if (!target)
+        return false;
+
+    int32 fieldNum;
+    if (!ExtractInt32(&args, fieldNum))
+        return false;
+
+    uint32 byte;
+    if (!ExtractUInt32(&args, byte))
+        return false;
+
+    uint32 value;
+    if (!ExtractUInt32(&args, value))
+        return false;
+
+    switch (fieldNum)
+    {
+        case 0:
+            target->SetByteFlag(UNIT_FIELD_BYTES_0, byte, value);
+            break;
+        case 1:
+            target->SetByteFlag(UNIT_FIELD_BYTES_1, byte, value);
+            break;
+        case 2:
+            target->SetByteFlag(UNIT_FIELD_BYTES_2, byte, value);
+            break;
+        case -10:
+            target->RemoveByteFlag(UNIT_FIELD_BYTES_0, byte, value);
+            break;
+        case -1:
+            target->RemoveByteFlag(UNIT_FIELD_BYTES_1, byte, value);
+            break;
+        case -2:
+            target->RemoveByteFlag(UNIT_FIELD_BYTES_2, byte, value);
+            break;
+        default:
+            break;
+    }
+
+    return true;
+}
+
 bool ChatHandler::HandleDebugSpellVisual(char* args)
 {
     Unit* target = getSelectedUnit();
@@ -1241,5 +1318,107 @@ bool ChatHandler::HandleDebugMoveflags(char* args)
         return false;
 
     PSendSysMessage("Moveflags on target %u", target->m_movementInfo.GetMovementFlags());
+    return true;
+}
+
+bool ChatHandler::HandleDebugLootDropStats(char* args)
+{
+    uint32 amountOfCheck = 100000;
+    uint32 lootId = 0;
+    std::string lootStore;
+
+    Creature* target = getSelectedCreature();
+    if (!target)
+    {
+        bool usageError = false;
+        char* storeStr = nullptr;
+        if (!ExtractUInt32(&args, lootId))
+            usageError = true;
+
+        if (!usageError)
+        {
+            storeStr = ExtractLiteralArg(&args);
+            if (!storeStr && *args)
+                usageError = true;
+
+            if (!usageError && *args && !ExtractUInt32(&args, amountOfCheck))
+                usageError = true;
+        }
+
+        if (usageError)
+        {
+            SendSysMessage("Usage: .debug lootdropstats lootId [lootTemplate amountOfCheck]");
+            SetSentErrorMessage(true);
+            return false;
+        }
+
+        if (storeStr)
+        {
+            lootStore = storeStr;
+            if (lootStore == "creature" || lootStore == "c")
+                lootStore = "creature";
+            else if (lootStore == "gameobject" || lootStore == "gob")
+                lootStore = "gameobject";
+            else if (lootStore == "fishing" || lootStore == "f")
+                lootStore = "fishing";
+            else if (lootStore == "item" || lootStore == "i")
+                lootStore = "item";
+            else if (lootStore == "pickpocketing" || lootStore == "pick")
+                lootStore = "pickpocketing";
+            else if (lootStore == "skinning" || lootStore == "skin")
+                lootStore = "skinning";
+            else if (lootStore == "disenchanting" || lootStore == "dis")
+                lootStore = "disenchanting";
+            else if (lootStore == "prospecting" || lootStore == "prosp")
+                lootStore = "prospecting";
+            else if (lootStore == "mail" || lootStore == "m")
+                lootStore = "mail";
+            else if (lootStore == "milling" || lootStore == "mil")
+                lootStore = "milling";
+            else if (lootStore == "spell" || lootStore == "s")
+                lootStore = "spell";
+            else
+            {
+                PSendSysMessage("Provided loot template is not valid should be:");
+                PSendSysMessage("creature");
+                PSendSysMessage("gameobject");
+                PSendSysMessage("fishing");
+                PSendSysMessage("item");
+                PSendSysMessage("pickpocketing");
+                PSendSysMessage("skinning");
+                PSendSysMessage("disenchanting");
+                PSendSysMessage("prospecting");
+                PSendSysMessage("mail");
+                PSendSysMessage("milling");
+                PSendSysMessage("spell");
+                return true;
+            }
+        }
+        else
+            lootStore = "creature";
+    }
+    else
+    {
+        lootStore = "creature";
+        lootId = target->GetCreatureInfo()->LootId;
+        ExtractUInt32(&args, amountOfCheck);
+    }
+
+    sLootMgr.CheckDropStats(*this, amountOfCheck, lootId, lootStore);
+    return true;
+}
+
+bool ChatHandler::HandleDebugSendWorldState(char* args)
+{
+    Player* player = m_session->GetPlayer();
+    uint32 worldState;
+    if (!ExtractUInt32(&args, worldState))
+        return false;
+
+    uint32 value;
+    if (!ExtractUInt32(&args, value))
+        return false;
+
+    player->SendUpdateWorldState(worldState, value);
     return true;
 }
