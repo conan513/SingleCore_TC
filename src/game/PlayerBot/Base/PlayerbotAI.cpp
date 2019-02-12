@@ -2201,16 +2201,17 @@ void PlayerbotAI::DoNextCombatManeuver()
                 {
                     // Only one target, but unless the tank or master breaks it, keep it CCed
                     JOB_TYPE victimjob = JOB_HEAL; // Assume the worst
-                    if (neutralizeTarget->getVictim()->GetTypeId() == TYPEID_PLAYER)
+                    Unit* victim = neutralizeTarget->getVictim();
+                    if (victim && victim->GetTypeId() == TYPEID_PLAYER)
                     {
-                        const Player* ntVictim = 
-                            neutralizeTarget->getVictim()->GetControllingPlayer();
-                        victimjob = GetClassAI()->GetTargetJob((Player*) ntVictim);
+                        const Player* neutVictim = 
+                            victim->GetControllingPlayer();
+                        victimjob = GetClassAI()->GetTargetJob((Player*) neutVictim);
                     }
                     if (!(victimjob == JOB_TANK || victimjob == JOB_MASTER)) 
                     {
                         if (!CastNeutralize())
-                            TellMaster("Something went wrong neutralizing that %s", 
+                            TellMaster("A problem occurred neutralizing that %s", 
                                 neutralizeTarget->GetName());
                         return;
                     }
