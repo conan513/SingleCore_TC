@@ -54,6 +54,7 @@ LFGDungeonData::LFGDungeonData(LFGDungeonEntry const* dbc) : id(dbc->ID), name(d
 
 LFGMgr::LFGMgr(): m_QueueTimer(0), m_lfgProposalId(1),
     m_options(sWorld->getIntConfig(CONFIG_LFG_OPTIONSMASK)),
+    m_isTesting(false),
     _isCallToArmsEnabled(sWorld->getBoolConfig(CONFIG_LFG_CALL_TO_ARMS_ENABLED)),
     _callToArmsRoles(PLAYER_ROLE_TANK | PLAYER_ROLE_HEALER | PLAYER_ROLE_DAMAGE)
 {
@@ -1080,7 +1081,7 @@ void LFGMgr::UpdateProposal(uint32 proposalId, ObjectGuid guid, bool accept)
         if (itPlayers->second.accept != LFG_ANSWER_AGREE)   // No answer (-1) or not accepted (0)
             allAnswered = false;
 
-    if (!allAnswered)
+    if (!sLFGMgr->IsTesting() && !allAnswered)
     {
         for (LfgProposalPlayerContainer::const_iterator it = proposal.players.begin(); it != proposal.players.end(); ++it)
             SendLfgUpdateProposal(it->first, proposal);
@@ -2265,6 +2266,11 @@ void LFGMgr::AddDungeonsFromGroupingMap(LfgCachedDungeonContainer& container, ui
                 container[groupId].insert(itr->dungeonId);
         }
     }
+}
+
+void LFGMgr::ToggleTesting()
+{
+    m_isTesting = !m_isTesting;
 }
 
 } // namespace lfg

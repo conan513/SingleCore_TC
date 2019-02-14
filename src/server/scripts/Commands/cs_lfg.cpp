@@ -162,6 +162,13 @@ public:
         sLFGMgr->Clean();
         return true;
     }
+
+    static bool HandleLfgDebugCommand(ChatHandler* handler, char const* /*args*/)
+    {
+        sLFGMgr->ToggleTesting();
+        handler->PSendSysMessage(sLFGMgr->IsTesting() ? LANG_DEBUG_LFG_ON : LANG_DEBUG_LFG_OFF);
+        return true;
+    }
 };
 
 void AddSC_lfg_commandscript()

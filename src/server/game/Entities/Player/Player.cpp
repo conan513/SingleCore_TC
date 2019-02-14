@@ -39,10 +39,12 @@
 #include "CinematicMgr.h"
 #include "Common.h"
 #include "ConditionMgr.h"
+#include "Config.h"
 #include "CreatureAI.h"
 #include "DatabaseEnv.h"
 #include "DB2Stores.h"
 #include "DisableMgr.h"
+#include "DynamicResurrection.h"
 #include "Formulas.h"
 #include "GameEventMgr.h"
 #include "GameObjectAI.h"
@@ -5115,6 +5117,42 @@ void Player::RepopAtGraveyard()
             SendDirectMessage(&data);
         }
     }
+
+    if (ClosestGrave)
+    {
+        float const* orientation = sObjectMgr->GetGraveyardOrientation(ClosestGrave->ID);
+        if (sConfigMgr->GetBoolDefault("Dungeon.Checkpoints.Enable", true))
+        {
+            if (sDynRes->IsInDungeonOrRaid(this) && sDynRes->CheckForSpawnPoint(this))
+                sDynRes->DynamicResurrection(this);
+            else
+            {
+                TeleportTo(ClosestGrave->map_id, ClosestGrave->x, ClosestGrave->y, ClosestGrave->z, orientation ? *orientation : GetOrientation());
+                if (isDead())                                        // not send if alive, because it used in TeleportTo()
+                {
+                    WorldPacket data(SMSG_DEATH_RELEASE_LOC, 4 * 4);  // show spirit healer position on minimap
+                    data << ClosestGrave->map_id;
+                    data << ClosestGrave->x;
+                    data << ClosestGrave->y;
+                    data << ClosestGrave->z;
+                    SendDirectMessage(&data);
+                }
+            }
+        }
+        else
+        {
+            TeleportTo(ClosestGrave->map_id, ClosestGrave->x, ClosestGrave->y, ClosestGrave->z, orientation ? *orientation : GetOrientation());
+            if (isDead())                                        // not send if alive, because it used in TeleportTo()
+            {
+                WorldPacket data(SMSG_DEATH_RELEASE_LOC, 4 * 4);  // show spirit healer position on minimap
+                data << ClosestGrave->map_id;
+                data << ClosestGrave->x;
+                data << ClosestGrave->y;
+                data << ClosestGrave->z;
+                SendDirectMessage(&data);
+            }
+        }
+    }
     else if (GetPositionZ() < zone->MaxDepth)
         TeleportTo(m_homebindMapId, m_homebindX, m_homebindY, m_homebindZ, GetOrientation());
 
@@ -6932,6 +6970,54 @@ bool Player::RewardHonor(Unit* victim, uint32 groupsize, int32 honor, bool pvpto
             UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_HONORABLE_KILL, 1, 0, 0, victim);
             if (Guild* guild = GetGuild())
                 guild->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_HONORABLE_KILLS_GUILD, 0, 0, 0, victim, this);
+        }
+
+        else if (sWorld->getBoolConfig(CONFIG_GAIN_HONOR_GUARD) && victim->ToCreature()->IsGuard())
+        {
+            uint8 k_level = getLevel();
+            uint8 k_grey = Trinity::XP::GetGrayLevel(k_level);
+            uint8 v_level = victim->getLevel();
+
+            if (v_level <= k_grey)
+                return false;
+
+            uint32 victim_title = 0;
+            victim_guid = ObjectGuid::Empty;
+
+            honor_f = ceil(Trinity::Honor::hk_honor_at_level_f(k_level) * (v_level - k_grey) / (k_level - k_grey));
+
+            // count the number of playerkills in one day
+            ApplyModUInt32Value(PLAYER_FIELD_KILLS, 1, true);
+            // and those in a lifetime
+            ApplyModUInt32Value(PLAYER_FIELD_LIFETIME_HONORABLE_KILLS, 1, true);
+            UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_EARN_HONORABLE_KILL);
+            UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_HK_CLASS, victim->getClass());
+            UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_HK_RACE, victim->getRace());
+            UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_HONORABLE_KILL_AT_AREA, GetAreaId());
+            UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_HONORABLE_KILL, 1, 0, 0, victim);
+        }
+        else if (sWorld->getBoolConfig(CONFIG_GAIN_HONOR_ELITE) && victim->ToCreature()->isElite())
+        {
+            uint8 k_level = getLevel();
+            uint8 k_grey = Trinity::XP::GetGrayLevel(k_level);
+            uint8 v_level = victim->getLevel();
+
+            if (v_level <= k_grey)
+                return false;
+
+            uint32 victim_title = 0;
+            victim_guid = ObjectGuid::Empty;
+            honor_f = ceil(Trinity::Honor::hk_honor_at_level_f(k_level) * (v_level - k_grey) / (k_level - k_grey));
+            // count the number of playerkills in one day
+            ApplyModUInt32Value(PLAYER_FIELD_KILLS, 1, true);
+
+            // and those in a lifetime
+            ApplyModUInt32Value(PLAYER_FIELD_LIFETIME_HONORABLE_KILLS, 1, true);
+            UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_EARN_HONORABLE_KILL);
+            UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_HK_CLASS, victim->getClass());
+            UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_HK_RACE, victim->getRace());
+            UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_HONORABLE_KILL_AT_AREA, GetAreaId());
+            UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_HONORABLE_KILL, 1, 0, 0, victim);
         }
         else
         {

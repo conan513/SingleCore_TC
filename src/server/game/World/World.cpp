@@ -1558,6 +1558,14 @@ void World::LoadConfigSettings(bool reload)
     // Whether to use LoS from game objects
     m_bool_configs[CONFIG_CHECK_GOBJECT_LOS] = sConfigMgr->GetBoolDefault("CheckGameObjectLoS", true);
 
+    // Honor for elites and guards
+    m_bool_configs[CONFIG_GAIN_HONOR_GUARD] = sConfigMgr->GetBoolDefault("Custom.GainHonorOnGuardKill", false);
+    m_bool_configs[CONFIG_GAIN_HONOR_ELITE] = sConfigMgr->GetBoolDefault("Custom.GainHonorOnEliteKill", false);
+
+    // XP for PvP
+    rate_values[CONFIG_XP_FOR_PVP_LOW_RATE] = sConfigMgr->GetFloatDefault("Xp.For.Pvp.Low.Rate", 1.0f);
+    rate_values[CONFIG_XP_FOR_PVP_HIGH_RATE] = sConfigMgr->GetFloatDefault("Xp.For.Pvp.High.Rate", 1.0f);
+
     // call ScriptMgr if we're reloading the configuration
     if (reload)
         sScriptMgr->OnConfigLoad(reload);

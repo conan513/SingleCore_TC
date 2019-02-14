@@ -408,7 +408,7 @@ LfgCompatibility LFGQueue::CheckCompatibility(GuidList check)
     std::ostringstream o;
 
     // Find compatible dungeons
-    if (check.size() > 1)
+    if (!sLFGMgr->IsTesting() && check.size() > 1)
     {
         GuidList::iterator itguid = check.begin();
         proposalDungeons = QueueDataStore[*itguid].dungeons;
@@ -538,7 +538,7 @@ LfgCompatibility LFGQueue::CheckCompatibility(GuidList check)
     }
 
     // Enough players?
-    if (numPlayers != dungeon->GetMaxGroupSize())
+    if (!sLFGMgr->IsTesting() && numPlayers != dungeon->GetMaxGroupSize())
     {
         TC_LOG_DEBUG("lfg.queue.match.compatibility.check", "Guids: (%s) Compatibles but not enough players(%u)", GetDetailedMatchRoles(check).c_str(), numPlayers);
         LfgCompatibilityData data(LFG_COMPATIBLES_WITH_LESS_PLAYERS);
