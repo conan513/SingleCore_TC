@@ -2314,7 +2314,6 @@ class Player : public Unit
 
         bool canSeeSpellClickOn(Creature const* c) const;
 
-        virtual UnitAI* AI() override { if (m_charmInfo) return m_charmInfo->GetAI(); return nullptr; }
         // function used for raise ally spell
         bool IsGhouled() const { return m_isGhouled; }
         void SetGhouled(bool enable) { m_isGhouled = enable; }
