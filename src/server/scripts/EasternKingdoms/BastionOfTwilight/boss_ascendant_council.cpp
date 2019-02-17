@@ -22,6 +22,7 @@
 #include "SpellScript.h"
 #include "SpellAuraEffects.h"
 #include "SpellMgr.h"
+#include "SpellHistory.h"
 #include "Player.h"
 #include "DBCStores.h"
 #include "bastion_of_twilight.h"
@@ -343,14 +344,20 @@ class boss_ascendant_council_controller : public CreatureScript
                             instance->SendEncounterUnit(ENCOUNTER_FRAME_ENGAGE, ignacious, 4);
                         }
 
-                        if (IsHeroic())
+                        if (Creature* arion = instance->GetCreature(DATA_ARION))
                         {
-                            if (Creature* arion = instance->GetCreature(DATA_ARION))
+                            arion->SetInCombatWithZone();
+                            if (IsHeroic())
                                 arion->AI()->DoAction(ACTION_SCHEDULE_HEROIC_ABILITY);
+                        }
 
-                            if (Creature* terrastra = instance->GetCreature(DATA_TERRASTRA))
+                        if (Creature* terrastra = instance->GetCreature(DATA_TERRASTRA))
+                        {
+                            terrastra->SetInCombatWithZone();
+                            if (IsHeroic())
                                 terrastra->AI()->DoAction(ACTION_SCHEDULE_HEROIC_ABILITY);
                         }
+
 
                         events.ScheduleEvent(EVENT_PREPARE_ULTIMATE_ABILITY, 15s, 0, PHASE_FELUDIUS_IGNACIOUS);
 
@@ -415,6 +422,7 @@ class boss_ascendant_council_controller : public CreatureScript
                             if (Creature* terrastra = instance->GetCreature(DATA_TERRASTRA))
                                 terrastra->AI()->DoAction(ACTION_CHANGE_PLACES);
 
+                            events.CancelEvent(EVENT_PREPARE_ULTIMATE_ABILITY);
                             events.SetPhase(PHASE_ARION_TERRASTRA);
                         }
                         break;
@@ -528,7 +536,6 @@ class npc_feludius : public CreatureScript
             void Reset() override
             {
                 me->MakeInterruptable(false);
-                _events.Reset();
             }
 
             void JustEngagedWith(Unit* who) override
@@ -715,9 +722,7 @@ class npc_ignacious : public CreatureScript
 
             void Reset() override
             {
-                _events.Reset();
                 me->MakeInterruptable(false);
-                _infernoRushGUIDs.clear();
             }
 
             void JustEngagedWith(Unit* who) override
@@ -880,7 +885,7 @@ class npc_ignacious : public CreatureScript
                             break;
                         case EVENT_FLAME_TORRENT:
                             if (_events.GetTimeUntilEvent(EVENT_AEGIS_OF_FLAME) < 3000 || _events.GetTimeUntilEvent(EVENT_RISING_FLAMES) < 3500
-                                || _events.GetTimeUntilEvent(EVENT_INFERNO_LEAP) < 3000 || me->GetReactState() == REACT_PASSIVE)
+                                || me->GetSpellHistory()->HasCooldown(SPELL_FLAME_TORRENT) || me->HasReactState(REACT_PASSIVE))
                             {
                                 _events.Repeat(1s);
                                 break;
@@ -896,6 +901,12 @@ class npc_ignacious : public CreatureScript
                             _events.Repeat(21s);
                             break;
                         case EVENT_INFERNO_LEAP:
+                            if (me->GetSpellHistory()->HasCooldown(SPELL_INFERNO_LEAP))
+                            {
+                                _events.Repeat(1s);
+                                break;
+                            }
+
                             if (Unit* target = SelectTarget(SELECT_TARGET_FARTHEST, 0, 60.0f, true, 0))
                             {
                                 if (Unit* victim = me->GetVictim())
@@ -971,7 +982,6 @@ class npc_arion : public CreatureScript
             {
                 me->SetReactState(REACT_PASSIVE);
                 me->MakeInterruptable(false);
-                _events.Reset();
                 _events.SetPhase(PHASE_FELUDIUS_IGNACIOUS);
             }
 
@@ -1165,7 +1175,6 @@ class npc_terrastra : public CreatureScript
             void Reset() override
             {
                 me->SetReactState(REACT_PASSIVE);
-                _events.Reset();
                 _events.SetPhase(PHASE_FELUDIUS_IGNACIOUS);
             }
 
