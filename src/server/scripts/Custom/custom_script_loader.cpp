@@ -41,6 +41,7 @@ void AddSC_PvPScripts();
 void AddSC_custom_feed_pet_heal();
 void AddSC_save_on_levelup();
 void AddSC_custom_starting();
+void AddSC_RandomEnchants();
 
 // ADM declaration begin
 // ADM declaration end
@@ -74,6 +75,7 @@ void AddCustomScripts()
     AddSC_custom_feed_pet_heal();
     AddSC_save_on_levelup();
     AddSC_custom_starting();
+	AddSC_RandomEnchants();
 	
     // ADM call begin
     // ADM call end

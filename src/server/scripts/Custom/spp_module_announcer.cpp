@@ -21,6 +21,11 @@ namespace {
         {
             if (sConfigMgr->GetBoolDefault("Module.Announcer.Enable", true))
             {
+				if (sConfigMgr->GetBoolDefault("RandomEnchants.OnLoot", true))
+                {
+                    ChatHandler(player->GetSession()).SendSysMessage("|cff4CFF00RandomEnchants on loot |rmodule is active.");
+                }
+                				
                 if (sConfigMgr->GetBoolDefault("Solocraft.Enable", true))
                 {
                     ChatHandler(player->GetSession()).SendSysMessage("|cff4CFF00SoloCraft |rmodule is active.");
@@ -166,6 +171,10 @@ public:
 	{
         TC_LOG_INFO("server.loading", ".");
 		TC_LOG_INFO("server.loading", ">> Loaded custom scripts:");
+        if (sConfigMgr->GetBoolDefault("RandomEnchants.OnLoot", true))
+        {
+            TC_LOG_INFO("server.loading", "- RandomEnchants");
+        }		
         if (sConfigMgr->GetBoolDefault("Solocraft.Enable", true))
         {
             TC_LOG_INFO("server.loading", "- Solocraft");
