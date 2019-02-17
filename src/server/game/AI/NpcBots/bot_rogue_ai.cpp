@@ -139,7 +139,7 @@ public:
 
         void UpdateAI(uint32 diff)
         {
-            me->SetMaxPower(POWER_ENERGY, me->GetCreatePowers(POWER_ENERGY)); 
+            me->SetMaxPower(POWER_ENERGY, me->GetCreatePowerValue(POWER_ENERGY));
             ReduceCD(diff);
             if (!GlobalUpdate(diff))
                 return;
@@ -721,7 +721,7 @@ public:
             DefaultInit();
 
             RefreshAura(GLADIATOR_VIGOR, 10);
-            me->SetMaxPower(POWER_ENERGY, me->GetCreatePowers(POWER_ENERGY)); 
+            me->SetMaxPower(POWER_ENERGY, me->GetCreatePowerValue(POWER_ENERGY));
             me->SetPower(POWER_ENERGY, me->GetMaxPower(POWER_ENERGY));
         }
 

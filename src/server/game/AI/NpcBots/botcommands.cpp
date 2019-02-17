@@ -335,7 +335,7 @@ public:
         {
             uint32 id = creatureTemplatePair.second.Entry;
             if (id < BOT_ENTRY_BEGIN || id > BOT_ENTRY_END) continue;
-            uint32 trainer_class = creatureTemplatePair.second.trainer_class;
+            uint32 trainer_class = creatureTemplatePair.second.npcflag & UNIT_NPC_FLAG_TRAINER;
             if (trainer_class != botclass) continue;
 
             if (CreatureLocale const* creatureLocale = sObjectMgr->GetCreatureLocale(id))
@@ -516,14 +516,14 @@ public:
 
         uint8 roleMask = BOT_ROLE_DPS;
 
-        uint8 m_class = creature->GetCreatureTemplate()->trainer_class;
+        /*uint8 m_class = creature->GetCreatureTemplate()->trainer_class;
         if (!(m_class == CLASS_WARRIOR || m_class == CLASS_ROGUE ||
             m_class == CLASS_PALADIN || m_class == CLASS_DEATH_KNIGHT ||
             m_class == CLASS_SHAMAN || m_class == BOT_CLASS_BM))
             roleMask |= BOT_ROLE_RANGED;
         if (m_class == CLASS_PRIEST || m_class == CLASS_DRUID ||
             m_class == CLASS_SHAMAN || m_class == CLASS_PALADIN)
-            roleMask |= BOT_ROLE_HEAL;
+            roleMask |= BOT_ROLE_HEAL;*/
 
         stmt = CharacterDatabase.GetPreparedStatement(CHAR_INS_NPCBOT);
         //"INSERT INTO characters_npcbot (entry, roles) VALUES (?, ?)", CONNECTION_SYNCH

@@ -811,10 +811,7 @@ void Creature::Update(uint32 diff)
             Unit::AIUpdateTick(diff);
 			//npcbot
 			if (!bot_AI)
-			//end npcbot
-			//npcbot - Update evade mode AI
-			else if (bot_AI)
-			    bot_AI->UpdateAI(diff);
+                bot_AI->UpdateAI(diff);
             //end npcbot
 
             // creature can be dead after UpdateAI call
@@ -1665,7 +1662,7 @@ bool Creature::LoadFromDB(ObjectGuid::LowType spawnId, Map* map, bool addToMap, 
 
 		TC_LOG_INFO("entities.unit", "Creature: loading npcbot %s (id: %u)", GetName().c_str(), GetEntry());
 		ASSERT(!IsInWorld());
-		SetByteValue(UNIT_FIELD_BYTES_0, 0, GetCreatureTemplate()->trainer_race); //set race
+		//SetByteValue(UNIT_FIELD_BYTES_0, 0, GetCreatureTemplate()->trainer_race); //set race
 
 																				  //don't allow removing dead bot's corpse
 		m_corpseDelay = std::numeric_limits<uint32>::max();
@@ -3258,7 +3255,7 @@ bool Creature::LoadBotCreatureFromDB(uint32 guid, Map* map, bool addToMap)
 
 	TC_LOG_INFO("entities.unit", "Creature: loading npcbot %s (id: %u)", GetName().c_str(), GetEntry());
 	ASSERT(!IsInWorld());
-	SetByteValue(UNIT_FIELD_BYTES_0, 0, GetCreatureTemplate()->trainer_race); //set race
+	//SetByteValue(UNIT_FIELD_BYTES_0, 0, GetCreatureTemplate()->trainer_race); //set race
 
 																			  //don't allow removing dead bot's corpse
 	m_corpseDelay = std::numeric_limits<uint32>::max();

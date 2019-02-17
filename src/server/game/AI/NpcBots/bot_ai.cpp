@@ -4379,8 +4379,8 @@ void bot_ai::ApplyBotSpellGlobalCooldownMods(SpellInfo const* spellInfo, float& 
 bool bot_minion_ai::OnGossipHello(Player* player, Creature* creature, uint32 /*option*/)
 {
     TC_LOG_DEBUG("entities.player", "entering gossip hello");
-    ASSERT(player);
-    ASSERT(creature);
+    //ASSERT(player);
+    //ASSERT(creature);
 
     if (!_enableNpcBots || creature->IsInCombat() || bot_ai::CCed(creature) || creature->GetBotAI()->IsDuringTeleport())
     {
@@ -8258,8 +8258,8 @@ void bot_ai::BotSpeak(std::string const& text, uint8 msgtype, uint32 language, O
 
     if (msgtype == CHAT_MSG_WHISPER)
     {
-        ASSERT(receiver && "BotSpeak(): no receiver for whisper!");
-        ASSERT(receiver.IsPlayer() && "BotSpeak(): whisper receiver is not a player!");
+        //ASSERT(receiver && "BotSpeak(): no receiver for whisper!");
+        //ASSERT(receiver.IsPlayer() && "BotSpeak(): whisper receiver is not a player!");
 
         if (Player* res = ObjectAccessor::FindPlayer(receiver))
             res->GetSession()->SendPacket(&data);
