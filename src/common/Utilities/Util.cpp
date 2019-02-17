@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+ * Copyright (C) 2008-2019 TrinityCore <https://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -18,6 +18,7 @@
 
 #include "Util.h"
 #include "Common.h"
+#include "Containers.h"
 #include "IpAddress.h"
 #include <utf8.h>
 #include <algorithm>
@@ -252,24 +253,30 @@ bool Utf8toWStr(char const* utf8str, size_t csize, wchar_t* wstr, size_t& wsize)
 {
     try
     {
-        size_t len = utf8::distance(utf8str, utf8str+csize);
-        if (len > wsize)
-        {
-            if (wsize > 0)
-                wstr[0] = L'\0';
-            wsize = 0;
-            return false;
-        }
-
-        wsize = len;
-        utf8::utf8to16(utf8str, utf8str+csize, wstr);
-        wstr[len] = L'\0';
+        Trinity::CheckedBufferOutputIterator<wchar_t> out(wstr, wsize);
+        out = utf8::utf8to16(utf8str, utf8str+csize, out);
+        wsize -= out.remaining(); // remaining unused space
+        wstr[wsize] = L'\0';
     }
     catch(std::exception)
     {
-        if (wsize > 0)
+        // Replace the converted string with an error message if there is enough space
+        // Otherwise just return an empty string
+        wchar_t const* errorMessage = L"An error occurred converting string from UTF-8 to WStr";
+        size_t errorMessageLength = wcslen(errorMessage);
+        if (wsize >= errorMessageLength)
+        {
+            wcscpy(wstr, errorMessage);
+            wsize = wcslen(wstr);
+        }
+        else if (wsize > 0)
+        {
             wstr[0] = L'\0';
-        wsize = 0;
+            wsize = 0;
+        }
+        else
+            wsize = 0;
+
         return false;
     }
 
@@ -278,13 +285,10 @@ bool Utf8toWStr(char const* utf8str, size_t csize, wchar_t* wstr, size_t& wsize)
 
 bool Utf8toWStr(const std::string& utf8str, std::wstring& wstr)
 {
+    wstr.clear();
     try
     {
-        if (size_t len = utf8::distance(utf8str.c_str(), utf8str.c_str()+utf8str.size()))
-        {
-            wstr.resize(len);
-            utf8::utf8to16(utf8str.c_str(), utf8str.c_str()+utf8str.size(), &wstr[0]);
-        }
+        utf8::utf8to16(utf8str.c_str(), utf8str.c_str()+utf8str.size(), std::back_inserter(wstr));
     }
     catch(std::exception)
     {

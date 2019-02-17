@@ -1,4 +1,4 @@
-# Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+# Copyright (C) 2008-2019 TrinityCore <https://www.trinitycore.org/>
 #
 # This file is free software; as a special exception the author gives
 # unlimited permission to copy and/or distribute it, with or without
@@ -72,8 +72,7 @@ target_link_libraries(common
     openssl
     valgrind
     threads
-    jemalloc
-    smart_enum)
+    jemalloc)
 
 add_dependencies(common revision_data.h)
 

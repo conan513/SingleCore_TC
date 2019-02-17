@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+ * Copyright (C) 2008-2019 TrinityCore <https://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -94,17 +94,6 @@ uint32 const PrismaticAuras[6]=
     SPELL_PRISMATIC_AURA_ARCANE,
     SPELL_PRISMATIC_AURA_FROST,
     SPELL_PRISMATIC_AURA_HOLY
-};
-
-Position const TeleportPoint[7]=
-{
-    { 959.996f, 212.576f, 193.843f },
-    { 932.537f, 231.813f, 193.838f },
-    { 958.675f, 254.767f, 193.822f },
-    { 946.955f, 201.316f, 192.535f },
-    { 944.294f, 149.676f, 197.551f },
-    { 930.548f, 284.888f, 193.367f },
-    { 965.997f, 278.398f, 195.777f }
 };
 
 struct boss_mother_shahraz : public BossAI
@@ -216,7 +205,7 @@ class spell_mother_shahraz_fatal_attraction : public SpellScript
 
     void SetDest(SpellDestination& dest)
     {
-        dest.Relocate(TeleportPoint[urand(0, 6)]);
+        dest.Relocate(GetCaster()->GetRandomNearPosition(50.0f));
     }
 
     void HandleTeleport(SpellEffIndex /*effIndex*/)

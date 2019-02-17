@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+ * Copyright (C) 2008-2019 TrinityCore <https://www.trinitycore.org/>
  * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -54,9 +54,9 @@ public:
         return GetAQ40AI<boss_sarturaAI>(creature);
     }
 
-    struct boss_sarturaAI : public ScriptedAI
+    struct boss_sarturaAI : public BossAI
     {
-        boss_sarturaAI(Creature* creature) : ScriptedAI(creature)
+        boss_sarturaAI(Creature* creature) : BossAI(creature, DATA_SARTURA)
         {
             Initialize();
         }
@@ -91,16 +91,19 @@ public:
         void Reset() override
         {
             Initialize();
+            _Reset();
         }
 
         void JustEngagedWith(Unit* /*who*/) override
         {
             Talk(SAY_AGGRO);
+            _JustEngagedWith();
         }
 
          void JustDied(Unit* /*killer*/) override
          {
              Talk(SAY_DEATH);
+             _JustDied();
          }
 
          void KilledUnit(Unit* /*victim*/) override

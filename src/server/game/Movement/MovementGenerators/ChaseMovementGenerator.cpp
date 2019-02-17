@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+ * Copyright (C) 2008-2019 TrinityCore <https://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -90,11 +90,7 @@ bool ChaseMovementGenerator::Update(Unit* owner, uint32 diff)
 
     // our target might have gone away
     Unit* const target = GetTarget();
-    if (!target)
-        return false;
-
-    // the owner might've selected a different target (feels like we shouldn't check this here...)
-    if (owner->GetVictim() != target)
+    if (!target || !target->IsInWorld())
         return false;
 
     // the owner might be unable to move (rooted or casting), pause movement

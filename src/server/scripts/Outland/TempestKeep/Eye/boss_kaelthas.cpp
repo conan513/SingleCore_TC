@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+ * Copyright (C) 2008-2019 TrinityCore <https://www.trinitycore.org/>
  * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -737,7 +737,7 @@ class boss_kaelthas : public CreatureScript
                             break;
                         case EVENT_MIND_CONTROL:
                             Talk(SAY_MIND_CONTROL);
-                            DoCastAOE(SPELL_MIND_CONTROL, true);
+                            DoCastAOE(SPELL_MIND_CONTROL, { SPELLVALUE_MAX_TARGETS, 3 });
                             events.ScheduleEvent(EVENT_MIND_CONTROL, 60000, EVENT_GROUP_COMBAT, PHASE_COMBAT);
                             break;
                         case EVENT_SUMMON_PHOENIX:

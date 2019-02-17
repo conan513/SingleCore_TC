@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+ * Copyright (C) 2008-2019 TrinityCore <https://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -280,6 +280,15 @@ void TempSummon::RemoveFromWorld()
     Creature::RemoveFromWorld();
 }
 
+std::string TempSummon::GetDebugInfo() const
+{
+    std::stringstream sstr;
+    sstr << Creature::GetDebugInfo() << "\n"
+        << std::boolalpha
+        << "TempSummonType : " << std::to_string(GetSummonType()) << " Summoner: " << GetSummonerGUID().ToString();
+    return sstr.str();
+}
+
 Minion::Minion(SummonPropertiesEntry const* properties, Unit* owner, bool isWorldObject)
     : TempSummon(properties, owner, isWorldObject), m_owner(owner)
 {
@@ -309,9 +318,40 @@ void Minion::RemoveFromWorld()
     TempSummon::RemoveFromWorld();
 }
 
+void Minion::setDeathState(DeathState s)
+{
+    Creature::setDeathState(s);
+    if (s != JUST_DIED || !IsGuardianPet())
+        return;
+
+    Unit* owner = GetOwner();
+    if (!owner || owner->GetTypeId() != TYPEID_PLAYER || owner->GetMinionGUID() != GetGUID())
+        return;
+                
+    for (Unit* controlled : owner->m_Controlled)
+    {
+        if (controlled->GetEntry() == GetEntry() && controlled->IsAlive())
+        {
+            owner->SetMinionGUID(controlled->GetGUID());
+            owner->SetPetGUID(controlled->GetGUID());
+            owner->ToPlayer()->CharmSpellInitialize();
+            break;
+        }
+    }
+}
+
 bool Minion::IsGuardianPet() const
 {
     return IsPet() || (m_Properties && m_Properties->Category == SUMMON_CATEGORY_PET);
+}
+
+std::string Minion::GetDebugInfo() const
+{
+    std::stringstream sstr;
+    sstr << TempSummon::GetDebugInfo() << "\n"
+        << std::boolalpha
+        << "Owner: " << (GetOwner() ? GetOwner()->GetGUID().ToString() : "");
+    return sstr.str();
 }
 
 Guardian::Guardian(SummonPropertiesEntry const* properties, Unit* owner, bool isWorldObject) : Minion(properties, owner, isWorldObject)
@@ -348,6 +388,13 @@ void Guardian::InitSummon()
     {
         GetOwner()->ToPlayer()->CharmSpellInitialize();
     }
+}
+
+std::string Guardian::GetDebugInfo() const
+{
+    std::stringstream sstr;
+    sstr << Minion::GetDebugInfo();
+    return sstr.str();
 }
 
 Puppet::Puppet(SummonPropertiesEntry const* properties, Unit* owner)

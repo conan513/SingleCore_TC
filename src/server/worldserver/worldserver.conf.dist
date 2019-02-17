@@ -2117,15 +2117,15 @@ Visibility.GroupMode = 1
 #    Visibility.Distance.Instances
 #    Visibility.Distance.BGArenas
 #        Description: Visibility distance to see other players or gameobjects.
-#                     Visibility on continents on retail ~90 yards. In BG/Arenas ~533.
+#                     Visibility on continents on retail ~100 yards. In BG/Arenas ~533.
 #                     For instances default ~170.
 #                     Max limited by grid size: 533.33333
 #                     Min limit is max aggro radius (45) * Rate.Creature.Aggro
-#        Default:     90  - (Visibility.Distance.Continents)
+#        Default:     100 - (Visibility.Distance.Continents)
 #                     170 - (Visibility.Distance.Instances)
 #                     533 - (Visibility.Distance.BGArenas)
 
-Visibility.Distance.Continents = 90
+Visibility.Distance.Continents = 100
 Visibility.Distance.Instances = 170
 Visibility.Distance.BGArenas = 533
 
@@ -3017,6 +3017,30 @@ AllowTrackBothResources = 0
 #                     1 - (Enabled)
 
 PlayerStart.AllReputation = 0
+
+#
+#    XP.Boost.Daymask
+#        Description: Enables experience boost during the defined days. This field is a bitmask.
+#
+#        Default:     0 - (Disabled)
+#                     1 - (Sunday)
+#                     2 - (Monday)
+#                     4 - (Tuesday)
+#                     8 - (Wednesday)
+#                     16 - (Thrusday)
+#                     32 - (Friday)
+#                     64 - (Saturday)
+#                     65 - (Weekend only)
+#                     127 - (Always active)
+
+XP.Boost.Daymask = 0
+
+#
+#    XP.Boost.Rate
+#        Description: The boost multiplier for experience gain during XP boosted days.
+#        Default:     2.0 - (Double experience)
+
+XP.Boost.Rate = 2.0
 
 #
 #    PlayerStart.AllSpells
