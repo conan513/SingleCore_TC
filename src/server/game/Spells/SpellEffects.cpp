@@ -1416,6 +1416,8 @@ void Spell::DoCreateItem(uint32 /*i*/, uint32 itemtype)
             if (pProto->Quality > ITEM_QUALITY_EPIC || (pProto->Quality == ITEM_QUALITY_EPIC && pProto->ItemLevel >= MinNewsItemLevel[sWorld->getIntConfig(CONFIG_EXPANSION)]))
                 guild->AddGuildNews(GUILD_NEWS_ITEM_CRAFTED, player->GetGUID(), 0, pProto->ItemId);
 
+            sScriptMgr->OnCreateItem(player, pItem, num_to_add);
+
             guild->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_CRAFT_ITEMS_GUILD, pItem->GetEntry(), num_to_add, 0, nullptr, player);
         }
 

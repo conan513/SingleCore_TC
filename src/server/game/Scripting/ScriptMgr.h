@@ -744,6 +744,15 @@ class TC_GAME_API PlayerScript : public UnitScript
 
         // Called when a player presses release when he died
         virtual void OnPlayerRepop(Player* /*player*/) { }
+
+        //After looting item
+        virtual void OnLootItem(Player* player, Item* item, uint32 count) { }
+
+        //After creating item (eg profession item creation)
+        virtual void OnCreateItem(Player* player, Item* item, uint32 count) { }
+
+        //After receiving item as a quest reward
+        virtual void OnQuestRewardItem(Player* player, Item* item, uint32 count) { }
 };
 
 class TC_GAME_API AccountScript : public ScriptObject
@@ -1062,6 +1071,9 @@ class TC_GAME_API ScriptMgr
         void OnFailedEmailChange(uint32 accountId);
         void OnPasswordChange(uint32 accountId);
         void OnFailedPasswordChange(uint32 accountId);
+        void OnLootItem(Player* player, Item* item, uint32 count);
+        void OnCreateItem(Player* player, Item* item, uint32 count);
+        void OnQuestRewardItem(Player* player, Item* item, uint32 count);
 
     public: /* GuildScript */
 

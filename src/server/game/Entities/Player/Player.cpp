@@ -26085,6 +26085,7 @@ void Player::StoreLootItem(uint8 lootSlot, Loot* loot, GameObject* go)
         if (loot->containerID > 0)
             sLootItemStorage->RemoveStoredLootItemForContainer(loot->containerID, item->itemid, item->count);
 
+        sScriptMgr->OnLootItem(this, newitem, item->count);
     }
     else
         SendEquipError(msg, nullptr, nullptr, item->itemid);

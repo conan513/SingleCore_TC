@@ -1964,6 +1964,21 @@ void ScriptMgr::OnPlayerRepop(Player* player)
     FOREACH_SCRIPT(PlayerScript)->OnPlayerRepop(player);
 }
 
+void ScriptMgr::OnLootItem(Player* player, Item* item, uint32 count)
+{
+    FOREACH_SCRIPT(PlayerScript)->OnLootItem(player, item, count);
+}
+
+void ScriptMgr::OnCreateItem(Player* player, Item* item, uint32 count)
+{
+    FOREACH_SCRIPT(PlayerScript)->OnCreateItem(player, item, count);
+}
+
+void ScriptMgr::OnQuestRewardItem(Player* player, Item* item, uint32 count)
+{
+    FOREACH_SCRIPT(PlayerScript)->OnQuestRewardItem(player, item, count);
+}
+
 // Account
 void ScriptMgr::OnAccountLogin(uint32 accountId)
 {
