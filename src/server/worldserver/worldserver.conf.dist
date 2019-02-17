@@ -3993,3 +3993,239 @@ Metric.OverallStatusInterval = 1
 
 #
 ###################################################################################################
+
+
+###################################################################################################
+# NPCBOT CONFIGURATION
+#
+#    NpcBot.Enable
+#        Description: Enable NpcBot system
+#        Default:   1 - enable
+#                   0 - disable
+
+NpcBot.Enable = 1
+
+#
+#    NpcBot.AllowGM
+#        Description: Allow GM's to have NpcBots
+#        Default:   1 - Allow
+#                   0 - disable
+
+NpcBot.AllowGM = 1
+
+#    NpcBot.MaxBots
+#        Description: Maximum number of bots allowed for players.
+#        Default:   1
+#        Recommend: 1-2
+#        Max:       39
+
+NpcBot.MaxBots = 1
+
+#    NpcBot.MaxBotsPerClass
+#        Description: Maximum bots of each class allowed for players.
+#        Default:   1
+#                   0 - no limit
+
+NpcBot.MaxBotsPerClass = 1
+
+#    NpcBot.BaseFollowDistance
+#        Description: Default bot follow distance.
+#        Note: This parameter determines bots' formation size, distance at which bots will chase and attack enemies.
+#        Note2: This parameter is set for each player at login.
+#        Default:   30
+
+NpcBot.BaseFollowDistance = 30
+
+#    NpcBot.XpReduction
+#        Description: XP percent penalty for each bot used starting with second.
+#        Example: 3 bots, xp reduction is 20: ((3-1)*20) = 40%, 60% exp gained only.
+#        Note: Maximum overall xp reduction is 90%.
+#        Default:   0
+
+NpcBot.XpReduction = 0
+
+#    NpcBot.HealTargetIconsMask
+#        Description: Icon number bitmask which bots use to search for additional targets to heal (out of party).
+#        Note: Many creatures cannot accept heal.
+#        Example: to check Star, Triangle and Square we need 1 + 8 + 32 = 41.
+#        Default:   0 (Disable)
+#                   1 - Star
+#                   2 - Circle
+#                   4 - Diamond
+#                   8 - Triangle
+#                   16 - Moon
+#                   32 - Square
+#                   64 - Cross
+#                   128 - Skull
+
+NpcBot.HealTargetIconsMask = 0
+
+#    NpcBot.Mult.Damage.Melee
+#    NpcBot.Mult.Damage.Spell
+#    NpcBot.Mult.Healing
+#        Description: Multipliers for bots' damage and healing. Allows to balance bots vs players.
+#        Minimum:   0.1
+#        Maximum:  10.0
+#        Default:   1.0
+
+NpcBot.Mult.Damage.Melee = 1.0
+NpcBot.Mult.Damage.Spell = 1.0
+NpcBot.Mult.Healing      = 1.0
+
+#    NpcBot.Enable.Dungeon
+#    NpcBot.Enable.Raid
+#    NpcBot.Enable.BG
+#    NpcBot.Enable.Arena
+#    NpcBot.Enable.DungeonFinder
+#        Description: Allow bots to enter PvE/PvP areas and Dungeon Finder query
+#        Default:   1 - (NpcBot.Enable.Dungeon)
+#                   0 - (NpcBot.Enable.Raid)
+#                   0 - (NpcBot.Enable.BG)
+#                   0 - (NpcBot.Enable.Arena)
+#                   1 - (NpcBot.Enable.DungeonFinder)
+
+NpcBot.Enable.Dungeon       = 1
+NpcBot.Enable.Raid          = 0
+NpcBot.Enable.BG            = 0
+NpcBot.Enable.Arena         = 0
+NpcBot.Enable.DungeonFinder = 1
+
+#    NpcBot.Limit.Dungeon
+#    NpcBot.Limit.Raid
+#        Description: Enable/Disable instance players limitation rules for bots.
+#        Default:   1 - (NpcBot.Limit.Dungeon)
+#                   1 - (NpcBot.Limit.Raid)
+
+NpcBot.Limit.Dungeon = 1
+NpcBot.Limit.Raid    = 1
+
+#    NpcBot.Cost
+#        Description: Bot recruitment cost (in copper).
+#        Note: This value is for level 80 characters.
+#              Cost is reduced for lower levels by simple formula: (cost * level / 80).
+#        Default:   1000000 (100 gold, 1g25s at level 1)
+
+NpcBot.Cost = 1000000
+
+#    NpcBot.PvP
+#        Description: Allow bots to attack player-controlled units (players, pets, bots, etc.)
+#        Note: This rule only applies to player-controlled bots
+#        Default:   1
+
+NpcBot.PvP = 1
+
+#
+###################################################################################################
+
+###################################################################################################################
+#
+#     Custom.SpeedGame
+#         Set it to a number upper than 1 to speed up realm timer
+#     Default : 1 (Real Time)
+#     Example : 60 to force 1scde (real time) = 1 minute (realm timer)
+
+Custom.SpeedGame = 1
+
+#     Custom.NoCastTime
+#         Set it to 1 to disable cast time
+#     Default : 0 (Cast Time Enable)
+#
+
+Custom.NoCastTime = 0
+
+#     Custom.NoCooldown
+#         Set it to 1 to disable cooldown
+#     Default : 0 (Cooldown Enable)
+#
+
+Custom.NoCooldown = 0
+
+#     Custom.HurtInRealTime
+#         Set it to 1 to disable autohurt with weapon
+#     Default : 0 (Autohurt Enable)
+
+Custom.HurtInRealTime = 0
+
+#
+#     Custom.AttackSpeedForPlayer
+#     Custom.AttackSpeedForMobs
+#         Set it to a number upper than 1 to speed up the attack of the player or the mobs
+#     Default : 1.0 (Normal speed)
+#     Example : 2.0 (attack speed is 200% faster)
+#     Example : 0.5 (attack speed is 50% slower)
+#
+
+Custom.AttackSpeedForPlayer = 1.0
+Custom.AttackSpeedForMobs = 1.0
+
+#     Custom.FastFishing
+#         Set it to 1 to make fishing a lot faster!
+#     Default : 0 (Fishing is normal)
+#
+
+Custom.FastFishing = 0
+
+#     Custom.GainHonorOnGuardKill
+#     Custom.GainHonorOnEliteKill
+#         Set it to 1 to gain honor when you kill a guard or an elite mob.
+#	 	  Note that not all city guards will give you honor. It seems only capital and big city guards are flagged as so in the database.
+#		  Note that this does not apply on rare mob, unless he is also elite
+#     Default : 0 (No honor when you kill a guard/elite mob)
+#
+
+Custom.GainHonorOnGuardKill = 0
+Custom.GainHonorOnEliteKill = 0
+
+#     Custom.RespawnSpeed
+#         Set it to a number upper than 1 to speed up the respawn of mobs (and lower than 1 to slow down).
+#     Default : 1.0 (Normal speed)
+#
+
+Custom.RespawnSpeed = 1.0
+
+#     Custom.AutoCompleteQuestDelay
+#         Set it to a number to enable the summon of the quest giver of the quest you just completed.
+#	      The number indicates the duration of the summoning.
+#     Default : 0 (AutoComplete Disable)
+#     Example : 180 (When a quest is completed, the quest giver will be summoned for 3 minutes)
+#
+
+Custom.AutoCompleteQuestDelay = 0
+
+#     Custom.SmartQuests.Deliver
+#         Set it to 1 so that quest items are looted from monsters even if the quest is not taken.
+#     Custom.SmartQuests.Kill
+#         Set it to 1 so that monster kills are counted for quests.
+#     Default : 0
+#
+
+Custom.SmartQuests.Deliver = 0
+Custom.SmartQuests.Kill = 0
+
+#     Custom.LootOnlyForPlayer
+#         Set it to 1 to enable only certain item to be looted:
+#			- only equipment the player can be wear will be looted
+#			- only recipes for a profession the player has will be looted
+#			- only recipes the player does not already know will be looted
+#     Default : 0 (all items are looted)
+#
+
+Custom.LootOnlyForPlayer = 0
+
+#     Custom.MinimumRate.Drop.Item
+#         Set it to a number to set the minimum drop rates for items of the corresponding quality
+#		  If set to 0, the default drop rate will be applied.
+#     Default : 0 (default drop rate)
+#
+
+Custom.MinimumRate.Drop.Item.Poor = 0
+Custom.MinimumRate.Drop.Item.Normal = 0
+Custom.MinimumRate.Drop.Item.Uncommon = 0
+Custom.MinimumRate.Drop.Item.Rare = 0
+Custom.MinimumRate.Drop.Item.Epic = 0
+Custom.MinimumRate.Drop.Item.Legendary = 0
+Custom.MinimumRate.Drop.Item.Artifact = 0
+
+#
+###################################################################################################################
+

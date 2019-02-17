@@ -1058,6 +1058,10 @@ void WorldObject::setActive(bool on)
 
     if (GetTypeId() == TYPEID_PLAYER)
         return;
+    //npcbot
+    if (on == false && GetTypeId() == TYPEID_UNIT && ToCreature()->IsNPCBot())
+        return;
+    //end npcbot
 
     m_isActive = on;
 
@@ -1930,6 +1934,11 @@ TempSummon* Map::SummonCreature(uint32 entry, Position const& pos, SummonPropert
             summon = new Puppet(properties, summoner);
             break;
         case UNIT_MASK_TOTEM:
+            //npcbot: totem emul step 1
+            if (summoner && summoner->GetTypeId() == TYPEID_UNIT && summoner->ToCreature()->GetIAmABot())
+                summon = new Totem(properties, summoner->ToCreature()->GetBotOwner());
+            else
+            //end npcbot
             summon = new Totem(properties, summoner);
             break;
         case UNIT_MASK_MINION:
@@ -1950,7 +1959,11 @@ TempSummon* Map::SummonCreature(uint32 entry, Position const& pos, SummonPropert
     summon->InitStats(duration);
     AddToMap(summon->ToCreature());
     summon->InitSummon();
-
+    //npcbot: totem emul step 2
+    //if (mask == UNIT_MASK_TOTEM)
+        if (summoner && summoner->GetTypeId() == TYPEID_UNIT && summoner->ToCreature()->GetIAmABot())
+            summoner->ToCreature()->OnBotSummon(summon);
+    //end npcbot
     // call MoveInLineOfSight for nearby creatures
     Trinity::AIRelocationNotifier notifier(*summon);
     Cell::VisitAllObjects(summon, notifier, GetVisibilityRange());
@@ -2397,6 +2410,18 @@ void WorldObject::ModSpellCastTime(SpellInfo const* spellInfo, int32& castTime, 
     if (!unitCaster)
         return;
 
+    //npcbot
+    if (Creature::IsBotCustomSpell(spellInfo->Id) && !(ToCreature() && ToCreature()->GetBotAI()))
+    {
+        TC_LOG_ERROR("entities.unit", "CastSpell: NpcBot system custom spell %u by caster: %s %u), aborted. Please report", spellInfo->Id, (GetTypeId() == TYPEID_PLAYER ? "player (GUID:" : "creature (Entry:"), (GetTypeId() == TYPEID_PLAYER ? GetGUID().GetCounter() : GetEntry()));
+        return;
+    }
+    //end npcbot
+    //npcbot - apply bot spell cast time mods
+    if (castTime > 0 && GetTypeId() == TYPEID_UNIT && ToCreature()->GetBotAI())
+        ToCreature()->ApplyCreatureSpellCastTimeMods(spellInfo, castTime);
+    //end npcbot
+
     if (!(spellInfo->HasAttribute(SPELL_ATTR0_ABILITY) || spellInfo->HasAttribute(SPELL_ATTR0_TRADESPELL) || spellInfo->HasAttribute(SPELL_ATTR3_NO_DONE_BONUS)) &&
         ((GetTypeId() == TYPEID_PLAYER && spellInfo->SpellFamilyName) || GetTypeId() == TYPEID_UNIT))
         castTime = unitCaster->CanInstantCast() ? 0 : int32(float(castTime) * unitCaster->GetFloatValue(UNIT_MOD_CAST_SPEED));
@@ -2756,6 +2781,8 @@ ReputationRank WorldObject::GetReactionTo(WorldObject const* target) const
 
 bool WorldObject::IsHostileTo(WorldObject const* target) const
 {
+    if (target->ToCreature() && target->ToCreature()->GetBotAI())
+        return false;
     return GetReactionTo(target) <= REP_HOSTILE;
 }
 
@@ -3215,6 +3242,12 @@ void WorldObject::GetContactPoint(WorldObject const* obj, float& x, float& y, fl
     // angle to face `obj` to `this` using distance includes size of `obj`
     GetNearPoint(obj, x, y, z, distance2d, GetAbsoluteAngle(obj));
 }
+//npcbot
+float WorldObject::GetObjectSize() const
+{
+    return (m_valuesCount > UNIT_FIELD_COMBATREACH) ? m_floatValues[UNIT_FIELD_COMBATREACH] : DEFAULT_PLAYER_BOUNDING_RADIUS;
+}
+//end npcbot
 
 void WorldObject::MovePosition(Position &pos, float dist, float angle)
 {

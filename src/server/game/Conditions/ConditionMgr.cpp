@@ -32,6 +32,7 @@
 #include "ScriptMgr.h"
 #include "SpellAuras.h"
 #include "SpellMgr.h"
+#include "DisableMgr.h"
 #include "World.h"
 
 char const* const ConditionMgr::StaticSourceTypeData[CONDITION_SOURCE_TYPE_MAX] =
@@ -217,7 +218,8 @@ bool Condition::Meets(ConditionSourceInfo& sourceInfo) const
             if (Player* player = object->ToPlayer())
             {
                 QuestStatus status = player->GetQuestStatus(ConditionValue1);
-                condMeets = (status == QUEST_STATUS_INCOMPLETE);
+                // LASYAN3 : allows loot of quest items even if the player does not have the quest yet
+                condMeets = (SourceType == CONDITION_SOURCE_TYPE_CREATURE_LOOT_TEMPLATE && player->CanDropQuestItem(SourceEntry)) ? true : (status == QUEST_STATUS_INCOMPLETE);
             }
             break;
         }

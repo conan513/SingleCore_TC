@@ -233,6 +233,9 @@ bool Player::UpdateAllStats()
     UpdateExpertise(OFF_ATTACK);
     RecalculateRating(CR_ARMOR_PENETRATION);
     UpdateAllResistances();
+    //npcbot - Player::UpdateAllStats() is called on level change - update bots
+    SetBotsShouldUpdateStats();
+    //end npcbot
 
     return true;
 }
@@ -1001,6 +1004,8 @@ bool Creature::UpdateAllStats()
         UpdateMaxPower(Powers(i));
 
     UpdateAllResistances();
+ 
+
 
     return true;
 }
@@ -1112,7 +1117,7 @@ void Creature::CalculateMinMaxDamage(WeaponAttackType attType, bool normalized, 
     float weaponMinDamage = GetWeaponDamageRange(attType, MINDAMAGE);
     float weaponMaxDamage = GetWeaponDamageRange(attType, MAXDAMAGE);
 
-    if (!CanUseAttackType(attType)) // disarm case
+    if (!CanUseAttackType(attType) || (GetTypeId() == TYPEID_UNIT && ToCreature()->GetBotAI())) // disarm case
     {
         weaponMinDamage = 0.0f;
         weaponMaxDamage = 0.0f;

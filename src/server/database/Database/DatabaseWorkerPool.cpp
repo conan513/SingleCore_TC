@@ -39,6 +39,10 @@
 #define MIN_MYSQL_SERVER_VERSION 50100u
 #define MIN_MYSQL_CLIENT_VERSION 50100u
 
+#ifndef MYSQL_SERVER_VERSION
+#define MYSQL_SERVER_VERSION MARIADB_BASE_VERSION
+#endif
+
 class PingOperation : public SQLOperation
 {
     //! Operation for idle delaythreads

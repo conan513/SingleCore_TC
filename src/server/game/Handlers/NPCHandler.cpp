@@ -338,13 +338,15 @@ void WorldSession::HandleGossipHelloOpcode(WorldPacket& recvData)
             return;
         }
     }
-
     _player->PlayerTalkClass->ClearMenus();
-    if (!unit->AI()->GossipHello(_player))
+    if (!sScriptMgr->OnGossipHello(_player, unit))
     {
-//        _player->TalkedToCreature(unit->GetEntry(), unit->GetGUID());
-        _player->PrepareGossipMenu(unit, unit->GetCreatureTemplate()->GossipMenuId, true);
-        _player->SendPreparedGossip(unit);
+        if (!unit->AI()->GossipHello(_player))
+        {
+    //        _player->TalkedToCreature(unit->GetEntry(), unit->GetGUID());
+            _player->PrepareGossipMenu(unit, unit->GetCreatureTemplate()->GossipMenuId, true);
+            _player->SendPreparedGossip(unit);
+        }
     }
 }
 
@@ -453,8 +455,10 @@ void WorldSession::HandleListStabledPetsOpcode(WorldPacket& recvData)
         GetPlayer()->RemoveAurasByType(SPELL_AURA_FEIGN_DEATH);
 
     // remove mounts this fix bug where getting pet from stable while mounted deletes pet.
-    if (GetPlayer()->IsMounted())
-        GetPlayer()->RemoveAurasByType(SPELL_AURA_MOUNTED);
+	if (GetPlayer()->IsMounted()){
+		GetPlayer()->RemoveAurasByType(SPELL_AURA_MOUNTED);
+		TC_LOG_DEBUG("lasyan3.automount", "Mounted aura canceled from WorldSession::HandleListStabledPetsOpcode");
+	}
 
     SendStablePet(npcGUID);
 }

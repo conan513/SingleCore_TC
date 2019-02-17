@@ -49,6 +49,10 @@ EndScriptData */
 #include <openssl/crypto.h>
 #include <openssl/opensslv.h>
 
+#ifndef MYSQL_SERVER_VERSION
+#define MYSQL_SERVER_VERSION MARIADB_BASE_VERSION
+#endif
+
 class server_commandscript : public CommandScript
 {
 public:

@@ -774,7 +774,33 @@ enum RBACPermissions
     //
     // IF YOU ADD NEW PERMISSIONS, ADD THEM IN MASTER BRANCH AS WELL!
     //
-    // custom permissions 1000+
+    // custom permissions 1000+ 
+	RBAC_SEC_PLAYER                                          = 1011,
+    //npcbot
+	RBAC_PERM_COMMAND_NPCBOT                                 = 1800,
+    RBAC_PERM_COMMAND_NPCBOT_FACTION                         = 1801,
+    RBAC_PERM_COMMAND_NPCBOT_OWNER                           = 1802,
+    RBAC_PERM_COMMAND_NPCBOT_SET                             = 1803,
+    RBAC_PERM_COMMAND_NPCBOT_ADD                             = 1804,
+    RBAC_PERM_COMMAND_NPCBOT_REMOVE                          = 1805,
+    RBAC_PERM_COMMAND_NPCBOT_SPAWN                           = 1806,
+    RBAC_PERM_COMMAND_NPCBOT_DELETE                          = 1807,
+    RBAC_PERM_COMMAND_NPCBOT_LOOKUP                          = 1808,
+    RBAC_PERM_COMMAND_NPCBOT_REVIVE                          = 1809,
+    RBAC_PERM_COMMAND_NPCBOT_CAST                            = 1810,
+    RBAC_PERM_COMMAND_NPCBOT_INFO						     = 1811,
+    RBAC_PERM_COMMAND_NPCBOT_RESET						     = 1812,
+    RBAC_PERM_COMMAND_NPCBOT_COMMAND		                 = 1813,
+    RBAC_PERM_COMMAND_NPCBOT_DISTANCE			     		 = 1814,
+	RBAC_PERM_COMMAND_NPCBOT_ATTACK							 = 1815,
+	RBAC_PERM_COMMAND_NPCBOT_WITHDRAW						 = 1816,
+	RBAC_PERM_COMMAND_NPCBOT_CHANGE						     = 1817,
+    RBAC_PERM_COMMAND_NPCBOT_SAVEMODEL                       = 1818,
+    RBAC_PERM_COMMAND_NPCBOT_STAY                            = 1819,
+    RBAC_PERM_COMMAND_NPCBOT_FOLLOW                          = 1820,
+    RBAC_PERM_COMMAND_NPCBOT_PASSIVE                         = 1821,
+    RBAC_PERM_COMMAND_NPCBOT_ACTIVE                          = 1822,
+        //end npcbot
     RBAC_PERM_MAX
 };
 

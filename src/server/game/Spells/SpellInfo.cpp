@@ -30,6 +30,7 @@
 #include "SpellAuraEffects.h"
 #include "SpellMgr.h"
 #include "Vehicle.h"
+#include "World.h"
 
 uint32 GetTargetFlagMask(SpellTargetObjectTypes objType)
 {
@@ -3098,7 +3099,7 @@ uint32 SpellInfo::CalcCastTime(Spell* spell /*= nullptr*/) const
     if (HasAttribute(SPELL_ATTR0_REQ_AMMO) && (!IsAutoRepeatRangedSpell()))
         castTime += 500;
 
-    return (castTime > 0) ? uint32(castTime) : 0;
+	return (castTime > 0) ? uint32(castTime) : 0;
 }
 
 uint32 SpellInfo::GetMaxTicks() const
@@ -3226,6 +3227,10 @@ int32 SpellInfo::CalcPowerCost(WorldObject const* caster, SpellSchoolMask school
                 powerCost *= casterScaler->ratio / spellScaler->ratio;
         }
     }
+    //npcbot - apply bot spell cost mods
+    if (powerCost > 0 && caster->GetTypeId() == TYPEID_UNIT && caster->ToCreature()->GetBotAI())
+        caster->ToCreature()->ApplyCreatureSpellCostMods(this, powerCost);
+    //end npcbot
 
     // PCT mod from user auras by school
     powerCost = int32(powerCost * (1.0f + unitCaster->GetFloatValue(UNIT_FIELD_POWER_COST_MULTIPLIER + school)));

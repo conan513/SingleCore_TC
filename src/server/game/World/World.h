@@ -163,9 +163,19 @@ enum WorldBoolConfigs
     CONFIG_INSTANCES_RESET_ANNOUNCE,
     CONFIG_IP_BASED_ACTION_LOGGING,
     CONFIG_ALLOW_TRACK_BOTH_RESOURCES,
+    CONFIG_SMARTQUESTS_DELIVER,
+    CONFIG_SMARTQUESTS_KILL,
     CONFIG_CALCULATE_CREATURE_ZONE_AREA_DATA,
     CONFIG_CALCULATE_GAMEOBJECT_ZONE_AREA_DATA,
+    CONFIG_LOOT_ONLY_FOR_PLAYER,
+    CONFIG_LOOT_UNIQUE,
+    CONFIG_NO_CAST_TIME,
+    CONFIG_NO_COOLDOWN,
+    CONFIG_HURT_IN_REAL_TIME,
     CONFIG_RESET_DUEL_COOLDOWNS,
+    CONFIG_FAST_FISHING,
+    CONFIG_GAIN_HONOR_GUARD,
+    CONFIG_GAIN_HONOR_ELITE,
     CONFIG_RESET_DUEL_HEALTH_MANA,
     CONFIG_BASEMAP_LOAD_GRIDS,
     CONFIG_INSTANCEMAP_LOAD_GRIDS,
@@ -198,12 +208,23 @@ enum WorldFloatConfigs
     CONFIG_STATS_LIMITS_PARRY,
     CONFIG_STATS_LIMITS_BLOCK,
     CONFIG_STATS_LIMITS_CRIT,
+    CONFIG_SPEED_GAME,
+    CONFIG_ATTACKSPEED_PLAYER,
+    CONFIG_ATTACKSPEED_ALL,
+    CONFIG_RESPAWNSPEED,
     CONFIG_ARENA_WIN_RATING_MODIFIER_1,
     CONFIG_ARENA_WIN_RATING_MODIFIER_2,
     CONFIG_ARENA_LOSE_RATING_MODIFIER,
     CONFIG_ARENA_MATCHMAKER_RATING_MODIFIER,
     CONFIG_RESPAWN_DYNAMICRATE_CREATURE,
     CONFIG_RESPAWN_DYNAMICRATE_GAMEOBJECT,
+    CONFIG_MINRATE_DROP_ITEM_POOR,
+    CONFIG_MINRATE_DROP_ITEM_NORMAL,
+    CONFIG_MINRATE_DROP_ITEM_UNCOMMON,
+    CONFIG_MINRATE_DROP_ITEM_RARE,
+    CONFIG_MINRATE_DROP_ITEM_EPIC,
+    CONFIG_MINRATE_DROP_ITEM_LEGEND,
+    CONFIG_MINRATE_DROP_ITEM_ART,
     FLOAT_CONFIG_VALUE_COUNT
 };
 
@@ -373,6 +394,7 @@ enum WorldIntConfigs
     CONFIG_CREATURE_PICKPOCKET_REFILL,
     CONFIG_CREATURE_STOP_FOR_PLAYER,
     CONFIG_AHBOT_UPDATE_INTERVAL,
+    CONFIG_QUEST_AUTOCOMPLETE_DELAY,
     CONFIG_CHARTER_COST_GUILD,
     CONFIG_CHARTER_COST_ARENA_2v2,
     CONFIG_CHARTER_COST_ARENA_3v3,
@@ -758,6 +780,15 @@ class TC_GAME_API World
 
         void UpdateAreaDependentAuras();
 
+        //npcbot
+        CharacterInfo const* GetCharacterInfo(ObjectGuid const& guid) const;
+        void AddCharacterInfo(ObjectGuid const& guid, uint32 accountId, std::string const& name, uint8 gender, uint8 race, uint8 playerClass, uint8 level);
+        void DeleteCharacterInfo(ObjectGuid const& guid) { _characterInfoStore.erase(guid); }
+        bool HasCharacterInfo(ObjectGuid const& guid) { return _characterInfoStore.find(guid) != _characterInfoStore.end(); }
+        void UpdateCharacterInfo(ObjectGuid const& guid, std::string const& name, uint8 gender = GENDER_NONE, uint8 race = RACE_NONE);
+        void UpdateCharacterInfoLevel(ObjectGuid const& guid, uint8 level);
+        //end npcbot
+
         uint32 GetCleaningFlags() const { return m_CleaningFlags; }
         void   SetCleaningFlags(uint32 flags) { m_CleaningFlags = flags; }
         void   ResetEventSeasonalQuests(uint16 event_id);
@@ -861,6 +892,10 @@ class TC_GAME_API World
 
         typedef std::map<uint8, uint8> AutobroadcastsWeightMap;
         AutobroadcastsWeightMap m_AutobroadcastsWeights;
+
+        typedef std::unordered_map<ObjectGuid, CharacterInfo> CharacterInfoContainer;
+        CharacterInfoContainer _characterInfoStore;
+        void LoadCharacterInfoStore();
 
         void ProcessQueryCallbacks();
 

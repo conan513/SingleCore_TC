@@ -246,6 +246,16 @@ void WorldSession::HandleMoveSplineDoneOpcode(WorldPacket& recvData)
     GetPlayer()->SetFallInformation(0, GetPlayer()->GetPositionZ());
     if (GetPlayer()->pvpInfo.IsHostile)
         GetPlayer()->CastSpell(GetPlayer(), 2479, true);
+
+    // LASYAN3: START AutoMount
+    Player *player = GetPlayer();
+	//TC_LOG_DEBUG("lasyan3.automount", "mvc=%d spell=%d", player->m_mountCanceled, player->m_mountSpell);
+    if (player->m_mountCanceled && player->m_mountSpell > 0)
+    {
+        player->CastSpell(player, player->m_mountSpell, true);
+		TC_LOG_DEBUG("lasyan3.automount", "AutoMount casted from HandleMoveSplineDoneOpcode");
+    }
+    // LASYAN3: END AutoMount
 }
 
 void WorldSession::HandleActivateTaxiOpcode(WorldPacket& recvData)

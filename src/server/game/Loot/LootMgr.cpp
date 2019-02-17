@@ -281,17 +281,34 @@ void LootStore::ReportNonExistingId(uint32 lootId, char const* ownerType, uint32
 // RATE_DROP_ITEMS is no longer used for all types of entries
 bool LootStoreItem::Roll(bool rate) const
 {
-    if (chance >= 100.0f)
+    float _chance = chance;
+
+    if (_chance >= 100.0f)
         return true;
 
     if (reference > 0)                                   // reference case
-        return roll_chance_f(chance* (rate ? sWorld->getRate(RATE_DROP_ITEM_REFERENCED) : 1.0f));
+        return roll_chance_f(_chance* (rate ? sWorld->getRate(RATE_DROP_ITEM_REFERENCED) : 1.0f));
 
     ItemTemplate const* pProto = sObjectMgr->GetItemTemplate(itemid);
 
     float qualityModifier = pProto && rate ? sWorld->getRate(qualityToRate[pProto->Quality]) : 1.0f;
 
-    return roll_chance_f(chance*qualityModifier);
+    // LASYAN3 : apply minimum drop rate for rare items
+    float _rate;
+    switch (pProto->Quality)
+    {
+        case ITEM_QUALITY_POOR: _rate = sWorld->getFloatConfig(CONFIG_MINRATE_DROP_ITEM_POOR); break;
+        case ITEM_QUALITY_NORMAL: _rate = sWorld->getFloatConfig(CONFIG_MINRATE_DROP_ITEM_NORMAL); break;
+        case ITEM_QUALITY_UNCOMMON: _rate = sWorld->getFloatConfig(CONFIG_MINRATE_DROP_ITEM_UNCOMMON); break;
+        case ITEM_QUALITY_RARE: _rate = sWorld->getFloatConfig(CONFIG_MINRATE_DROP_ITEM_RARE); break;
+        case ITEM_QUALITY_EPIC: _rate = sWorld->getFloatConfig(CONFIG_MINRATE_DROP_ITEM_EPIC); break;
+        case ITEM_QUALITY_LEGENDARY: _rate = sWorld->getFloatConfig(CONFIG_MINRATE_DROP_ITEM_LEGEND); break;
+        case ITEM_QUALITY_ARTIFACT: _rate = sWorld->getFloatConfig(CONFIG_MINRATE_DROP_ITEM_ART); break;
+        default: _rate = 0; break;
+    }
+    _chance = (chance < _rate && _rate >= 0) ? _rate : chance;
+
+    return roll_chance_f(_chance*qualityModifier);
 }
 
 // Checks correctness of values
@@ -345,6 +362,8 @@ bool LootStoreItem::IsValid(LootStore const& store, uint32 entry) const
 }
 
 //
+
+
 // --------- LootTemplate::LootGroup ---------
 //
 
@@ -668,7 +687,7 @@ bool LootTemplate::HasQuestDropForPlayer(LootTemplateMap const& store, Player co
             if (Referenced->second->HasQuestDropForPlayer(store, player, item->groupid))
                 return true;
         }
-        else if (player->HasQuestForItem(item->itemid))
+        else if (player->HasQuestForItem(item->itemid) || ((Player *)player)->CanDropQuestItem(item->itemid) > 0)
             return true;                                    // active quest drop found
     }
 

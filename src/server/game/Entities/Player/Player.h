@@ -32,6 +32,10 @@
 #include "QuestDef.h"
 #include <memory>
 #include <queue>
+#include "ObjectMgr.h"
+#include "Map.h"
+#include "Item.h"
+#include "Bag.h"
 
 struct AccessRequirement;
 struct AchievementEntry;
@@ -53,7 +57,6 @@ struct TrainerSpell;
 struct VendorItem;
 
 class AchievementMgr;
-class Bag;
 class Battleground;
 class CinematicMgr;
 class Channel;
@@ -62,7 +65,6 @@ class Creature;
 class DynamicObject;
 class Group;
 class Guild;
-class Item;
 class LootStore;
 class OutdoorPvP;
 class Pet;
@@ -73,6 +75,9 @@ class PlayerSocial;
 class ReputationMgr;
 class SpellCastTargets;
 class TradeData;
+// NpcBot mod
+class BotMgr;
+// end NpcBot mod
 
 enum InventoryType : uint8;
 enum ItemClass : uint8;
@@ -154,6 +159,9 @@ typedef std::unordered_map<uint32, PlayerSpell*> PlayerSpellMap;
 typedef std::unordered_set<SpellModifier*> SpellModContainer;
 
 typedef std::unordered_map<uint32 /*instanceId*/, time_t/*releaseTime*/> InstanceTimeMap;
+
+typedef std::unordered_map<uint32, uint32> PlayerKillCountMap; // LASYAN3
+typedef std::unordered_map<uint32, int32> SmartQuestDeliverMap; // LASYAN3
 
 enum TrainerSpellState
 {
@@ -523,7 +531,6 @@ typedef std::unordered_map<uint32, SkillStatusData> SkillStatusMap;
 
 class Quest;
 class Spell;
-class Item;
 class WorldSession;
 
 enum PlayerSlots
@@ -1298,6 +1305,17 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         void RemoveTimedQuest(uint32 questId) { m_timedquests.erase(questId); }
 
         bool HasPvPForcingQuest() const;
+
+        // LASYAN3: AlwaysDropQuestItems
+        int32 CanDropQuestItem(uint32 itemid);
+        ObjectMgr::QuestMap GetAvailableQuestsForItem(uint32 itemid);
+        void GetQuestInformations(Quest const *qInfo, std::string& giver_name, std::string& giver_area_name, std::string& giver_zone_name);
+        int32 CanKillQuestGo(uint32 goid);
+        ObjectMgr::QuestMap GetAvailableQuestsForKill(uint32 goid);
+
+        PlayerKillCountMap m_goKilledCount;
+        SmartQuestDeliverMap m_deliverCheck;
+        bool m_mustBuildValuesUpdate = false;
 
         /*********************************************************/
         /***                   LOAD SYSTEM                     ***/
@@ -2151,6 +2169,25 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
 
         std::string GetMapAreaAndZoneString() const;
         std::string GetCoordsMapAreaAndZoneString() const;
+ 
+        // LASYAN3: AutoMount
+        uint32 m_mountSpell;
+        bool m_mountCanceled;
+
+        /*********************************************************/
+        /***                     NPCBOT SYSTEM                    ***/
+        /*********************************************************/
+        void SetBotMgr(BotMgr* mgr) { ASSERT (!_botMgr); _botMgr = mgr; }
+        BotMgr* GetBotMgr() const { return _botMgr; }
+        bool HaveBot() const;
+        uint8 GetNpcBotsCount(bool inWorldOnly = false) const;
+        uint8 GetBotFollowDist() const;
+        void SetBotFollowDist(int8 dist);
+        void SetBotsShouldUpdateStats();
+        void RemoveAllBots(uint8 removetype = 0);
+        /*********************************************************/
+        /***                 END BOT SYSTEM                    ***/
+        /*********************************************************/
 
     protected:
         // Gamemaster whisper whitelist
@@ -2407,6 +2444,14 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         bool m_needsZoneUpdate;
 
     private:
+        /*********************************************************/
+        /***                     NPCBOT SYSTEM                    ***/
+        /*********************************************************/
+        BotMgr* _botMgr;
+        /*********************************************************/
+        /***                END BOT SYSTEM                     ***/
+        /*********************************************************/
+
         // internal common parts for CanStore/StoreItem functions
         InventoryResult CanStoreItem_InSpecificSlot(uint8 bag, uint8 slot, ItemPosCountVec& dest, ItemTemplate const* pProto, uint32& count, bool swap, Item* pSrcItem) const;
         InventoryResult CanStoreItem_InBag(uint8 bag, ItemPosCountVec& dest, ItemTemplate const* pProto, uint32& count, bool merge, bool non_specialized, Item* pSrcItem, uint8 skip_bag, uint8 skip_slot) const;
@@ -2424,6 +2469,9 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         void AddKnownCurrency(uint32 itemId);
 
         void AdjustQuestReqItemCount(Quest const* quest, QuestStatusData& questStatusData);
+
+        void AutoQuestCompleteDisplayQuestGiver(uint32 questId);// LASYAN3
+		Quest const *m_lastQuestCompleted = NULL;// LASYAN3
 
         bool IsCanDelayTeleport() const { return m_bCanDelayTeleport; }
         void SetCanDelayTeleport(bool setting) { m_bCanDelayTeleport = setting; }

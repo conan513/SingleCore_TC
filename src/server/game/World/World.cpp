@@ -1242,6 +1242,28 @@ void World::LoadConfigSettings(bool reload)
     m_visibility_notify_periodInInstances = sConfigMgr->GetIntDefault("Visibility.Notify.Period.InInstances",   DEFAULT_VISIBILITY_NOTIFY_PERIOD);
     m_visibility_notify_periodInBGArenas = sConfigMgr->GetIntDefault("Visibility.Notify.Period.InBGArenas",    DEFAULT_VISIBILITY_NOTIFY_PERIOD);
 
+    m_int_configs[CONFIG_QUEST_AUTOCOMPLETE_DELAY] = sConfigMgr->GetIntDefault("Custom.AutoCompleteQuestDelay", 0);
+    m_bool_configs[CONFIG_SMARTQUESTS_DELIVER] = sConfigMgr->GetBoolDefault("Custom.SmartQuests.Deliver", false);
+    m_bool_configs[CONFIG_SMARTQUESTS_KILL] = sConfigMgr->GetBoolDefault("Custom.SmartQuests.Kill", false);
+    m_bool_configs[CONFIG_LOOT_ONLY_FOR_PLAYER] = sConfigMgr->GetBoolDefault("Custom.LootOnlyForPlayer", false);
+    m_bool_configs[CONFIG_LOOT_UNIQUE] = sConfigMgr->GetBoolDefault("Custom.LootUnique", false);
+    m_float_configs[CONFIG_MINRATE_DROP_ITEM_POOR] = sConfigMgr->GetFloatDefault("Custom.MinimumRate.Drop.Item.Poor", -1);
+    m_float_configs[CONFIG_MINRATE_DROP_ITEM_NORMAL] = sConfigMgr->GetFloatDefault("Custom.MinimumRate.Drop.Item.Normal", -1);
+    m_float_configs[CONFIG_MINRATE_DROP_ITEM_UNCOMMON] = sConfigMgr->GetFloatDefault("Custom.MinimumRate.Drop.Item.Uncommon", -1);
+    m_float_configs[CONFIG_MINRATE_DROP_ITEM_EPIC] = sConfigMgr->GetFloatDefault("Custom.MinimumRate.Drop.Item.Epic", -1);
+    m_float_configs[CONFIG_MINRATE_DROP_ITEM_LEGEND] = sConfigMgr->GetFloatDefault("Custom.MinimumRate.Drop.Item.Legendary", -1);
+    m_float_configs[CONFIG_MINRATE_DROP_ITEM_ART] = sConfigMgr->GetFloatDefault("Custom.MinimumRate.Drop.Item.Artifact", -1);
+    m_float_configs[CONFIG_SPEED_GAME] = sConfigMgr->GetFloatDefault("Custom.SpeedGame", 1.0f);
+    m_bool_configs[CONFIG_NO_CAST_TIME] = sConfigMgr->GetBoolDefault("Custom.NoCastTime", false);
+    m_bool_configs[CONFIG_NO_COOLDOWN] = sConfigMgr->GetBoolDefault("Custom.NoCooldown", false);
+    m_bool_configs[CONFIG_HURT_IN_REAL_TIME] = sConfigMgr->GetBoolDefault("Custom.HurtInRealTime", false);
+    m_float_configs[CONFIG_ATTACKSPEED_PLAYER] = sConfigMgr->GetFloatDefault("Custom.AttackSpeedForPlayer", 1.0f);
+    m_float_configs[CONFIG_ATTACKSPEED_ALL] = sConfigMgr->GetFloatDefault("Custom.AttackSpeedForMobs", 1.0f);
+    m_bool_configs[CONFIG_FAST_FISHING] = sConfigMgr->GetBoolDefault("Custom.FastFishing", false);
+    m_bool_configs[CONFIG_GAIN_HONOR_GUARD] = sConfigMgr->GetBoolDefault("Custom.GainHonorOnGuardKill", false);
+    m_bool_configs[CONFIG_GAIN_HONOR_ELITE] = sConfigMgr->GetBoolDefault("Custom.GainHonorOnEliteKill", false);
+    m_float_configs[CONFIG_RESPAWNSPEED] = sConfigMgr->GetFloatDefault("Custom.RespawnSpeed", 1.0f);
+
     ///- Load the CharDelete related config options
     m_int_configs[CONFIG_CHARDELETE_METHOD] = sConfigMgr->GetIntDefault("CharDelete.Method", 0);
     m_int_configs[CONFIG_CHARDELETE_MIN_LEVEL] = sConfigMgr->GetIntDefault("CharDelete.MinLevel", 0);
@@ -1704,7 +1726,10 @@ void World::SetInitialWorldSettings()
 
     TC_LOG_INFO("server.loading", "Loading Creature templates...");
     sObjectMgr->LoadCreatureTemplates();
-
+    //npcbot
+    TC_LOG_INFO("server.loading", "Loading Creature template outfits...");     // must be after LoadCreatureTemplates
+    sObjectMgr->LoadCreatureOutfits();
+    //end npcbot
     TC_LOG_INFO("server.loading", "Loading Equipment templates...");           // must be after LoadCreatureTemplates
     sObjectMgr->LoadEquipmentTemplates();
 
@@ -3443,6 +3468,76 @@ void World::ProcessQueryCallbacks()
 {
     _queryProcessor.ProcessReadyQueries();
 }
+//npcbot
+CharacterInfo const* World::GetCharacterInfo(ObjectGuid const& guid) const
+{
+    CharacterInfoContainer::const_iterator itr = _characterInfoStore.find(guid);
+    if (itr != _characterInfoStore.end())
+        return &itr->second;
+
+    return nullptr;
+}
+void World::LoadCharacterInfoStore()
+{
+    TC_LOG_INFO("server.loading", "Loading character info store");
+
+    _characterInfoStore.clear();
+
+    QueryResult result = CharacterDatabase.Query("SELECT guid, name, account, race, gender, class, level FROM characters");
+    if (!result)
+    {
+        TC_LOG_INFO("server.loading", "No character name data loaded, empty query");
+        return;
+    }
+
+    do
+    {
+        Field* fields = result->Fetch();
+        AddCharacterInfo(ObjectGuid::Create<HighGuid::Player>(fields[0].GetUInt32()), fields[2].GetUInt32(), fields[1].GetString(),
+            fields[4].GetUInt8() /*gender*/, fields[3].GetUInt8() /*race*/, fields[5].GetUInt8() /*class*/, fields[6].GetUInt8() /*level*/);
+    } while (result->NextRow());
+
+    TC_LOG_INFO("server.loading", "Loaded character infos for " SZFMTD " characters", _characterInfoStore.size());
+}
+void World::AddCharacterInfo(ObjectGuid const& guid, uint32 accountId, std::string const& name, uint8 gender, uint8 race, uint8 playerClass, uint8 level)
+{
+    CharacterInfo& data = _characterInfoStore[guid];
+    data.Name = name;
+    data.AccountId = accountId;
+    data.Race = race;
+    data.Sex = gender;
+    data.Class = playerClass;
+    data.Level = level;
+}
+
+void World::UpdateCharacterInfo(ObjectGuid const& guid, std::string const& name, uint8 gender /*= GENDER_NONE*/, uint8 race /*= RACE_NONE*/)
+{
+    CharacterInfoContainer::iterator itr = _characterInfoStore.find(guid);
+    if (itr == _characterInfoStore.end())
+        return;
+
+    itr->second.Name = name;
+
+    if (gender != GENDER_NONE)
+        itr->second.Sex = gender;
+
+    if (race != RACE_NONE)
+        itr->second.Race = race;
+
+    WorldPacket data(SMSG_INVALIDATE_PLAYER, 8);
+    data << guid;
+    SendGlobalMessage(&data);
+}
+
+void World::UpdateCharacterInfoLevel(ObjectGuid const& guid, uint8 level)
+{
+    CharacterInfoContainer::iterator itr = _characterInfoStore.find(guid);
+    if (itr == _characterInfoStore.end())
+        return;
+
+    itr->second.Level = level;
+}
+//end npcbot
 
 void World::ReloadRBAC()
 {

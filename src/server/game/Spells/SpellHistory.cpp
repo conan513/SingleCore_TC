@@ -432,8 +432,16 @@ void SpellHistory::ModifyCooldown(uint32 spellId, int32 cooldownModMs)
 void SpellHistory::ResetCooldown(uint32 spellId, bool update /*= false*/)
 {
     auto itr = _spellCooldowns.find(spellId);
-    if (itr == _spellCooldowns.end())
+    if (itr == _spellCooldowns.end()) {
+        if (update && GetPlayerOwner() && (GetPlayerOwner()->GetCommandStatus(CHEAT_COOLDOWN) || sWorld->getBoolConfig(CONFIG_NO_COOLDOWN)))
+        {
+            WorldPacket data(SMSG_CLEAR_COOLDOWN, 4 + 8);
+            data << uint32(spellId);
+            data << uint64(_owner->GetGUID());
+            GetPlayerOwner()->SendDirectMessage(&data);
+        }
         return;
+    }
 
     ResetCooldown(itr, update);
 }
@@ -453,6 +461,17 @@ void SpellHistory::ResetCooldown(CooldownStorageType::iterator& itr, bool update
 
     itr = EraseCooldown(itr);
 }
+/*
+void SpellHistory::ResetCooldownForced(uint32 spellId)
+{
+    if (Player* playerOwner = GetPlayerOwner())
+    {
+        WorldPacket data(SMSG_CLEAR_COOLDOWN, 4 + 8);
+        data << uint32(spellId);
+        data << uint64(_owner->GetGUID());
+        playerOwner->SendDirectMessage(&data);
+    }
+}*/
 
 void SpellHistory::ResetAllCooldowns()
 {

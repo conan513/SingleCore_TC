@@ -756,6 +756,19 @@ void MotionMaster::MoveJumpTo(float angle, float speedXY, float speedZ)
         return;
 
     float x, y, z = _owner->GetPositionZ();
+    //npcbot
+    if (_owner->GetTypeId() == TYPEID_UNIT && _owner->ToCreature()->IsNPCBot())
+    {
+        Movement::MoveSplineInit init(_owner);
+        init.MoveTo(x, y, z);
+        init.SetParabolic(speedZ/*max_height*/, 0);
+        init.SetOrientationFixed(true);
+        init.SetVelocity(speedXY);
+        init.Launch();
+        Add(new GenericMovementGenerator(std::move(init), EFFECT_MOTION_TYPE, 0));
+        return;
+    }
+    //end npcbot
 
     float moveTimeHalf = speedZ / Movement::gravity;
     float dist = 2 * moveTimeHalf * speedXY;

@@ -42,6 +42,7 @@
 #include "PathGenerator.h"
 #include "Pet.h"
 #include "Player.h"
+#include "Totem.h"
 #include "ScriptMgr.h"
 #include "SharedDefines.h"
 #include "SpellAuraEffects.h"
@@ -61,6 +62,7 @@
 #include "World.h"
 #include "WorldPacket.h"
 #include "WorldSession.h"
+#include "bot_ai.h"
 
 extern SpellEffectHandlerFn SpellEffectHandlers[TOTAL_SPELL_EFFECTS];
 
@@ -548,9 +550,31 @@ m_caster((info->HasAttribute(SPELL_ATTR6_CAST_BY_CHARMER) && caster->GetCharmerO
     {
         // wand case
         if (m_attackType == RANGED_ATTACK)
+        {
             if ((playerCaster->getClassMask() & CLASSMASK_WAND_USERS) != 0)
+            {
                 if (Item* pItem = playerCaster->GetWeaponForAttack(RANGED_ATTACK))
                     m_spellSchoolMask = SpellSchoolMask(1 << pItem->GetTemplate()->Damage[0].DamageType);
+            }
+            
+        }
+        //npcbot
+        else if (caster->GetTypeId() == TYPEID_UNIT && caster->ToCreature()->GetBotAI())
+        {
+            if (Creature* bot = caster->ToCreature())
+                if (bot->GetIAmABot())
+                    if (bot->GetBotMinionAI()->GetBotClass() == BOT_CLASS_WARLOCK ||
+                        bot->GetBotMinionAI()->GetBotClass() == BOT_CLASS_MAGE ||
+                        bot->GetBotMinionAI()->GetBotClass() == BOT_CLASS_PRIEST)
+                    {
+                        if (Item const* pItem = bot->GetBotMinionAI()->GetEquips(2))
+                        {
+                            m_spellSchoolMask = SpellSchoolMask(1 << pItem->GetTemplate()->Damage[0].DamageType);
+                            m_spellValue->EffectBasePoints[0] = urand(pItem->GetTemplate()->Damage[0].DamageMin,pItem->GetTemplate()->Damage[0].DamageMax);
+                        }
+                    }
+        }
+        //end npcbot
     }
 
     if (originalCasterGUID)
@@ -2478,6 +2502,12 @@ void Spell::TargetInfo::DoDamageAndTriggers(Spell* spell)
             if (caster->GetTypeId() == TYPEID_PLAYER && !spell->m_spellInfo->HasAttribute(SPELL_ATTR0_STOP_ATTACK_TARGET) && !spell->m_spellInfo->HasAttribute(SPELL_ATTR4_CANT_TRIGGER_ITEM_SPELLS) &&
                 (spell->m_spellInfo->DmgClass == SPELL_DAMAGE_CLASS_MELEE || spell->m_spellInfo->DmgClass == SPELL_DAMAGE_CLASS_RANGED))
                 caster->ToPlayer()->CastItemCombatSpell(*spellDamageInfo);
+		    //npcbot - CastItemCombatSpell for bots
+		    if (caster->GetTypeId() == TYPEID_UNIT &&
+                caster->ToCreature()->GetBotAI() && !(spell->m_spellInfo->Attributes & SPELL_ATTR0_STOP_ATTACK_TARGET) &&
+                (spell->m_spellInfo->DmgClass == SPELL_DAMAGE_CLASS_MELEE || spell->m_spellInfo->DmgClass == SPELL_DAMAGE_CLASS_RANGED))
+                caster->ToCreature()->CastCreatureItemCombatSpell(spell->unitTarget, spell->m_attackType, procVictim, hitMask, spell);
+            //end npcbot
         }
     }
 
@@ -3037,7 +3067,7 @@ void Spell::prepare(SpellCastTargets const& targets, AuraEffect const* triggered
 
     if (Player* player = m_caster->ToPlayer())
     {
-        if (!player->GetCommandStatus(CHEAT_CASTTIME))
+        if (!player->GetCommandStatus(CHEAT_CASTTIME) && !sWorld->getBoolConfig(CONFIG_NO_CAST_TIME))
         {
             // calculate cast time (calculated after first CheckCast check to prevent charge counting for first CheckCast fail)
             m_casttime = m_spellInfo->CalcCastTime(this);
@@ -3116,6 +3146,10 @@ void Spell::prepare(SpellCastTargets const& targets, AuraEffect const* triggered
         // because target could be relocated in the meantime, making the spell fly to the air (no targets can be registered, so no effects processed, nothing in combat log)
         if (!m_casttime && /*!m_spellInfo->StartRecoveryTime && */ GetCurrentContainer() == CURRENT_GENERIC_SPELL)
             cast(true);
+    }
+    if (((Player*)m_caster) && sWorld->getBoolConfig(CONFIG_NO_COOLDOWN)) {
+        //((Player*)m_caster)->GetSpellHistory()->ResetCooldownForced(m_spellInfo->Id);
+        ((Player*)m_caster)->GetSpellHistory()->ResetCooldown(m_spellInfo->Id, true);
     }
 }
 
@@ -3336,9 +3370,15 @@ void Spell::_cast(bool skipCheck)
     }
 
     if (Unit* unitCaster = m_caster->ToUnit())
+    {
         if (m_spellInfo->HasAttribute(SPELL_ATTR1_DISMISS_PET))
             if (Creature* pet = ObjectAccessor::GetCreature(*m_caster, unitCaster->GetPetGUID()))
                 pet->DespawnOrUnsummon();
+        //NpcBot: If we are applying crowd control aura execute caster's delayed attack immediately to prevent instant CC break
+        if (m_targets.GetUnitTarget() && (m_spellInfo->AuraInterruptFlags & AURA_INTERRUPT_FLAG_TAKE_DAMAGE))
+            unitCaster->ExecuteDelayedSwingHit();
+        //end NpcBot
+    }
 
     PrepareTriggersExecutedOnHit();
 
@@ -3427,7 +3467,7 @@ void Spell::_cast(bool skipCheck)
         modOwner->SetSpellModTakingSpell(this, false);
 
         //Clear spell cooldowns after every spell is cast if .cheat cooldown is enabled.
-        if (m_originalCaster && modOwner->GetCommandStatus(CHEAT_COOLDOWN))
+        if (m_originalCaster && modOwner->GetCommandStatus(CHEAT_COOLDOWN) || sWorld->getBoolConfig(CONFIG_NO_COOLDOWN))
             m_originalCaster->GetSpellHistory()->ResetCooldown(m_spellInfo->Id, true);
     }
 
@@ -3852,6 +3892,9 @@ void Spell::finish(bool ok)
 
     // Stop Attack for some spells
     if (m_spellInfo->HasAttribute(SPELL_ATTR0_STOP_ATTACK_TARGET))
+    //npcbot - disable for npcbots
+    if (!(m_caster->GetTypeId() == TYPEID_UNIT && m_caster->ToCreature()->GetBotAI()))
+    //end npcbot
         unitCaster->AttackStop();
 }
 
@@ -4149,6 +4192,10 @@ void Spell::SendSpellStart()
 
 void Spell::SendSpellGo()
 {
+    //npcbot - hook for spellcast finish
+    if (m_caster->GetTypeId() == TYPEID_UNIT && m_caster->ToCreature()->GetBotAI())
+        m_caster->ToCreature()->OnSpellGo(this);
+    //end npcbot
     // not send invisible spell casting
     if (!IsNeedSendToClient())
         return;
@@ -5021,9 +5068,9 @@ SpellCastResult Spell::CheckCast(bool strict, uint32* param1 /*= nullptr*/, uint
         {
             if (m_triggeredByAuraSpell)
                 return SPELL_FAILED_DONT_REPORT;
-            else
-                return SPELL_FAILED_NOT_READY;
-        }
+			else
+				return SPELL_FAILED_NOT_READY;
+		}
     }
 
     if (m_spellInfo->HasAttribute(SPELL_ATTR7_IS_CHEAT_SPELL) && !m_caster->HasFlag(UNIT_FIELD_FLAGS_2, UNIT_FLAG2_ALLOW_CHEAT_SPELLS))
@@ -5033,7 +5080,7 @@ SpellCastResult Spell::CheckCast(bool strict, uint32* param1 /*= nullptr*/, uint
     }
 
     // Check global cooldown
-    if (strict && !(_triggeredCastFlags & TRIGGERED_IGNORE_GCD) && HasGlobalCooldown())
+	if (strict && !(_triggeredCastFlags & TRIGGERED_IGNORE_GCD) && HasGlobalCooldown())
         return !m_spellInfo->HasAttribute(SPELL_ATTR0_DISABLED_WHILE_ACTIVE) ? SPELL_FAILED_NOT_READY : SPELL_FAILED_DONT_REPORT;
 
     // only triggered spells can be processed an ended battleground
@@ -7966,7 +8013,7 @@ void Spell::TriggerGlobalCooldown()
         return;
 
     if (m_caster->GetTypeId() == TYPEID_PLAYER)
-        if (m_caster->ToPlayer()->GetCommandStatus(CHEAT_COOLDOWN))
+        if (m_caster->ToPlayer()->GetCommandStatus(CHEAT_COOLDOWN) || sWorld->getBoolConfig(CONFIG_NO_COOLDOWN))
             return;
 
     // Global cooldown can't leave range 1..1.5 secs
