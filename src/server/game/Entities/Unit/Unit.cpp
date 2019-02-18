@@ -631,12 +631,8 @@ bool Unit::IsWithinMeleeRangeAt(Position const& pos, Unit const* obj) const
 
     float dx = pos.GetPositionX() - obj->GetPositionX();
     float dy = pos.GetPositionY() - obj->GetPositionY();
+    float dz = GetPositionZ() - obj->GetPositionZ();
 
-    float z = pos.GetPositionZ();
-    if (HasUnitMovementFlag(MOVEMENTFLAG_HOVER))
-        z -= GetFloatValue(UNIT_FIELD_HOVERHEIGHT);
-
-    float dz = z - obj->GetPositionZMinusOffset();
     float distsq = dx*dx + dy*dy + dz*dz;
 
     float maxdist = GetMeleeRange(obj);
@@ -660,20 +656,7 @@ bool Unit::IsWithinBoundaryRadius(const Unit* obj) const
     return IsInDist(obj, objBoundaryRadius);
 }
 
-void Unit::GetRandomContactPoint(Unit const* obj, float &x, float &y, float &z, float distance2dMin, float distance2dMax) const
-{
-    float combat_reach = GetCombatReach();
-    if (combat_reach < 0.1f) // sometimes bugged for players
-        combat_reach = DEFAULT_COMBAT_REACH;
-
-    uint32 attacker_number = getAttackers().size();
-    if (attacker_number > 0)
-        --attacker_number;
-    GetNearPoint(obj, x, y, z, obj->GetCombatReach(), distance2dMin+(distance2dMax-distance2dMin) * (float)rand_norm()
-        , GetAngle(obj) + (attacker_number ? (static_cast<float>(M_PI/2) - static_cast<float>(M_PI) * (float)rand_norm()) * float(attacker_number) / combat_reach * 0.3f : 0));
-}
-
-AuraApplication * Unit::GetVisibleAura(uint8 slot) const
+AuraApplication* Unit::GetVisibleAura(uint8 slot) const
 {
     VisibleAuraMap::const_iterator itr = m_visibleAuras.find(slot);
     if (itr != m_visibleAuras.end())
@@ -6645,35 +6628,6 @@ uint32 Unit::SpellDamageBonusDone(Unit* victim, SpellInfo const* spellProto, uin
         }
     }
 
-    // Custom scripted damage
-    switch (spellProto->SpellFamilyName)
-    {
-        case SPELLFAMILY_DEATHKNIGHT:
-            // Impurity (dummy effect)
-            if (GetTypeId() == TYPEID_PLAYER)
-            {
-                PlayerSpellMap const& playerSpells = ToPlayer()->GetSpellMap();
-                for (auto itr = playerSpells.begin(); itr != playerSpells.end(); ++itr)
-                {
-                    if (itr->second->state == PLAYERSPELL_REMOVED || itr->second->disabled)
-                        continue;
-
-                    switch (itr->first)
-                    {
-                        case 49220:
-                        case 49633:
-                        case 49635:
-                        case 49636:
-                        case 49638:
-                        if (SpellInfo const* proto = sSpellMgr->GetSpellInfo(itr->first))
-                            AddPct(ApCoeffMod, proto->Effects[EFFECT_0].CalcValue());
-                        break;
-                    }
-                }
-            }
-            break;
-    }
-
     // Done fixed damage bonus auras
     int32 DoneAdvertisedBenefit  = SpellBaseDamageBonusDone(spellProto->GetSchoolMask());
 
@@ -7084,8 +7038,10 @@ int32 Unit::SpellBaseDamageBonusTaken(SpellSchoolMask schoolMask) const
 
     AuraEffectList const& mDamageTaken = GetAuraEffectsByType(SPELL_AURA_MOD_DAMAGE_TAKEN);
     for (AuraEffectList::const_iterator i = mDamageTaken.begin(); i != mDamageTaken.end(); ++i)
+    {
         if (((*i)->GetMiscValue() & schoolMask) != 0)
             TakenAdvertisedBenefit += (*i)->GetAmount();
+    }
 
     return TakenAdvertisedBenefit;
 }
@@ -8231,7 +8187,7 @@ void Unit::Mount(uint32 mount, uint32 VehicleId, uint32 creatureEntry)
             if (charm->GetTypeId() == TYPEID_UNIT)
                 charm->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_STUNNED);
 
-        player->SendMovementSetCollisionHeight(player->GetCollisionHeight(true));
+        player->SendMovementSetCollisionHeight(player->GetCollisionHeight());
     }
 
     RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_MOUNT);
@@ -8248,7 +8204,7 @@ void Unit::Dismount()
     if (Player* thisPlayer = ToPlayer())
     {
         SendUpdateToSet();
-        thisPlayer->SendMovementSetCollisionHeight(thisPlayer->GetCollisionHeight(false));
+        thisPlayer->SendMovementSetCollisionHeight(thisPlayer->GetCollisionHeight());
     }
 
     WorldPacket data(SMSG_DISMOUNT, 8);
@@ -11924,15 +11880,6 @@ void Unit::Kill(Unit* victim, bool durabilityLoss)
     }
 }
 
-float Unit::GetPositionZMinusOffset() const
-{
-    float offset = 0.0f;
-    if (HasUnitMovementFlag(MOVEMENTFLAG_HOVER))
-        offset = GetFloatValue(UNIT_FIELD_HOVERHEIGHT);
-
-    return GetPositionZ() - offset;
-}
-
 void Unit::SetControlled(bool apply, UnitState state)
 {
     if (apply)
@@ -13589,6 +13536,20 @@ bool Unit::IsFalling() const
     return m_movementInfo.HasMovementFlag(MOVEMENTFLAG_FALLING | MOVEMENTFLAG_FALLING_FAR) || movespline->isFalling();
 }
 
+bool Unit::CanSwim() const
+{
+    // Mirror client behavior, if this method returns false then client will not use swimming animation and for players will apply gravity as if there was no water
+    if (HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_CANNOT_SWIM))
+        return false;
+    if (HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PVP_ATTACKABLE)) // is player
+        return true;
+    if (HasFlag(UNIT_FIELD_FLAGS_2, 0x1000000))
+        return false;
+    if (IsPet() && HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PET_IN_COMBAT))
+        return true;
+    return HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_RENAME | UNIT_FLAG_UNK_15);
+}
+
 void Unit::NearTeleportTo(Position const& pos, bool casting /*= false*/)
 {
     DisableSpline();
@@ -13830,7 +13791,7 @@ void Unit::SendTeleportPacket(Position const& pos)
     // MSG_MOVE_TELEPORT is sent to self in order to trigger MSG_MOVE_TELEPORT_ACK and update the position server side
 
     // This oldPos actually contains the destination position if the Unit is a Player.
-    Position oldPos = {GetPositionX(), GetPositionY(), GetPositionZMinusOffset(), GetOrientation()};
+    Position oldPos = {GetPositionX(), GetPositionY(), GetPositionZ(), GetOrientation()};
 
     if (GetTypeId() == TYPEID_UNIT)
         Relocate(&pos); // Relocate the unit to its new position in order to build the packets correctly.
@@ -13888,7 +13849,7 @@ void Unit::SendTeleportPacket(Position const& pos)
         data2.WriteByteSeq(guid[4]);
         data2 << float(GetOrientation());
         data2.WriteByteSeq(guid[7]);
-        data2 << float(GetPositionZMinusOffset());
+        data2 << float(GetPositionZ());
         data2.WriteByteSeq(guid[0]);
         data2.WriteByteSeq(guid[6]);
         data2 << float(GetPositionY());
@@ -14242,7 +14203,7 @@ void Unit::SetFacingTo(float ori, bool force)
         return;
 
     Movement::MoveSplineInit init(this);
-    init.MoveTo(GetPositionX(), GetPositionY(), GetPositionZMinusOffset(), false);
+    init.MoveTo(GetPositionX(), GetPositionY(), GetPositionZ(), false);
     if (GetTransport())
         init.DisableTransportPathTransformations(); // It makes no sense to target global orientation
     init.SetFacing(ori);
@@ -14257,7 +14218,7 @@ void Unit::SetFacingToObject(WorldObject const* object, bool force)
 
     /// @todo figure out under what conditions creature will move towards object instead of facing it where it currently is.
     Movement::MoveSplineInit init(this);
-    init.MoveTo(GetPositionX(), GetPositionY(), GetPositionZMinusOffset(), false);
+    init.MoveTo(GetPositionX(), GetPositionY(), GetPositionZ(), false);
     init.SetFacing(GetAngle(object));   // when on transport, GetAngle will still return global coordinates (and angle) that needs transforming
     init.Launch();
 }
@@ -14436,7 +14397,8 @@ bool Unit::SetHover(bool enable, bool packetOnly /*= false*/)
         else
         {
             RemoveUnitMovementFlag(MOVEMENTFLAG_HOVER);
-            if (hoverHeight)
+            //! Dying creatures will MoveFall from setDeathState
+            if (hoverHeight && (!isDying() || GetTypeId() != TYPEID_UNIT))
             {
                 float newZ = GetPositionZ() - hoverHeight;
                 UpdateAllowedPositionZ(GetPositionX(), GetPositionY(), newZ);
@@ -14831,6 +14793,30 @@ void Unit::Whisper(uint32 textId, Player* target, bool isBossWhisper /*= false*/
     WorldPacket data;
     ChatHandler::BuildChatPacket(data, isBossWhisper ? CHAT_MSG_RAID_BOSS_WHISPER : CHAT_MSG_MONSTER_WHISPER, LANG_UNIVERSAL, this, target, bct->GetText(locale, getGender()), 0, "", locale);
     target->SendDirectMessage(&data);
+}
+
+float Unit::GetCollisionHeight() const
+{
+    float scaleMod = GetObjectScale(); // 99% sure about this
+
+    if (IsMounted())
+    {
+        if (CreatureDisplayInfoEntry const* mountDisplayInfo = sCreatureDisplayInfoStore.LookupEntry(GetUInt32Value(UNIT_FIELD_MOUNTDISPLAYID)))
+        {
+            if (CreatureModelDataEntry const* mountModelData = sCreatureModelDataStore.LookupEntry(mountDisplayInfo->ModelId))
+            {
+                CreatureDisplayInfoEntry const* displayInfo = sCreatureDisplayInfoStore.AssertEntry(GetNativeDisplayId());
+                CreatureModelDataEntry const* modelData = sCreatureModelDataStore.AssertEntry(displayInfo->ModelId);
+                return scaleMod * (mountModelData->MountHeight + modelData->CollisionHeight * 0.5f);
+            }
+        }
+    }
+
+    //! Dismounting case - use basic default model data
+    CreatureDisplayInfoEntry const* displayInfo = sCreatureDisplayInfoStore.AssertEntry(GetNativeDisplayId());
+    CreatureModelDataEntry const* modelData = sCreatureModelDataStore.AssertEntry(displayInfo->ModelId);
+
+    return scaleMod * modelData->CollisionHeight;
 }
 
 SpellInfo const* Unit::GetCastSpellInfo(SpellInfo const* spellInfo) const

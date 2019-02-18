@@ -59,6 +59,8 @@ struct QuaternionData;
 
 typedef std::unordered_map<Player*, UpdateData> UpdateDataMapType;
 
+float const DEFAULT_COLLISION_HEIGHT = 2.03128f; // Most common value in dbc
+
 class TC_GAME_API Object
 {
     public:
@@ -280,8 +282,8 @@ class TC_GAME_API WorldObject : public Object, public WorldLocation
         void AddToWorld() override;
         void RemoveFromWorld() override;
 
-        void GetNearPoint2D(float &x, float &y, float distance, float absAngle) const;
-        void GetNearPoint(WorldObject const* searcher, float &x, float &y, float &z, float searcher_size, float distance2d, float absAngle) const;
+        void GetNearPoint2D(WorldObject const* searcher, float &x, float &y, float distance, float absAngle) const;
+        void GetNearPoint(WorldObject const* searcher, float &x, float &y, float &z, float distance2d, float absAngle) const;
         void GetClosePoint(float &x, float &y, float &z, float size, float distance2d = 0, float angle = 0) const;
         void MovePosition(Position &pos, float dist, float angle);
         Position GetNearPosition(float dist, float angle);
@@ -471,6 +473,10 @@ class TC_GAME_API WorldObject : public Object, public WorldLocation
         virtual float GetStationaryO() const { return GetOrientation(); }
 
         float GetFloorZ() const;
+        virtual float GetCollisionHeight() const { return 0.0f; }
+
+        float GetMapWaterOrGroundLevel(float x, float y, float z, float* ground = nullptr) const;
+        float GetMapHeight(float x, float y, float z, bool vmap = true, float distanceToSearch = 50.0f) const; // DEFAULT_HEIGHT_SEARCH in map.h
 
         uint16 GetAIAnimKitId() const { return m_aiAnimKitId; }
         void SetAIAnimKitId(uint16 animKitId);
