@@ -23,7 +23,7 @@ public:
 			std::ostringstream stream;
 			stream << "|CFF" << tag_colour <<
 				"|r|cff" << plr_colour << " " << plr <<
-				"|r killed by a |CFF" << creature_colour << "" << creature_n << "|r " "creature" << "!";
+				"|r killed by the elite |CFF" << creature_colour << "" << creature_n << "|r " "creature" << "!";
 			sWorld->SendServerMessage(SERVER_MSG_STRING, stream.str().c_str());
 			}
 		}
