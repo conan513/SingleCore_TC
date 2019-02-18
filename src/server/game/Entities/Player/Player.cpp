@@ -1168,7 +1168,10 @@ void Player::Update(uint32 p_time)
 
                     // do attack
                     AttackerStateUpdate(victim, BASE_ATTACK);
-                    resetAttackTimer(BASE_ATTACK);
+                    if (sWorld->getBoolConfig(CONFIG_HURT_IN_REAL_TIME))
+                        AttackStop();
+                    else
+                        resetAttackTimer(BASE_ATTACK);
                 }
             }
 
@@ -1256,6 +1259,18 @@ void Player::Update(uint32 p_time)
 
                 m_zoneUpdateTimer = ZONE_UPDATE_INTERVAL;
             }
+
+            /*if (m_mountCanceled && m_mountSpell > 0)
+            {
+                bool isOutdoor;
+                GetBaseMap()->GetAreaFlag(GetPositionX(), GetPositionY(), GetPositionZ(), &isOutdoor);
+                if (!IsInCombat() && isOutdoor)
+                {
+                    CastSpell(this, m_mountSpell, true);)
+                    m_mountCanceled = false;
+                    TC_LOG_DEBUG("lasyan3.automount", "AutoMount casted from Player::Update");
+                }
+            }*/
         }
         else
             m_zoneUpdateTimer -= p_time;
@@ -6483,7 +6498,14 @@ void Player::CheckAreaExploreAndOutdoor()
         return;
 
     if (sWorld->getBoolConfig(CONFIG_VMAP_INDOOR_CHECK) && !IsOutdoors())
+    {
+        if (IsMounted()) // LASYAN3: AutoMount
+        {
+            m_mountCanceled = true;
+            TC_LOG_DEBUG("lasyan3.automount", "Mounted aura canceled from Player::CheckAreaExploreAndOutdoor");
+        }
         RemoveAurasWithAttribute(SPELL_ATTR0_OUTDOORS_ONLY);
+    }
 
     uint32 const areaId = GetAreaId();
     AreaTableEntry const* areaEntry = sAreaTableStore.LookupEntry(areaId);
@@ -12755,6 +12777,7 @@ void Player::DestroyItemCount(Item* pItem, uint32 &count, bool update)
     if (!pItem)
         return;
 
+    uint32 entry = pItem->GetEntry();
     TC_LOG_DEBUG("entities.player.items", "Player::DestroyItemCount: Player '%s' (%s), Item (%s, Entry: %u), Count: %u",
         GetName().c_str(), GetGUID().ToString().c_str(), pItem->GetGUID().ToString().c_str(), pItem->GetEntry(), count);
 
@@ -15290,6 +15313,12 @@ void Player::AddQuest(Quest const* quest, Object* questGiver)
     }
 
     SetQuestSlot(log_slot, quest_id, qtime);
+    for (uint8 i = 0; i < QUEST_OBJECTIVES_COUNT; ++i) {
+        if (questStatusData.CreatureOrGOCount[i] > 0) {
+            TC_LOG_DEBUG("lasyan3.smartquests.kill", "SetQuestSlotCounter(%d, %d, %d)", log_slot, i, questStatusData.CreatureOrGOCount[i]);
+            SetQuestSlotCounter(log_slot, i, questStatusData.CreatureOrGOCount[i]);
+        }
+    }
 
     m_QuestStatusSave[quest_id] = QUEST_DEFAULT_SAVE_TYPE;
 
@@ -15739,6 +15768,9 @@ bool Player::SatisfyQuestPreviousQuest(Quest const* qInfo, bool msg)
         if (qPrevInfo)
         {
             // If any of the positive previous quests completed, return true
+            //if (questInfo == nullptr)
+            //    continue;
+            
             if (*iter > 0 && m_RewardedQuests.find(prevId) != m_RewardedQuests.end())
             {
                 // skip one-from-all exclusive group
@@ -16538,7 +16570,10 @@ void Player::AreaExploredOrEventHappens(uint32 questId)
                 }
             }
             if (CanCompleteQuest(questId))
+            {
                 CompleteQuest(questId);
+                AutoQuestCompleteDisplayQuestGiver(questId);
+            }
         }
     }
 }
@@ -16594,7 +16629,10 @@ void Player::ItemAddedQuestCheck(uint32 entry, uint32 count)
                     // FIXME: verify if there's any packet sent updating item
                 }
                 if (CanCompleteQuest(questid))
+                {
                     CompleteQuest(questid);
+                    AutoQuestCompleteDisplayQuestGiver(questid);
+                }
                 return;
             }
         }
@@ -16708,7 +16746,10 @@ void Player::KilledMonsterCredit(uint32 entry, ObjectGuid guid /*= ObjectGuid::E
                             SendQuestUpdateAddCreatureOrGo(qInfo, guid, j, curkillcount, addkillcount);
                         }
                         if (CanCompleteQuest(questid))
+                        {
                             CompleteQuest(questid);
+                            AutoQuestCompleteDisplayQuestGiver(questid);
+                        }
 
                         // same objective target can be in many active quests, but not in 2 objectives for single quest (code optimization).
                         break;
@@ -16765,7 +16806,10 @@ void Player::KilledPlayerCreditForQuest(uint16 count, Quest const* quest)
     }
 
     if (CanCompleteQuest(questId))
+    {
         CompleteQuest(questId);
+        AutoQuestCompleteDisplayQuestGiver(questId);
+    }
 }
 
 void Player::KillCreditGO(uint32 entry, ObjectGuid guid)
@@ -16812,7 +16856,10 @@ void Player::KillCreditGO(uint32 entry, ObjectGuid guid)
                     }
 
                     if (CanCompleteQuest(questid))
+                    {
                         CompleteQuest(questid);
+                        AutoQuestCompleteDisplayQuestGiver(questid);
+                    }
 
                     // same objective target can be in many active quests, but not in 2 objectives for single quest (code optimization).
                     break;
@@ -16868,7 +16915,10 @@ void Player::TalkedToCreature(uint32 entry, ObjectGuid guid)
                             SendQuestUpdateAddCreatureOrGo(qInfo, guid, j, curTalkCount, addTalkCount);
                         }
                         if (CanCompleteQuest(questid))
+                        {
                             CompleteQuest(questid);
+                            AutoQuestCompleteDisplayQuestGiver(questid);
+                        }
 
                         // same objective target can be in many active quests, but not in 2 objectives for single quest (code optimization).
                         continue;
@@ -16897,7 +16947,10 @@ void Player::MoneyChanged(uint32 count)
                 if (int32(count) >= -qInfo->GetRewOrReqMoney())
                 {
                     if (CanCompleteQuest(questid))
+                    {
                         CompleteQuest(questid);
+                        AutoQuestCompleteDisplayQuestGiver(questid);
+                    }
                 }
             }
             else if (q_status.Status == QUEST_STATUS_COMPLETE)
@@ -16924,7 +16977,10 @@ void Player::ReputationChanged(FactionEntry const* factionEntry)
                     {
                         if (GetReputationMgr().GetReputation(factionEntry) >= qInfo->GetRepObjectiveValue())
                             if (CanCompleteQuest(questid))
+                            {
                                 CompleteQuest(questid);
+                                AutoQuestCompleteDisplayQuestGiver(questid);
+                            }
                     }
                     else if (q_status.Status == QUEST_STATUS_COMPLETE)
                     {
@@ -16952,7 +17008,10 @@ void Player::ReputationChanged2(FactionEntry const* factionEntry)
                     {
                         if (GetReputationMgr().GetReputation(factionEntry) >= qInfo->GetRepObjectiveValue2())
                             if (CanCompleteQuest(questid))
+                            {
                                 CompleteQuest(questid);
+                                AutoQuestCompleteDisplayQuestGiver(questid);
+                            }
                     }
                     else if (q_status.Status == QUEST_STATUS_COMPLETE)
                     {
@@ -17019,6 +17078,9 @@ bool Player::HasQuestForItem(uint32 itemid, uint32 excludeQuestId /* 0 */, bool 
                         return true;
                 }
             }
+            // LASYAN3: This part for SourceItem
+            if (qinfo->GetSrcItemId() == itemid)
+                return true;
         }
     }
     return false;
@@ -17232,6 +17294,44 @@ bool Player::HasPvPForcingQuest() const
     }
 
     return false;
+}
+
+void Player::AutoQuestCompleteDisplayQuestGiver(uint32 p_questId)
+{
+    if (sWorld->getIntConfig(CONFIG_QUEST_AUTOCOMPLETE_DELAY) == 0) return;
+    std::ostringstream sql;
+    sql << "SELECT c.id FROM creature c"
+        << " INNER JOIN creature_queststarter s ON s.id = c.id"
+        << " INNER JOIN creature_questender e ON e.id = c.id AND e.quest = s.quest"
+        << " WHERE e.quest = %d";
+    QueryResult result = WorldDatabase.PQuery(sql.str().c_str(), p_questId);
+    if (!result)
+        return;
+    if (result->GetRowCount() > 1)
+        return;
+
+    uint32 entry = (*result)[0].GetUInt32();
+    bool visible = false;
+    //for (GuidList::const_iterator itr = m_clientGUIDs.begin(); itr != m_clientGUIDs.end(); ++itr)
+    for (auto itr = m_clientGUIDs.begin(); itr != m_clientGUIDs.end(); ++itr)
+    {
+        if (!itr->IsCreatureOrPet() && !itr->IsCreatureOrVehicle()) continue;
+        Creature* questgiver = ObjectAccessor::GetCreatureOrPetOrVehicle(*this, *itr);
+        if (!questgiver || questgiver->IsHostileTo(this))
+            continue;
+        if (!questgiver->HasFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_QUESTGIVER))
+            continue;
+        if (questgiver->GetEntry() == entry)
+            return; // Quest giver already exists on the same map than the player
+    }
+    TempSummon *_sum = SummonCreature(entry, GetPositionX(), GetPositionY(), GetPositionZ(), 3.3f, TEMPSUMMON_TIMED_DESPAWN, sWorld->getIntConfig(CONFIG_QUEST_AUTOCOMPLETE_DELAY) * 1000);
+    _sum->SetInFront(this);
+    // remove fake death
+    if (HasUnitState(UNIT_STATE_DIED))
+        RemoveAurasByType(SPELL_AURA_FEIGN_DEATH);
+    // Stop the npc if moving
+    _sum->StopMoving();
+    _sum->SetReactState(REACT_PASSIVE);
 }
 
 /*********************************************************/
@@ -18254,6 +18354,10 @@ bool Player::LoadFromDB(ObjectGuid guid, SQLQueryHolder* holder)
     _LoadEquipmentSets(holder->GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_EQUIPMENT_SETS));
 
     _LoadCUFProfiles(holder->GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_CUF_PROFILES));
+    
+    // LASYAN3: AutoMount
+    m_mountSpell = 0;
+    m_mountCanceled = false;
 
     return true;
 }
@@ -22204,6 +22308,10 @@ bool Player::ActivateTaxiPathTo(std::vector<uint32> const& nodes, Creature* npc 
     {
         RemoveAurasByType(SPELL_AURA_MOUNTED);
 
+        // LASYAN3: AutoMount
+        m_mountCanceled = true;
+        TC_LOG_DEBUG("lasyan3.automount", "Mounted aura canceled from Player::ActivateTaxiPathTo");
+
         if (IsInDisallowedMountForm())
             RemoveAurasByType(SPELL_AURA_MOD_SHAPESHIFT);
 
@@ -23898,9 +24006,12 @@ void Player::SendInitialPacketsBeforeAddToMap()
 
     SendEquipmentSetList();
 
+    float speedrate = sWorld->getFloatConfig(CONFIG_SPEED_GAME);
+    uint32 speedtime = ((GameTime::GetGameTime() - GameTime::GetUptime()) + (GameTime::GetUptime() * speedrate));
+
     data.Initialize(SMSG_LOGIN_SETTIMESPEED, 4 + 4 + 4);
-    data.AppendPackedTime(GameTime::GetGameTime());
-    data << float(0.01666667f);                             // game speed
+    data.AppendPackedTime(speedtime);
+    data << float(0.01666667f) * speedrate;                 // game speed
     data << uint32(0);                                      // added in 3.1.2
     SendDirectMessage(&data);
 

@@ -32,6 +32,8 @@
 #include "PlayerTaxi.h"
 #include "QuestDef.h"
 #include <queue>
+#include "ObjectMgr.h"
+#include "Map.h"
 
 struct AccessRequirement;
 struct AchievementEntry;
@@ -2350,6 +2352,10 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
 
         std::string GetMapAreaAndZoneString() const;
         std::string GetCoordsMapAreaAndZoneString() const;
+        
+        // LASYAN3: AutoMount
+        uint32 m_mountSpell;
+        bool m_mountCanceled;
 
         // Void Storage
         bool IsVoidStorageUnlocked() const { return HasFlag(PLAYER_FLAGS, PLAYER_FLAGS_VOID_UNLOCKED); }
@@ -2693,6 +2699,9 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         void AddKnownCurrency(uint32 itemId);
 
         void AdjustQuestReqItemCount(Quest const* quest, QuestStatusData& questStatusData);
+
+        void AutoQuestCompleteDisplayQuestGiver(uint32 questId);// LASYAN3
+        Quest const *m_lastQuestCompleted = NULL;// LASYAN3
 
         bool IsCanDelayTeleport() const { return m_bCanDelayTeleport; }
         void SetCanDelayTeleport(bool setting) { m_bCanDelayTeleport = setting; }

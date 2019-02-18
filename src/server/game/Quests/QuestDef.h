@@ -344,6 +344,7 @@ class TC_GAME_API Quest
         uint16 GetEventIdForQuest() const { return _eventIdForQuest; }
 
         void BuildExtraQuestInfo(WorldPacket& data, Player* player) const;
+        std::vector<uint32> DependentPreviousQuests;
 
         typedef std::vector<int32> PrevQuests;
         PrevQuests prevQuests;

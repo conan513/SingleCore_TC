@@ -1287,6 +1287,26 @@ void World::LoadConfigSettings(bool reload)
     m_visibility_notify_periodInInstances = sConfigMgr->GetIntDefault("Visibility.Notify.Period.InInstances",   DEFAULT_VISIBILITY_NOTIFY_PERIOD);
     m_visibility_notify_periodInBGArenas = sConfigMgr->GetIntDefault("Visibility.Notify.Period.InBGArenas",    DEFAULT_VISIBILITY_NOTIFY_PERIOD);
 
+    m_int_configs[CONFIG_QUEST_AUTOCOMPLETE_DELAY] = sConfigMgr->GetIntDefault("Custom.AutoCompleteQuestDelay", 0);
+    m_bool_configs[CONFIG_LOOT_ONLY_FOR_PLAYER] = sConfigMgr->GetBoolDefault("Custom.LootOnlyForPlayer", false);
+    m_bool_configs[CONFIG_LOOT_UNIQUE] = sConfigMgr->GetBoolDefault("Custom.LootUnique", false);
+    m_float_configs[CONFIG_MINRATE_DROP_ITEM_POOR] = sConfigMgr->GetFloatDefault("Custom.MinimumRate.Drop.Item.Poor", -1);
+    m_float_configs[CONFIG_MINRATE_DROP_ITEM_NORMAL] = sConfigMgr->GetFloatDefault("Custom.MinimumRate.Drop.Item.Normal", -1);
+    m_float_configs[CONFIG_MINRATE_DROP_ITEM_UNCOMMON] = sConfigMgr->GetFloatDefault("Custom.MinimumRate.Drop.Item.Uncommon", -1);
+    m_float_configs[CONFIG_MINRATE_DROP_ITEM_EPIC] = sConfigMgr->GetFloatDefault("Custom.MinimumRate.Drop.Item.Epic", -1);
+    m_float_configs[CONFIG_MINRATE_DROP_ITEM_LEGEND] = sConfigMgr->GetFloatDefault("Custom.MinimumRate.Drop.Item.Legendary", -1);
+    m_float_configs[CONFIG_MINRATE_DROP_ITEM_ART] = sConfigMgr->GetFloatDefault("Custom.MinimumRate.Drop.Item.Artifact", -1);
+    m_float_configs[CONFIG_SPEED_GAME] = sConfigMgr->GetFloatDefault("Custom.SpeedGame", 1.0f);
+    m_bool_configs[CONFIG_NO_CAST_TIME] = sConfigMgr->GetBoolDefault("Custom.NoCastTime", false);
+    m_bool_configs[CONFIG_NO_COOLDOWN] = sConfigMgr->GetBoolDefault("Custom.NoCooldown", false);
+    m_bool_configs[CONFIG_HURT_IN_REAL_TIME] = sConfigMgr->GetBoolDefault("Custom.HurtInRealTime", false);
+    m_float_configs[CONFIG_ATTACKSPEED_PLAYER] = sConfigMgr->GetFloatDefault("Custom.AttackSpeedForPlayer", 1.0f);
+    m_float_configs[CONFIG_ATTACKSPEED_ALL] = sConfigMgr->GetFloatDefault("Custom.AttackSpeedForMobs", 1.0f);
+    m_bool_configs[CONFIG_FAST_FISHING] = sConfigMgr->GetBoolDefault("Custom.FastFishing", false);
+    m_bool_configs[CONFIG_GAIN_HONOR_GUARD] = sConfigMgr->GetBoolDefault("Custom.GainHonorOnGuardKill", false);
+    m_bool_configs[CONFIG_GAIN_HONOR_ELITE] = sConfigMgr->GetBoolDefault("Custom.GainHonorOnEliteKill", false);
+    m_float_configs[CONFIG_RESPAWNSPEED] = sConfigMgr->GetFloatDefault("Custom.RespawnSpeed", 1.0f);
+
     ///- Load the CharDelete related config options
     m_int_configs[CONFIG_CHARDELETE_METHOD] = sConfigMgr->GetIntDefault("CharDelete.Method", 0);
     m_int_configs[CONFIG_CHARDELETE_MIN_LEVEL] = sConfigMgr->GetIntDefault("CharDelete.MinLevel", 0);

@@ -212,6 +212,24 @@ void WorldSession::HandleQuestgiverAcceptQuestOpcode(WorldPacket& recvData)
             if (quest->GetSrcSpell() > 0)
                 _player->CastSpell(_player, quest->GetSrcSpell(), true);
 
+            bool _reward = false; // Auto-complete for non "auto-accept" quests
+            std::ostringstream sql;
+            sql << "SELECT id FROM creature_questender WHERE quest = %d";
+            TC_LOG_DEBUG("lasyan3", sql.str().c_str());
+            QueryResult result = WorldDatabase.PQuery(sql.str().c_str(), questId);
+            if (result && result->GetRowCount() > 0)
+            {
+                uint32 guid_ender = (*result)[0].GetUInt32();
+                TC_LOG_DEBUG("lasyan3", "Found guid %d - %d", guid_ender, guid);
+                if (_player->GetQuestStatus(questId) == QUEST_STATUS_COMPLETE && guid_ender == object->GetEntry())
+                {
+                    TC_LOG_DEBUG("lasyan3", "Reward OK");
+                    _reward = true;
+                }
+            }
+            if (_reward)
+                _player->PlayerTalkClass->SendQuestGiverRequestItems(sObjectMgr->GetQuestTemplate(questId), guid, true, true);
+
             return;
         }
     }

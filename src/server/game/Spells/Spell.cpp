@@ -3076,7 +3076,7 @@ void Spell::prepare(SpellCastTargets const* targets, AuraEffect const* triggered
 
     if (Player* player = m_caster->ToPlayer())
     {
-        if (!player->GetCommandStatus(CHEAT_CASTTIME))
+        if (!player->GetCommandStatus(CHEAT_CASTTIME) && !sWorld->getBoolConfig(CONFIG_NO_CAST_TIME))
         {
             // calculate cast time (calculated after first CheckCast check to prevent charge counting for first CheckCast fail)
             m_casttime = m_spellInfo->CalcCastTime(player->getLevel(), this);
@@ -3156,6 +3156,11 @@ void Spell::prepare(SpellCastTargets const* targets, AuraEffect const* triggered
         // because target could be relocated in the meantime, making the spell fly to the air (no targets can be registered, so no effects processed, nothing in combat log)
         if (!m_casttime && /*!m_spellInfo->StartRecoveryTime && */ GetCurrentContainer() == CURRENT_GENERIC_SPELL)
             cast(true);
+    }
+
+    if (((Player*)m_caster) && sWorld->getBoolConfig(CONFIG_NO_COOLDOWN)) {
+        //((Player*)m_caster)->GetSpellHistory()->ResetCooldownForced(m_spellInfo->Id);
+        ((Player*)m_caster)->GetSpellHistory()->ResetCooldown(m_spellInfo->Id, true);
     }
 }
 
@@ -3458,7 +3463,7 @@ void Spell::_cast(bool skipCheck)
         modOwner->SetSpellModTakingSpell(this, false);
 
         //Clear spell cooldowns after every spell is cast if .cheat cooldown is enabled.
-        if (modOwner->GetCommandStatus(CHEAT_COOLDOWN))
+        if (modOwner->GetCommandStatus(CHEAT_COOLDOWN) || sWorld->getBoolConfig(CONFIG_NO_COOLDOWN))
             m_caster->GetSpellHistory()->ResetCooldown(m_spellInfo->Id, true);
     }
 
@@ -7971,7 +7976,7 @@ void Spell::TriggerGlobalCooldown()
         return;
 
     if (m_caster->GetTypeId() == TYPEID_PLAYER)
-        if (m_caster->ToPlayer()->GetCommandStatus(CHEAT_COOLDOWN))
+        if (m_caster->ToPlayer()->GetCommandStatus(CHEAT_COOLDOWN) || sWorld->getBoolConfig(CONFIG_NO_COOLDOWN))
             return;
 
     // Global cooldown can't leave range 1..1.5 secs

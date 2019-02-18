@@ -1804,7 +1804,7 @@ void Creature::setDeathState(DeathState s)
     if (s == JUST_DIED)
     {
         m_corpseRemoveTime = time(nullptr) + m_corpseDelay;
-        uint32 respawnDelay = m_respawnDelay;
+        uint32 respawnDelay = m_respawnDelay / sWorld->getFloatConfig(CONFIG_RESPAWNSPEED);
         if (uint32 scalingMode = sWorld->getIntConfig(CONFIG_RESPAWN_DYNAMICMODE))
             GetMap()->ApplyDynamicModeRespawnScaling(this, m_spawnId, respawnDelay, scalingMode);
         // @todo remove the boss respawn time hack in a dynspawn follow-up once we have creature groups in instances

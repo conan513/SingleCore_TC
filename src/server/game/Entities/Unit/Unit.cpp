@@ -605,7 +605,14 @@ void Unit::DisableSpline()
 
 void Unit::resetAttackTimer(WeaponAttackType type)
 {
-    m_attackTimer[type] = uint32(GetAttackTime(type) * m_modAttackSpeedPct[type]);
+    if (GetTypeId() == TYPEID_PLAYER || (ToCreature()->GetOwner() && ToCreature()->GetOwner()->GetTypeId() == TYPEID_PLAYER))
+    {
+        m_attackTimer[type] = uint32(GetAttackTime(type) * m_modAttackSpeedPct[type] / sWorld->getFloatConfig(CONFIG_ATTACKSPEED_PLAYER));
+    }
+    else
+    {
+        m_attackTimer[type] = uint32(GetAttackTime(type) * m_modAttackSpeedPct[type] / sWorld->getFloatConfig(CONFIG_ATTACKSPEED_ALL));
+    }
 }
 
 bool Unit::IsWithinCombatRange(Unit const* obj, float dist2compare) const
@@ -5785,6 +5792,16 @@ void Unit::CombatStop(bool includingCast)
     // just in case
     if (IsPetInCombat() && GetTypeId() != TYPEID_PLAYER)
         ClearInPetCombat();
+
+    // LASYAN3 : Re-mount after combat
+    if (Player *player = ToPlayer())
+    {
+        if (player->m_mountCanceled && player->m_mountSpell > 0)
+        {
+            player->CastSpell(player, player->m_mountSpell, true);
+            TC_LOG_DEBUG("lasyan3.automount", "AutoMount casted from Unit::Update");
+        }
+    }
 }
 
 void Unit::CombatStopWithPets(bool includingCast)

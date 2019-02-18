@@ -2688,6 +2688,15 @@ void AuraEffect::HandleAuraMounted(AuraApplication const* aurApp, uint8 mode, bo
 
         target->Mount(displayId, vehicleId, creatureEntry);
 
+        // LASYAN3: START AutoMount
+        if (target->GetTypeId() == TYPEID_PLAYER)
+        {
+            target->ToPlayer()->m_mountSpell = this->GetSpellInfo()->Id;
+            target->ToPlayer()->m_mountCanceled = false;
+            TC_LOG_DEBUG("lasyan3.automount", "Capture mounted aura with spell %d", target->ToPlayer()->m_mountSpell);
+        }
+        // LASYAN3: END AutoMount
+
         // cast speed aura
         if (mode & AURA_EFFECT_HANDLE_REAL)
             if (MountCapabilityEntry const* mountCapability = sMountCapabilityStore.LookupEntry(GetAmount()))
