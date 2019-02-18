@@ -2,7 +2,6 @@
 #include "ScriptMgr.h"
 #include "Config.h"
 #include <Player.h>
-#include "World.h"
 
 class Death_Announcer : public PlayerScript
 {
@@ -13,7 +12,7 @@ public:
 	{
 		if (sConfigMgr->GetBoolDefault("KilledByCreature.Announcer", true))
 		{
-		/*if (killer->IsCreature())
+		if (killer->isElite())
 			{
 			std::string plr = killed->GetName();
 			std::string creature_n = killer->GetName();
@@ -26,7 +25,7 @@ public:
 				"|r|cff" << plr_colour << " " << plr <<
 				"|r killed by a |CFF" << creature_colour << "" << creature_n << "|r " "creature" << "!";
 			sWorld->SendServerMessage(SERVER_MSG_STRING, stream.str().c_str());
-			}*/
+			}
 		}
 
         if (killer->isWorldBoss())
