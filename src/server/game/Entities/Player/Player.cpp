@@ -5121,6 +5121,13 @@ void Player::RepopAtGraveyard()
     if (ClosestGrave)
     {
         float const* orientation = sObjectMgr->GetGraveyardOrientation(ClosestGrave->ID);
+        if (sConfigMgr->GetBoolDefault("Hardcore.Mode.Enable", true))
+        {
+            TeleportTo(1, 16229.599609f, 16267.900391, 14.0f, 0.0f); // Orientation is initially in degrees
+            ObjectAccessor::SaveAllPlayers();
+        }
+        else
+
         if (sConfigMgr->GetBoolDefault("Dungeon.Checkpoints.Enable", true))
         {
             if (sDynRes->IsInDungeonOrRaid(this) && sDynRes->CheckForSpawnPoint(this))
