@@ -1763,6 +1763,11 @@ float Creature::GetAttackDistance(Unit const* player) const
     uint32 playerLevel = player->getLevel();
     uint32 creatureLevel = getLevel();
 
+    if (player->m_ControlledByPlayer && player->ToPlayer())
+    {
+        playerLevel = player->ToPlayer()->getAdaptiveLevel();
+    }
+
     if (aggroRate == 0.0f)
         return 0.0f;
 

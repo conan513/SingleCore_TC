@@ -34,6 +34,7 @@
 #include <queue>
 #include "ObjectMgr.h"
 #include "Map.h"
+#include "World.h"
 
 struct AccessRequirement;
 struct AchievementEntry;
@@ -2357,6 +2358,17 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         uint32 m_mountSpell;
         bool m_mountCanceled;
 
+        uint8 getLevel() const { return m_realLevel; }
+        uint8 getRealLevel() const { return m_realLevel; }
+        uint8 getAdaptiveLevel() const
+        {
+            if (sWorld->getBoolConfig(CONFIG_ADAPTIVE_LEVEL))
+                return m_adaptiveLevel;
+            else
+                return m_realLevel;
+        }
+        void GiveAdaptiveLevel(uint8 level);
+
         // Void Storage
         bool IsVoidStorageUnlocked() const { return HasFlag(PLAYER_FLAGS, PLAYER_FLAGS_VOID_UNLOCKED); }
         void UnlockVoidStorage() { SetFlag(PLAYER_FLAGS, PLAYER_FLAGS_VOID_UNLOCKED); }
@@ -2755,6 +2767,7 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         uint32 _pendingBindTimer;
 
         uint32 _activeCheats;
+        uint8 m_realLevel, m_adaptiveLevel;
         uint32 _maxPersonalArenaRate;
 
         bool _hasValidLFGLeavePoint;
