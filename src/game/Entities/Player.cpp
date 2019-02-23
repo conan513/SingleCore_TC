@@ -1054,18 +1054,19 @@ void Player::SetEnvironmentFlags(EnvironmentFlags flags, bool apply)
     else
         m_environmentFlags &= ~flags;
 
-    // On liquid in/out change
+    // On liquid in/out
     if (flags & ENVIRONMENT_MASK_IN_LIQUID)
     {
-        // remove auras that need water/land
-        RemoveAurasWithInterruptFlags(apply ? AURA_INTERRUPT_FLAG_NOT_ABOVEWATER : AURA_INTERRUPT_FLAG_NOT_UNDERWATER);
-
         // move player's guid into HateOfflineList of those mobs
         // which can't swim and move guid back into ThreatList when
         // on surface.
         // TODO: exist also swimming mobs, and function must be symmetric to enter/leave water
         getHostileRefManager().updateThreatTables();
     }
+
+    // Remove auras that need land or water
+    if (flags & ENVIRONMENT_FLAG_SHALLOW_LIQUID && (apply || IsInWater()))
+        RemoveAurasWithInterruptFlags(apply ? AURA_INTERRUPT_FLAG_NOT_UNDERWATER : AURA_INTERRUPT_FLAG_NOT_ABOVEWATER);
 
     // On moving in/out high sea area: affect fatigue timer
     if (flags & ENVIRONMENT_FLAG_HIGH_SEA)
@@ -3169,6 +3170,11 @@ bool Player::addSpell(uint32 spell_id, bool active, bool learning, bool dependen
     {
         CastSpell(this, spell_id, TRIGGERED_OLD_TRIGGERED);
     }
+    else if (IsSpellHaveEffect(spellInfo, SPELL_EFFECT_SKILL_STEP))
+    {
+        CastSpell(this, spell_id, TRIGGERED_OLD_TRIGGERED);
+        return false;
+    }
 
     // Add dependent skills
     UpdateSpellTrainedSkills(spell_id, true);
@@ -3240,7 +3246,7 @@ void Player::learnSpell(uint32 spell_id, bool dependent, bool talent)
     }
 }
 
-void Player::removeSpell(uint32 spell_id, bool disabled, bool learn_low_rank)
+void Player::removeSpell(uint32 spell_id, bool disabled, bool learn_low_rank, bool sendUpdate)
 {
     PlayerSpellMap::iterator itr = m_spells.find(spell_id);
     if (itr == m_spells.end())
@@ -3267,7 +3273,7 @@ void Player::removeSpell(uint32 spell_id, bool disabled, bool learn_low_rank)
     SpellChainMapNext const& nextMap = sSpellMgr.GetSpellChainNext();
     for (SpellChainMapNext::const_iterator itr2 = nextMap.lower_bound(spell_id); itr2 != nextMap.upper_bound(spell_id); ++itr2)
         if (HasSpell(itr2->second) && !GetTalentSpellPos(itr2->second))
-            removeSpell(itr2->second, !IsPassiveSpell(itr2->second), false);
+            removeSpell(itr2->second, !IsPassiveSpell(itr2->second), false, sendUpdate);
 
     // re-search, it can be corrupted in prev loop
     itr = m_spells.find(spell_id);
@@ -3370,7 +3376,7 @@ void Player::removeSpell(uint32 spell_id, bool disabled, bool learn_low_rank)
     }
 
     // remove from spell book if not replaced by lesser rank
-    if (!prev_activate)
+    if (!prev_activate && sendUpdate)
     {
         WorldPacket data(SMSG_REMOVED_SPELL, 4);
         data << uint16(spell_id);
@@ -5237,6 +5243,7 @@ void Player::SetSkill(SkillStatusMap::iterator itr, uint16 value, uint16 max, ui
 
     // Learn/unlearn all spells auto-trained by this skill on change
     UpdateSkillTrainedSpells(id, value);
+
     // On updating specific skills values
     switch (id)
     {
@@ -5297,6 +5304,7 @@ void Player::SetSkill(uint16 id, uint16 value, uint16 max, uint16 step/* = 0*/)
                         aura->ApplyModifier(true);
                 }
             }
+            break;
         }
     }
 }
@@ -5361,10 +5369,10 @@ void Player::SetSkillStep(uint16 id, uint16 step)
         if (SkillRaceClassInfoEntry const* entry = GetSkillInfo(id, filterfunc))
             maxed = (entry->flags & SKILL_FLAG_MAXIMIZED);
 
-        if (max && GetSkillMaxPure(id) < max)
+        if (max)
         {
             // Note: Some SkillTiers entries contain 0 as starting value for first step, needs investigation (sanitized for now)
-            const uint16 value = std::max(uint16(1), uint16(maxed ? max : (GetSkillValuePure(id) + val)));
+            const uint16 value = std::max(uint16(1), uint16(maxed ? max : GetSkillValuePure(id)));
             SetSkill(id, value, max, step);
         }
     }
@@ -5480,6 +5488,7 @@ void Player::UpdateSkillTrainedSpells(uint16 id, uint16 currVal)
 {
     uint32 raceMask  = getRaceMask();
     uint32 classMask = getClassMask();
+    uint16 step = GetSkillStep(id);
 
     SkillLineAbilityMapBounds bounds = sSpellMgr.GetSkillLineAbilityMapBoundsBySkillId(id);
 
@@ -5490,13 +5499,9 @@ void Player::UpdateSkillTrainedSpells(uint16 id, uint16 currVal)
             // Update training: skill removal mode, wipe all dependent spells regardless of training method
             if (!currVal)
             {
-                removeSpell(pAbility->spellId);
+                removeSpell(pAbility->spellId, false, false, false);
                 continue;
             }
-
-            // Check if auto-training method is set, skip if not
-            if (!pAbility->learnOnGetSkill)
-                continue;
 
             // Check race if set
             if (pAbility->racemask && !(pAbility->racemask & raceMask))
@@ -5505,6 +5510,26 @@ void Player::UpdateSkillTrainedSpells(uint16 id, uint16 currVal)
             // Check class if set
             if (pAbility->classmask && !(pAbility->classmask & classMask))
                 continue;
+
+            // Check if auto-training method is set, skip if not
+            if (!pAbility->learnOnGetSkill)
+            {
+                // Check if its actually an original profession/tradeskill spell and we miss it somehow - repair
+                if (SpellLearnSkillNode const* training = sSpellMgr.GetSpellLearnSkill(pAbility->spellId))
+                {
+                    if (training->skill == id && training->effect == SPELL_EFFECT_SKILL && training->step < step)
+                    {
+                        if (!HasSpell(pAbility->spellId))
+                        {
+                            if (!IsInWorld())
+                                addSpell(pAbility->spellId, true, true, true, false);
+                            else
+                                learnSpell(pAbility->spellId, true);
+                        }
+                    }
+                }
+                continue;
+            }
 
             // Update training: needs unlearning spell if current value is too low
             if (currVal < pAbility->req_skill_value)
@@ -5525,26 +5550,8 @@ void Player::UpdateSpellTrainedSkills(uint32 spellId, bool apply)
         // Specifically defined: no checks needed
         if (apply)
             SetSkillStep(skillLearnInfo->skill, skillLearnInfo->step);
-        else
-        {
-            if (uint32 prev_spell = sSpellMgr.GetPrevSpellInChain(spellId))
-            {
-                // search prev. skill setting by spell ranks chain
-                SpellLearnSkillNode const* prevSkill = sSpellMgr.GetSpellLearnSkill(prev_spell);
-                while (!prevSkill && prev_spell)
-                {
-                    prev_spell = sSpellMgr.GetPrevSpellInChain(prev_spell);
-                    prevSkill = sSpellMgr.GetSpellLearnSkill(sSpellMgr.GetFirstSpellInChain(prev_spell));
-                }
-
-                if (!prevSkill)                                 // not found prev skill setting, remove skill
-                    SetSkill(skillLearnInfo->skill, 0, 0);
-                else                                            // set to prev. skill setting values
-                    SetSkillStep(prevSkill->skill, prevSkill->step);
-            }
-            else                                                // first rank, remove skill
-                SetSkill(skillLearnInfo->skill, 0, 0);
-        }
+        else if (HasSkill(skillLearnInfo->skill))
+            SetSkillStep(skillLearnInfo->skill, (skillLearnInfo->step ? (skillLearnInfo->step - 1) : 0));
     }
     else
     {
@@ -11718,7 +11725,7 @@ void Player::SendPreparedQuest(ObjectGuid guid) const
                 else if (status == DIALOG_STATUS_INCOMPLETE)
                     PlayerTalkClass->SendQuestGiverRequestItems(pQuest, guid, false, true);
                 // Send completable on repeatable quest if player don't have quest
-                else if (pQuest->IsRepeatable())
+                else if (pQuest->IsRepeatable() && pQuest->IsAutoComplete())
                     PlayerTalkClass->SendQuestGiverRequestItems(pQuest, guid, CanCompleteRepeatableQuest(pQuest), true);
                 else
                     PlayerTalkClass->SendQuestGiverQuestDetails(pQuest, guid, true);
@@ -18632,6 +18639,9 @@ void Player::UpdateTerainEnvironmentFlags(Map* m, float x, float y, float z)
 
     // In deep water: on, under, above surface level
     SetEnvironmentFlags(ENVIRONMENT_FLAG_HIGH_SEA, (liquid_status.type_flags & MAP_LIQUID_TYPE_DEEP_WATER));
+
+    // All liquid types: check too shallow level for swimming
+    SetEnvironmentFlags(ENVIRONMENT_FLAG_SHALLOW_LIQUID, ((res & LIQUID_MAP_IN_WATER) && !(res & LIQUID_MAP_UNDER_WATER) && (liquid_status.level < liquid_status.depth_level + 1.5f)));
 }
 
 bool ItemPosCount::isContainedIn(ItemPosCountVec const& vec) const
