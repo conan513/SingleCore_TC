@@ -750,15 +750,16 @@ void Spell::FillTargetMap()
             }
         }
 
-        for (UnitList::iterator itr = tmpUnitLists[effToIndex[i]].begin(); itr != tmpUnitLists[effToIndex[i]].end();)
-        {
-            if (!CheckTarget(*itr, SpellEffectIndex(i), effException[effToIndex[i]]))
-            {
-                itr = tmpUnitLists[effToIndex[i]].erase(itr);
-            }
-            else
-                ++itr;
-        }
+       if (!IsDestinationOnlyEffect(m_spellInfo, SpellEffectIndex(i))) 
+		{
+			for (UnitList::iterator itr = tmpUnitLists[effToIndex[i]].begin(); itr != tmpUnitLists[effToIndex[i]].end();)
+			{
+				if (!CheckTarget(*itr, SpellEffectIndex(i), effException[effToIndex[i]]))
+					itr = tmpUnitLists[effToIndex[i]].erase(itr);
+				else
+					++itr;
+			}
+		}
 
         // Secial target filter before adding targets to list
         FilterTargetMap(tmpUnitLists[effToIndex[i]], SpellEffectIndex(i));
@@ -4982,7 +4983,7 @@ SpellCastResult Spell::CheckCast(bool strict)
         GameObject* ok = nullptr;
         MaNGOS::GameObjectFocusCheck go_check(m_caster, m_spellInfo->RequiresSpellFocus);
         MaNGOS::GameObjectSearcher<MaNGOS::GameObjectFocusCheck> checker(ok, go_check);
-        Cell::VisitGridObjects(m_caster, checker, m_caster->GetMap()->GetVisibilityDistance());
+        Cell::VisitGridObjects(m_caster, checker, m_caster->GetVisibilityRange());
 
         if (!ok)
             return SPELL_FAILED_REQUIRES_SPELL_FOCUS;

@@ -916,6 +916,8 @@ bool Player::Create(uint32 guidlow, const std::string& name, uint8 race, uint8 c
         }
     }
     // all item positions resolved
+    
+    SetFakeValues();
 
     return true;
 }
@@ -1576,7 +1578,7 @@ void Player::Update(const uint32 diff)
     SendUpdateToOutOfRangeGroupMembers();
 
     Pet* pet = GetPet();
-    if (pet && !pet->IsWithinDistInMap(this, GetMap()->GetVisibilityDistance()) && (GetCharmGuid() && (pet->GetObjectGuid() != GetCharmGuid())))
+    if (pet && !pet->IsWithinDistInMap(this, GetVisibilityRange()) && (GetCharmGuid() && (pet->GetObjectGuid() != GetCharmGuid())))
         pet->Unsummon(PET_SAVE_REAGENTS, this);
 
     if (IsHasDelayedTeleport())
@@ -1889,14 +1891,14 @@ bool Player::TeleportTo(uint32 mapid, float x, float y, float z, float orientati
         {
             if (Unit* charm = GetCharm())
             {
-                if (!charm->IsWithinDist3d(x, y, z, GetMap()->GetVisibilityDistance()))
+                if (!charm->IsWithinDist3d(x, y, z, GetVisibilityRange()))
                     BreakCharmOutgoing(charm);
             }
 
             if (Pet* pet = GetPet())
             {
                 // same map, only remove pet if out of range for new position
-                if (!pet->IsWithinDist3d(x, y, z, GetMap()->GetVisibilityDistance()))
+                if (!pet->IsWithinDist3d(x, y, z, GetVisibilityRange()))
                     UnsummonPetTemporaryIfAny();
             }
         }
@@ -1929,7 +1931,7 @@ bool Player::TeleportTo(uint32 mapid, float x, float y, float z, float orientati
         if (!(options & TELE_TO_NOT_LEAVE_COMBAT))
             CombatStop();
 
-        if (!IsWithinDist3d(x, y, z, GetMap()->GetVisibilityDistance()))
+        if (!IsWithinDist3d(x, y, z, GetVisibilityRange()))
             RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_TELEPORTED);
 
         // this will be used instead of the current location in SaveToDB
@@ -2426,7 +2428,7 @@ void Player::SetGameMaster(bool on)
     UnitList deadUnits;
     MaNGOS::AnyDeadUnitCheck u_check(this);
     MaNGOS::UnitListSearcher<MaNGOS::AnyDeadUnitCheck > searcher(deadUnits, u_check);
-    Cell::VisitAllObjects(this, searcher, GetMap()->GetVisibilityDistance());
+    Cell::VisitAllObjects(this, searcher, GetVisibilityRange());
     for (auto deadUnit : deadUnits)
     {
         if (deadUnit->GetTypeId() == TYPEID_UNIT)
@@ -3628,8 +3630,8 @@ uint32 Player::resetTalentsCost() const
     // After that it increases in increments of 5 gold
     int32 new_cost = m_resetTalentsCost + 5 * GOLD;
     // until it hits a cap of 50 gold.
-    if (new_cost > 50 * GOLD)
-        new_cost = 50 * GOLD;
+    if (new_cost > 10 * GOLD)
+        new_cost = 10 * GOLD;
     return new_cost;
 }
 
@@ -14696,6 +14698,8 @@ bool Player::LoadFromDB(ObjectGuid guid, SqlQueryHolder* holder)
     // Other way is to saves m_team into characters table.
     setFactionForRace(getRace());
     SetCharm(nullptr);
+    
+    SetFakeValues();
 
     // load home bind and check in same time class/race pair, it used later for restore broken positions
     if (!_LoadHomeBind(holder->GetResult(PLAYER_LOGIN_QUERY_LOADHOMEBIND)))
@@ -16280,7 +16284,7 @@ void Player::SaveToDB()
     uberInsert.addUInt32(GetGUIDLow());
     uberInsert.addUInt32(GetSession()->GetAccountId());
     uberInsert.addString(m_name);
-    uberInsert.addUInt8(getRace());
+    uberInsert.addUInt8(getORace());
     uberInsert.addUInt8(getClass());
     uberInsert.addUInt8(getGender());
     uberInsert.addUInt32(getLevel());
@@ -18786,6 +18790,8 @@ void Player::LeaveBattleground(bool teleportToEntryPoint)
 {
     if (BattleGround* bg = GetBattleGround())
     {
+        CFLeaveBattleGround();
+        
         bg->RemovePlayerAtLeave(GetObjectGuid(), teleportToEntryPoint, true);
 
         // call after remove to be sure that player resurrected for correct cast
@@ -18806,6 +18812,135 @@ void Player::LeaveBattleground(bool teleportToEntryPoint)
     }
 }
 
+void Player::CFJoinBattleGround()
+{
+    if (!sWorld.getConfig(CONFIG_BOOL_CFBG_ENABLED))
+        return;
+
+    FixLanguageSkills();
+
+    if (!NativeTeam())
+    {
+        SetByteValue(UNIT_FIELD_BYTES_0, 0, getFRace());
+        setFaction(getFFaction());
+    }
+
+    FakeDisplayID();
+
+    sWorld.InvalidatePlayerDataToAllClient(this->GetObjectGuid());
+}
+
+void Player::CFLeaveBattleGround()
+{
+    if (!sWorld.getConfig(CONFIG_BOOL_CFBG_ENABLED))
+        return;
+
+    FixLanguageSkills(true, true);
+
+    SetByteValue(UNIT_FIELD_BYTES_0, 0, getORace());
+    setFaction(getOFaction());
+    InitDisplayIds();
+
+    sWorld.InvalidatePlayerDataToAllClient(GetObjectGuid());
+}
+
+void Player::FakeDisplayID()
+{
+    if (!sWorld.getConfig(CONFIG_BOOL_CFBG_ENABLED))
+        return;
+
+    if (!NativeTeam())
+    {
+        PlayerInfo const* info = sObjectMgr.GetPlayerInfo(getRace(), getClass());
+        if (!info)
+        {
+            for (int i = 1; i <= CLASS_DRUID; i++)
+            {
+                info = sObjectMgr.GetPlayerInfo(getRace(), i);
+                if (info)
+                    break;
+            }
+        }
+
+        if (!info)
+        {
+            sLog.outError("Player %u has incorrect race/class pair. Can't init display ids.", GetGUIDLow());
+            return;
+        }
+
+        SetObjectScale(DEFAULT_OBJECT_SCALE);
+
+        uint8 gender = getGender();
+        switch (gender)
+        {
+        case GENDER_FEMALE:
+            SetDisplayId(info->displayId_f);
+            SetNativeDisplayId(info->displayId_f);
+            break;
+        case GENDER_MALE:
+            SetDisplayId(info->displayId_m);
+            SetNativeDisplayId(info->displayId_m);
+            break;
+        default:
+            sLog.outError("Invalid gender %u for player", gender);
+            return;
+        }
+    }
+}
+
+void Player::FixLanguageSkills(bool force, bool native)
+{
+    if (!sWorld.getConfig(CONFIG_BOOL_CFBG_ENABLED))
+        return;
+
+    if (!force)
+        native = NativeTeam();
+
+    // SpellId, OriginalSpell
+    auto spells = std::unordered_map<uint32, bool>();
+
+    for (auto& i : sObjectMgr.GetPlayerInfo(getORace(), getClass())->spell)
+        if (auto spell = sSpellTemplate.LookupEntry<SpellEntry>(i))
+                if (spell->Effect[0] == SPELL_EFFECT_LANGUAGE)
+                    spells[spell->Id] = true;
+
+    for (auto& i : sObjectMgr.GetPlayerInfo(getFRace(), getClass())->spell)
+        if (auto spell = sSpellTemplate.LookupEntry<SpellEntry>(i))
+                if (spell->Effect[0] == SPELL_EFFECT_LANGUAGE)
+                    spells[spell->Id] = false;
+
+    for (auto& i : spells)
+    {
+        if (i.second == native)
+            learnSpell(i.first, true);
+    }
+}
+
+void Player::SetFakeValues()
+{
+    m_oRace = GetByteValue(UNIT_FIELD_BYTES_0, 0);
+    m_oFaction = GetUInt32Value(UNIT_FIELD_FACTIONTEMPLATE);
+
+    m_fRace = 0;
+
+    while (m_fRace == 0)
+    {
+        for (uint8 i = RACE_HUMAN; i <= RACE_DRAENEI; ++i)
+        {
+            if (i == RACE_GOBLIN)
+                continue;
+
+            PlayerInfo const* info = sObjectMgr.GetPlayerInfo(i, getClass());
+            if (!info || Player::TeamForRace(i) == GetOTeam())
+                continue;
+
+            if (urand(0, 5) == 0)
+                m_fRace = i;
+        }
+    }
+
+    m_fFaction = Player::getFactionForRace(m_fRace);
+}
 bool Player::CanJoinToBattleground() const
 {
     // check Deserter debuff
