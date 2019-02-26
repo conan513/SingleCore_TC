@@ -94,6 +94,7 @@ if(BUILD_PLAYERBOT)
         ${CMAKE_SOURCE_DIR}/src/game/Chat
         ${CMAKE_SOURCE_DIR}/src/game/ChatCommands
         ${CMAKE_SOURCE_DIR}/src/game/Combat
+        ${CMAKE_SOURCE_DIR}/src/game/Custom
         ${CMAKE_SOURCE_DIR}/src/game/DBScripts
         ${CMAKE_SOURCE_DIR}/src/game/Entities
         ${CMAKE_SOURCE_DIR}/src/game/GMTickets
