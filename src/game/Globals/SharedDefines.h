@@ -2578,8 +2578,14 @@ enum MovementEvent
     EVENT_JUMP   = 10001, // TODO: Implement knockback using this
 };
 
-#ifdef ENABLE_PLAYERBOTS || ENABLE_IMMERSIVE
-#define MANGOSBOT_ONE
+//Clang doesn't like || usage
+#ifdef ENABLE_PLAYERBOTS 
+#define MANGOSBOT_ZERO
+#define CMANGOS
+#endif
+
+#ifdef ENABLE_IMMERSIVE
+#define MANGOSBOT_ZERO
 #define CMANGOS
 #endif
 
