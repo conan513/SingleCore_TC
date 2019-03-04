@@ -254,7 +254,7 @@ struct boss_alarAI : public ScriptedAI
         if (m_uiFuturePlatformId == m_uiCurrentPlatformId)
             m_uiFuturePlatformId = (m_uiFuturePlatformId + 1) % MAX_PLATFORMS;
 
-        m_canMelee = false;
+        m_canMelee = true;
         m_uiPlatformMoveTimer = 30000;
     }
 
