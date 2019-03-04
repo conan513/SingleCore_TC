@@ -2186,7 +2186,6 @@ void BattleGroundMgr::LoadBattleMastersEntry()
     sLog.outString();
 }
 
-}
 HolidayIds BattleGroundMgr::BGTypeToWeekendHolidayId(BattleGroundTypeId bgTypeId)
 {
     switch (bgTypeId)
