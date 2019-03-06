@@ -5239,7 +5239,11 @@ SpellCastResult Spell::CheckCast(bool strict)
                 }
                 else if (m_spellInfo->Id == 51582)          // Rocket Boots Engaged
                 {
+<<<<<<< HEAD
                     if (m_caster->IsInWater())
+=======
+                    if (m_caster->IsInWater() && (m_caster->GetTypeId() != TYPEID_PLAYER || !static_cast<Player*>(m_caster)->IsInShallowWater()))
+>>>>>>> parent of 42a831b21... Improve liquid level handling in new environment flags
                         return SPELL_FAILED_ONLY_ABOVEWATER;
                 }
                 else if (m_spellInfo->SpellIconID == 156)   // Holy Shock
@@ -5804,7 +5808,11 @@ SpellCastResult Spell::CheckCast(bool strict)
             }
             case SPELL_AURA_MOUNTED:
             {
+<<<<<<< HEAD
                 if (m_caster->IsInWater())
+=======
+                if (m_caster->IsInWater() && (m_caster->GetTypeId() != TYPEID_PLAYER || !static_cast<Player*>(m_caster)->IsInShallowWater()))
+>>>>>>> parent of 42a831b21... Improve liquid level handling in new environment flags
                     return SPELL_FAILED_ONLY_ABOVEWATER;
 
                 if (m_caster->GetTypeId() == TYPEID_PLAYER && ((Player*)m_caster)->GetTransport())
@@ -7033,7 +7041,11 @@ bool Spell::CheckTargetScript(Unit* target, SpellEffectIndex eff) const
                 return false;
             break;
         case 37433:                                         // Spout (The Lurker Below), only players affected if its not in water
+<<<<<<< HEAD
             if (target->IsInWater())
+=======
+            if (m_caster->IsInWater() && (m_caster->GetTypeId() != TYPEID_PLAYER || !static_cast<Player*>(m_caster)->IsInShallowWater()))
+>>>>>>> parent of 42a831b21... Improve liquid level handling in new environment flags
                 return false;
             break;
         case 37851:                                         // Tag Greater Felfire Diemetradon
