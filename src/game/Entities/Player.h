@@ -81,7 +81,6 @@ enum SpellModType
     SPELLMOD_PCT                = 108                       // SPELL_AURA_ADD_PCT_MODIFIER
 };
 
-<<<<<<< HEAD
 enum EnvironmentFlags
 {
     ENVIRONMENT_FLAG_NONE           = 0x00,
@@ -96,18 +95,6 @@ enum EnvironmentFlags
     ENVIRONMENT_MASK_LIQUID_HAZARD  = (ENVIRONMENT_FLAG_IN_MAGMA | ENVIRONMENT_FLAG_IN_SLIME),
     ENVIRONMENT_MASK_IN_LIQUID      = (ENVIRONMENT_FLAG_IN_WATER | ENVIRONMENT_MASK_LIQUID_HAZARD),
     ENVIRONMENT_MASK_LIQUID_FLAGS   = (ENVIRONMENT_FLAG_UNDERWATER | ENVIRONMENT_MASK_IN_LIQUID | ENVIRONMENT_FLAG_HIGH_SEA | ENVIRONMENT_FLAG_LIQUID | ENVIRONMENT_FLAG_HIGH_LIQUID),
-=======
-// 2^n internal values, they are never sent to the client
-enum PlayerUnderwaterState
-{
-    UNDERWATER_NONE             = 0x00,
-    UNDERWATER_INWATER          = 0x01,                     // terrain type is water and player is afflicted by it
-    UNDERWATER_INLAVA           = 0x02,                     // terrain type is lava and player is afflicted by it
-    UNDERWATER_INSLIME          = 0x04,                     // terrain type is lava and player is afflicted by it
-    UNDERWATER_INDARKWATER      = 0x08,                     // terrain type is dark water and player is afflicted by it
-
-    UNDERWATER_EXIST_TIMERS     = 0x10
->>>>>>> parent of 1c1edf4fc... Revert
 };
 
 enum BuyBankSlotResult
@@ -2086,7 +2073,6 @@ class Player : public Unit
         /***              ENVIROMENTAL SYSTEM                  ***/
         /*********************************************************/
 
-<<<<<<< HEAD
         bool IsUnderwater() const override { return (m_environmentFlags & ENVIRONMENT_FLAG_UNDERWATER); }
         bool IsInWater() const override { return (m_environmentFlags & ENVIRONMENT_FLAG_IN_WATER); }
         inline bool IsInMagma() const { return (m_environmentFlags & ENVIRONMENT_FLAG_IN_MAGMA); }
@@ -2099,8 +2085,6 @@ class Player : public Unit
 
         void SendMirrorTimers(bool forced = false);
 
-=======
->>>>>>> parent of 1c1edf4fc... Revert
         uint32 EnvironmentalDamage(EnviromentalDamage type, uint32 damage);
 
         /*********************************************************/

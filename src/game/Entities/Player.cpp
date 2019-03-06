@@ -1073,7 +1073,6 @@ void Player::SetDrunkValue(uint16 newDrunkenValue, uint32 itemId)
     SendMessageToSet(data, true);
 }
 
-<<<<<<< HEAD
 uint32 Player::GetWaterBreathingInterval() const
 {
     return uint32(sWorld.getConfig(CONFIG_UINT32_MIRRORTIMER_BREATH_MAX) * IN_MILLISECONDS * m_environmentBreathingMultiplier);
@@ -1348,8 +1347,6 @@ SpellAuraHolder const* Player::GetMirrorTimerBuff(MirrorTimer::Type timer) const
     }
 }
 
-=======
->>>>>>> parent of 1c1edf4fc... Revert
 void Player::Update(const uint32 diff)
 {
     if (!IsInWorld())
@@ -20620,7 +20617,6 @@ void Player::UpdateTerainEnvironmentFlags(Map* m, float x, float y, float z)
 
     // In slime: on, under, or slightly above surface level
     if (liquid_status.type_flags & MAP_LIQUID_TYPE_SLIME)
-<<<<<<< HEAD
         SetEnvironmentFlags(ENVIRONMENT_FLAG_IN_SLIME, (res & (LIQUID_MAP_UNDER_WATER | LIQUID_MAP_IN_WATER | LIQUID_MAP_WATER_WALK)));
 
     // In deep water: on, under, above surface level
@@ -20628,14 +20624,6 @@ void Player::UpdateTerainEnvironmentFlags(Map* m, float x, float y, float z)
 
     // All liquid types: check if deep enough level for swimming
     SetEnvironmentFlags(ENVIRONMENT_FLAG_HIGH_LIQUID, ((res & (LIQUID_MAP_UNDER_WATER | LIQUID_MAP_IN_WATER)) && liquid_status.level > (liquid_status.depth_level + 1.5f)));
-=======
-    {
-        if (res & (LIQUID_MAP_UNDER_WATER | LIQUID_MAP_IN_WATER | LIQUID_MAP_WATER_WALK))
-            m_MirrorTimerFlags |= UNDERWATER_INSLIME;
-        else
-            m_MirrorTimerFlags &= ~UNDERWATER_INSLIME;
-    }
->>>>>>> parent of 1c1edf4fc... Revert
 }
 
 bool ItemPosCount::isContainedIn(ItemPosCountVec const& vec) const
