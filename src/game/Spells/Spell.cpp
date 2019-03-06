@@ -5240,7 +5240,11 @@ SpellCastResult Spell::CheckCast(bool strict)
                 else if (m_spellInfo->Id == 51582)          // Rocket Boots Engaged
                 {
 <<<<<<< HEAD
+<<<<<<< HEAD
                     if (m_caster->IsInWater() && (m_caster->GetTypeId() != TYPEID_PLAYER || static_cast<Player*>(m_caster)->IsInHighLiquid()))
+=======
+                    if (m_caster->IsInWater())
+>>>>>>> parent of 1c1edf4fc... Revert
 =======
                     if (m_caster->IsInWater())
 >>>>>>> parent of 1c1edf4fc... Revert
@@ -5809,7 +5813,11 @@ SpellCastResult Spell::CheckCast(bool strict)
             case SPELL_AURA_MOUNTED:
             {
 <<<<<<< HEAD
+<<<<<<< HEAD
                 if (m_caster->IsInWater() && (m_caster->GetTypeId() != TYPEID_PLAYER || static_cast<Player*>(m_caster)->IsInHighLiquid()))
+=======
+                if (m_caster->IsInWater())
+>>>>>>> parent of 1c1edf4fc... Revert
 =======
                 if (m_caster->IsInWater())
 >>>>>>> parent of 1c1edf4fc... Revert
@@ -7042,7 +7050,11 @@ bool Spell::CheckTargetScript(Unit* target, SpellEffectIndex eff) const
             break;
         case 37433:                                         // Spout (The Lurker Below), only players affected if its not in water
 <<<<<<< HEAD
+<<<<<<< HEAD
             if (m_caster->IsInWater() && (m_caster->GetTypeId() != TYPEID_PLAYER || static_cast<Player*>(m_caster)->IsInHighLiquid()))
+=======
+            if (target->IsInWater())
+>>>>>>> parent of 1c1edf4fc... Revert
 =======
             if (target->IsInWater())
 >>>>>>> parent of 1c1edf4fc... Revert
