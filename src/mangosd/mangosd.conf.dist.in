@@ -687,6 +687,13 @@ LogColors = ""
 #        Disable/enable waterbreathing for security level (0..4) or high
 #        Default: 4 (None)
 #
+<<<<<<< HEAD
+=======
+#    TimerBar.Breath.GMLevel
+#        Disable/enable waterbreathing for security level (0..4) or high
+#        Default: 4 (None)
+#
+>>>>>>> parent of 4a14e2fa3... Revamp of mirror timers and environmental APIs
 #    TimerBar.Breath.Max
 #        Waterbreathing max timer value (in secs)
 #        Default: 60
