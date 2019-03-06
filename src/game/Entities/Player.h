@@ -85,15 +85,11 @@ enum SpellModType
 enum PlayerUnderwaterState
 {
 <<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> parent of 4a14e2fa3... Revamp of mirror timers and environmental APIs
     UNDERWATER_NONE             = 0x00,
     UNDERWATER_INWATER          = 0x01,                     // terrain type is water and player is afflicted by it
     UNDERWATER_INLAVA           = 0x02,                     // terrain type is lava and player is afflicted by it
     UNDERWATER_INSLIME          = 0x04,                     // terrain type is lava and player is afflicted by it
     UNDERWATER_INDARKWATER      = 0x08,                     // terrain type is dark water and player is afflicted by it
-<<<<<<< HEAD
 
     UNDERWATER_EXIST_TIMERS     = 0x10
 =======
@@ -110,10 +106,6 @@ enum PlayerUnderwaterState
     ENVIRONMENT_MASK_IN_LIQUID      = (ENVIRONMENT_FLAG_IN_WATER | ENVIRONMENT_MASK_LIQUID_HAZARD),
     ENVIRONMENT_MASK_LIQUID_FLAGS   = (ENVIRONMENT_FLAG_UNDERWATER | ENVIRONMENT_MASK_IN_LIQUID | ENVIRONMENT_FLAG_HIGH_SEA | ENVIRONMENT_FLAG_LIQUID | ENVIRONMENT_FLAG_SHALLOW_LIQUID),
 >>>>>>> parent of 42a831b21... Improve liquid level handling in new environment flags
-=======
-
-    UNDERWATER_EXIST_TIMERS     = 0x10
->>>>>>> parent of 4a14e2fa3... Revamp of mirror timers and environmental APIs
 };
 
 enum BuyBankSlotResult
@@ -2050,7 +2042,6 @@ class Player : public Unit
         /*********************************************************/
 
 <<<<<<< HEAD
-<<<<<<< HEAD
 =======
         bool IsUnderwater() const override { return (m_environmentFlags & ENVIRONMENT_FLAG_UNDERWATER); }
         bool IsInWater() const override { return (m_environmentFlags & ENVIRONMENT_FLAG_IN_WATER); }
@@ -2065,8 +2056,6 @@ class Player : public Unit
         void SendMirrorTimers(bool forced = false);
 
 >>>>>>> parent of 42a831b21... Improve liquid level handling in new environment flags
-=======
->>>>>>> parent of 4a14e2fa3... Revamp of mirror timers and environmental APIs
         uint32 EnvironmentalDamage(EnviromentalDamage type, uint32 damage);
 
         /*********************************************************/

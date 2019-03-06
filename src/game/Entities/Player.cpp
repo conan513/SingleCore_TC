@@ -135,7 +135,6 @@ enum CharacterFlags
 static const uint32 corpseReclaimDelay[MAX_DEATH_COUNT] = {30, 60, 120};
 
 <<<<<<< HEAD
-<<<<<<< HEAD
 MirrorTimer::Status MirrorTimer::FetchStatus()
 {
     Status status = m_status;
@@ -269,8 +268,6 @@ bool MirrorTimer::Update(uint32 diff)
     }
 }
 
-=======
->>>>>>> parent of 4a14e2fa3... Revamp of mirror timers and environmental APIs
 =======
 >>>>>>> parent of 4a14e2fa3... Revamp of mirror timers and environmental APIs
 //== PlayerTaxi ================================================
@@ -1266,7 +1263,6 @@ void Player::SetDrunkValue(uint16 newDrunkenValue, uint32 itemId)
 }
 
 <<<<<<< HEAD
-<<<<<<< HEAD
 =======
 uint32 Player::GetWaterBreathingInterval() const
 {
@@ -1543,8 +1539,6 @@ SpellAuraHolder const* Player::GetMirrorTimerBuff(MirrorTimer::Type timer) const
 }
 
 >>>>>>> parent of 42a831b21... Improve liquid level handling in new environment flags
-=======
->>>>>>> parent of 4a14e2fa3... Revamp of mirror timers and environmental APIs
 void Player::Update(const uint32 diff)
 {
     if (!IsInWorld())
@@ -20848,16 +20842,12 @@ void Player::UpdateUnderwaterState(Map* m, float x, float y, float z)
     // in slime check, anywhere in slime level
     if (liquid_status.type_flags & MAP_LIQUID_TYPE_SLIME)
 <<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> parent of 4a14e2fa3... Revamp of mirror timers and environmental APIs
     {
         if (res & (LIQUID_MAP_UNDER_WATER | LIQUID_MAP_IN_WATER | LIQUID_MAP_WATER_WALK))
             m_MirrorTimerFlags |= UNDERWATER_INSLIME;
         else
             m_MirrorTimerFlags &= ~UNDERWATER_INSLIME;
     }
-<<<<<<< HEAD
 =======
         SetEnvironmentFlags(ENVIRONMENT_FLAG_IN_SLIME, (res & (LIQUID_MAP_UNDER_WATER | LIQUID_MAP_IN_WATER | LIQUID_MAP_WATER_WALK)));
 
@@ -20867,8 +20857,6 @@ void Player::UpdateUnderwaterState(Map* m, float x, float y, float z)
     // All liquid types: check too shallow level for swimming
     SetEnvironmentFlags(ENVIRONMENT_FLAG_SHALLOW_LIQUID, ((res & LIQUID_MAP_IN_WATER) && !(res & LIQUID_MAP_UNDER_WATER) && (liquid_status.level < liquid_status.depth_level + 1.5f)));
 >>>>>>> parent of 42a831b21... Improve liquid level handling in new environment flags
-=======
->>>>>>> parent of 4a14e2fa3... Revamp of mirror timers and environmental APIs
 }
 
 bool ItemPosCount::isContainedIn(ItemPosCountVec const& vec) const
