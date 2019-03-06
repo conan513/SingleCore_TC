@@ -107,9 +107,6 @@ enum PlayerUnderwaterState
     UNDERWATER_INDARKWATER      = 0x08,                     // terrain type is dark water and player is afflicted by it
 
     UNDERWATER_EXIST_TIMERS     = 0x10
-<<<<<<< HEAD
->>>>>>> parent of 1c1edf4fc... Revert
-=======
 >>>>>>> parent of 1c1edf4fc... Revert
 };
 
@@ -2090,7 +2087,6 @@ class Player : public Unit
         /*********************************************************/
 
 <<<<<<< HEAD
-<<<<<<< HEAD
         bool IsUnderwater() const override { return (m_environmentFlags & ENVIRONMENT_FLAG_UNDERWATER); }
         bool IsInWater() const override { return (m_environmentFlags & ENVIRONMENT_FLAG_IN_WATER); }
         inline bool IsInMagma() const { return (m_environmentFlags & ENVIRONMENT_FLAG_IN_MAGMA); }
@@ -2103,8 +2099,6 @@ class Player : public Unit
 
         void SendMirrorTimers(bool forced = false);
 
-=======
->>>>>>> parent of 1c1edf4fc... Revert
 =======
 >>>>>>> parent of 1c1edf4fc... Revert
         uint32 EnvironmentalDamage(EnviromentalDamage type, uint32 damage);
