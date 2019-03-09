@@ -362,6 +362,9 @@ Unit::Unit() :
     for (float& m_createStat : m_createStats)
         m_createStat = 0.0f;
 
+    for (auto& m_createResistance : m_createResistances)
+        m_createResistance = 0;
+
     m_attacking = nullptr;
     m_modMeleeHitChance = 0.0f;
     m_modRangedHitChance = 0.0f;
@@ -3925,7 +3928,7 @@ float Unit::CalculateEffectiveMagicResistancePercent(const Unit* attacker, Spell
             int32 penetration = attacker->GetResistancePenetration(SpellSchools(school));
 
             // Modify by penetration, but can't go negative with it
-            int32 result = (amount + penetration);
+            int32 result = (amount - penetration);
 
             if (result < 0)
                 result = std::min(amount, 0);
@@ -9354,6 +9357,31 @@ float Unit::GetTotalStatValue(Stats stat) const
     return value;
 }
 
+int32 Unit::GetTotalResistanceValue(SpellSchools school) const
+{
+    UnitMods unitMod = UnitMods(UNIT_MOD_RESISTANCE_START + school);
+
+    if (m_auraModifiersGroup[unitMod][TOTAL_PCT] <= 0.0f)
+        return 0.0f;
+
+    // value = ((base_value * base_pct) + total_value) * total_pct
+    float value = GetCreateResistance(school);
+
+    const bool vulnerability = (value < 0);
+
+    value += m_auraModifiersGroup[unitMod][BASE_VALUE];
+    value *= m_auraModifiersGroup[unitMod][BASE_PCT];
+    value += m_auraModifiersGroup[unitMod][TOTAL_VALUE];
+    value *= m_auraModifiersGroup[unitMod][TOTAL_PCT];
+
+    // Auras can't cause resistances to dip below 0 since early vanilla
+    // PS: Actually, they can, but only visually advertised in the fields, calculations ignore it, we limit both
+    if (value < 0 && !vulnerability)
+        value = 0;
+
+    return int32(value);
+}
+
 float Unit::GetTotalAuraModValue(UnitMods unitMod) const
 {
     if (unitMod >= UNIT_MOD_END)
@@ -9370,11 +9398,6 @@ float Unit::GetTotalAuraModValue(UnitMods unitMod) const
     value *= m_auraModifiersGroup[unitMod][BASE_PCT];
     value += m_auraModifiersGroup[unitMod][TOTAL_VALUE];
     value *= m_auraModifiersGroup[unitMod][TOTAL_PCT];
-
-    // Auras can't cause resistances to dip below 0 since early vanilla
-    // PS: Actually, they can, but only visually advertised in the fields, calculations ignore it, we limit both
-    if (value < 0 && unitMod >= UNIT_MOD_RESISTANCE_START && unitMod < UNIT_MOD_RESISTANCE_END)
-        value = 0;
 
     return value;
 }
