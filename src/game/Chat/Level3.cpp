@@ -372,6 +372,14 @@ bool ChatHandler::HandleReloadConfigCommand(char* /*args*/)
     return true;
 }
 
+bool ChatHandler::HandleReloadItemTemplateCommand(char *)
+{
+    sLog.outString("Re-Loading Item Data... (`item_template`)");
+    sObjectMgr.LoadItemPrototypes();
+    SendGlobalSysMessage("DB table `item_template` reloaded.");
+    return true;
+}
+
 bool ChatHandler::HandleReloadAreaTriggerTavernCommand(char* /*args*/)
 {
     sLog.outString("Re-Loading Tavern Area Triggers...");

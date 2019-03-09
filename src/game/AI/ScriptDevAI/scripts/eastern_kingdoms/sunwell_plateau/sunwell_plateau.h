@@ -7,14 +7,14 @@
 
 enum
 {
-    MAX_ENCOUNTER               = 6,
+    MAX_ENCOUNTER               = 5,
 
-    TYPE_KALECGOS               = 0,
-    TYPE_BRUTALLUS              = 1,
-    TYPE_FELMYST                = 2,
-    TYPE_EREDAR_TWINS           = 3,
-    TYPE_MURU                   = 4,
-    TYPE_KILJAEDEN              = 5,
+    TYPE_KALECGOS               = 6,
+    TYPE_BRUTALLUS              = 0,
+    TYPE_FELMYST                = 1,
+    TYPE_EREDAR_TWINS           = 2,
+    TYPE_MURU                   = 3,
+    TYPE_KILJAEDEN              = 4,
 
     NPC_KALECGOS_DRAGON         = 24850,            // kalecgos blue dragon hostile
     NPC_KALECGOS_HUMAN          = 24891,            // kalecgos human form in spectral realm
@@ -104,6 +104,8 @@ static const EventLocations aKalecLoc[] =
     {1648.255f, 519.377f, 165.848f},                // fly away
 };
 
+static const float afSacrolashSpawnLoc[4] = { 1812.927f, 625.639f, 33.404f, 1.656f };
+static const float afAlythessSpawnLoc[4] = { 1819.759f, 626.337f, 33.404f, 1.153f };
 static const float afMuruSpawnLoc[4] = { 1816.25f, 625.484f, 69.603f, 5.624f };
 
 class instance_sunwell_plateau : public ScriptedInstance, private DialogueHelper

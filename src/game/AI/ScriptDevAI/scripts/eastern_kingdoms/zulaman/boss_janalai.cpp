@@ -69,7 +69,7 @@ enum
     // Eggs spells
     SPELL_SUMMON_DRAGONHAWK         = 42493,
 
-    MAX_EGGS_ON_SIDE                = 20,                   // there are 20 eggs spawned on each side
+    MAX_EGGS_ON_SIDE                = 5,                   // there are 20 eggs spawned on each side
 };
 
 static const float afFireWallCoords[4][4] =

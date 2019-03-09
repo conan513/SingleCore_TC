@@ -44,10 +44,10 @@ enum
     SPELL_PYROBLAST             = 36819,                    // Heroic only; 45-55k fire damage
 
     // Phase 2 spells
-    SPELL_GRAVITY_LAPSE         = 44224,                    // Cast at the beginning of every Gravity Lapse
+    SPELL_GRAVITY_LAPSE         = 35941,                    // 44224 Cast at the beginning of every Gravity Lapse
     SPELL_GRAVITY_LAPSE_VISUAL  = 44251,                    // Channeled; blue beam animation to every enemy in range - when removed the Gravity Lapse auras are removed from players
     SPELL_TELEPORT_CENTER       = 44218,                    // Teleport the boss in the center. Requires DB entry in spell_target_position.
-    SPELL_GRAVITY_LAPSE_FLY     = 44227,                    // Hastens flyspeed and allows flying for 1 minute. Requires aura stacking exception for 44226.
+    SPELL_GRAVITY_LAPSE_FLY     = 39432,                    // 44227 Hastens flyspeed and allows flying for 1 minute. Requires aura stacking exception for 44226.
     SPELL_GRAVITY_LAPSE_DOT     = 44226,                    // Knocks up in the air and applies a 300 DPS DoT.
     SPELL_ARCANE_SPHERE_SUMMON  = 44265,                    // Summons 1 arcane sphere
     SPELL_POWER_FEEDBACK        = 44233,                    // Stuns him, making him take 50% more damage for 10 seconds. Cast after Gravity Lapse

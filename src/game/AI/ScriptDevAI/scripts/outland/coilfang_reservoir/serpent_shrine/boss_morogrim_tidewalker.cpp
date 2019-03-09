@@ -109,7 +109,7 @@ struct boss_morogrim_tidewalkerAI : public ScriptedAI
     {
         m_uiTidalWaveTimer      = urand(10000, 15000);
         m_uiWateryGraveTimer    = 30000;
-        m_uiEarthquakeTimer     = 40000;
+        m_uiEarthquakeTimer     = 80000;
         m_uiWateryGlobulesTimer = 0;
         m_uiGraveIndex          = 0;
 
@@ -203,7 +203,7 @@ struct boss_morogrim_tidewalkerAI : public ScriptedAI
                 DoCastSpellIfCan(m_creature, SPELL_SUMMON_MURLOC_B9, CAST_TRIGGERED);
                 DoCastSpellIfCan(m_creature, SPELL_SUMMON_MURLOC_B10, CAST_TRIGGERED);
 
-                m_uiEarthquakeTimer = 50000; 
+                m_uiEarthquakeTimer = 80000; 
             }
         }
         else

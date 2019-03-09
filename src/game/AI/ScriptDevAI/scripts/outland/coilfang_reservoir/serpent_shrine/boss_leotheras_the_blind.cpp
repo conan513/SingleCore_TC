@@ -122,9 +122,9 @@ struct boss_leotheras_the_blindAI : public ScriptedAI
     }
 
     void SpellHitTarget(Unit* pTarget, const SpellEntry* pSpell) override
-    {
+    { /*
         if (pSpell->Id == SPELL_CONS_MADNESS)
-            m_charmTargets.insert(pTarget->GetObjectGuid());
+            m_charmTargets.insert(pTarget->GetObjectGuid()); */
     }
 
     void SpellHit(Unit* pCaster, const SpellEntry* pSpell) override
@@ -139,7 +139,7 @@ struct boss_leotheras_the_blindAI : public ScriptedAI
             }
 
             ++m_WhirlwindCount;
-            DoResetThreat();
+            // DoResetThreat();
         }
     }
 
@@ -175,8 +175,8 @@ struct boss_leotheras_the_blindAI : public ScriptedAI
     void JustDied(Unit* /*pKiller*/) override
     {
         DoScriptText(SAY_DEATH, m_creature);
-        m_creature->CastSpell(m_creature, SPELL_CLR_CONS_MADNESS, TRIGGERED_NONE);
-        m_creature->CastSpell(m_creature, SPELL_WHISPER_CLEAR, TRIGGERED_NONE);
+        // m_creature->CastSpell(m_creature, SPELL_CLR_CONS_MADNESS, TRIGGERED_NONE);
+        // m_creature->CastSpell(m_creature, SPELL_WHISPER_CLEAR, TRIGGERED_NONE);
 
         if (m_pInstance)
             m_pInstance->SetData(TYPE_LEOTHERAS_EVENT, DONE);
@@ -206,9 +206,9 @@ struct boss_leotheras_the_blindAI : public ScriptedAI
             DoResetThreat();
         }
         else if (eventType == AI_EVENT_CUSTOM_B)
-        {
+        { /*
             if (m_charmTargets.find(pInvoker->GetObjectGuid()) != m_charmTargets.end())
-                m_creature->CastSpell(pInvoker, SPELL_CONS_MADNESS, TRIGGERED_OLD_TRIGGERED);
+                m_creature->CastSpell(pInvoker, SPELL_CONS_MADNESS, TRIGGERED_OLD_TRIGGERED); */
         }
     }
 
@@ -303,7 +303,7 @@ struct boss_leotheras_the_blindAI : public ScriptedAI
                         m_attackDistance = 35.f;
                         m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim(), m_attackDistance, m_attackAngle, m_moveFurther);
 
-                        DoResetThreat();
+                        // DoResetThreat();
                         m_bDemonForm = true;
 
                         m_uiInnerDemonTimer = 20000;
@@ -338,7 +338,7 @@ struct boss_leotheras_the_blindAI : public ScriptedAI
             if (m_uiChaosBlastTimer <= uiDiff)
             {
                 if (DoCastSpellIfCan(m_creature->getVictim(), SPELL_CHAOS_BLAST) == CAST_OK)
-                    m_uiChaosBlastTimer = urand(2000, 3000);
+                    m_uiChaosBlastTimer = urand(10000, 20000);
             }
             else
                 m_uiChaosBlastTimer -= uiDiff;
@@ -354,7 +354,7 @@ struct boss_leotheras_the_blindAI : public ScriptedAI
                 m_attackDistance = 0.f;
                 m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim(), m_attackDistance, m_attackAngle, m_moveFurther);
 
-                DoResetThreat();
+                // DoResetThreat();
                 m_bDemonForm = false;
 
                 m_uiWhirlwindTimer = urand(1000, 5000);
@@ -380,7 +380,7 @@ struct boss_leotheras_the_blindAI : public ScriptedAI
                 // switch to nightelf form
                 m_creature->RemoveAurasDueToSpell(SPELL_METAMORPHOSIS);
 
-                DoResetThreat();
+                // DoResetThreat();
                 m_bDemonForm = false;
             }
 

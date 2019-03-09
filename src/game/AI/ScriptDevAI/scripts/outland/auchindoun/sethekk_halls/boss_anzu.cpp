@@ -76,12 +76,12 @@ static const uint32 aSpiritsEntries[3] = {NPC_FALCON_SPIRIT, NPC_HAWK_SPIRIT, NP
 
 float spiritSpawns[][4] = 
 {
-    { -118.1717f, 284.5299f, 121.2287f, 2.775074f },
-    { -87.59662f, 263.5181f, 92.70478f, 1.658063f },
-    { -60.94724f, 272.2065f, 111.3746f, 5.759586f },
-    { -98.15528f, 293.4469f, 109.2385f, 0.1745329f },
-    { -99.7016f,  270.1699f, 98.27389f, 6.178465f },
-    { -69.25543f, 303.0768f, 97.84479f, 5.532694f },
+    { -118.1717f, 284.5299f, 51.2287f, 2.775074f },
+    { -87.59662f, 263.5181f, 52.70478f, 1.658063f },
+    { -60.94724f, 272.2065f, 51.3746f, 5.759586f },
+    { -98.15528f, 293.4469f, 59.2385f, 0.1745329f },
+    { -99.7016f,  270.1699f, 58.27389f, 6.178465f },
+    { -69.25543f, 303.0768f, 57.84479f, 5.532694f },
 };
 
 enum AnzuActions
@@ -377,6 +377,7 @@ struct boss_anzuAI : public ScriptedAI, public CombatTimerAI
             return;
 
         ExecuteActions();
+        SetMeleeEnabled(true);
         DoMeleeAttackIfReady();
     }
 };

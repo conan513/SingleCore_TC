@@ -115,7 +115,7 @@ struct boss_magtheridonAI : public ScriptedAI
         m_uiBerserkTimer    = 20 * MINUTE * IN_MILLISECONDS;
         m_uiQuakeTimer      = 40000;
         m_uiBlazeTimer      = urand(10000, 15000);
-        m_uiBlastNovaTimer  = 60000;
+        m_uiBlastNovaTimer  = 600000;
         m_uiCleaveTimer     = 15000;
         m_uiTransitionTimer = 0;
         m_uiTransitionCount = 0;
@@ -278,7 +278,7 @@ struct boss_magtheridonAI : public ScriptedAI
                             m_creature->CastSpell(nullptr, SPELL_QUAKE_REMOVAL, TRIGGERED_OLD_TRIGGERED);
                         }
                         DoScriptText(EMOTE_BLASTNOVA, m_creature);
-                        m_uiBlastNovaTimer = 60000;
+                        m_uiBlastNovaTimer = 600000;
                     }
                 }
                 else

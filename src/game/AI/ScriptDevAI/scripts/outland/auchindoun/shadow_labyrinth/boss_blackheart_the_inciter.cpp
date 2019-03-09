@@ -73,7 +73,7 @@ struct boss_blackheart_the_inciterAI : public ScriptedAI
     void Reset() override
     {
         m_uiInciteChaosWaitTimer = 0;
-        m_uiInciteChaosTimer = 15000;
+        m_uiInciteChaosTimer = 55000;
         m_uiChargeTimer      = urand(30000, 37000);
         m_uiKnockbackTimer   = urand(10000, 14000);
     }
@@ -153,7 +153,7 @@ struct boss_blackheart_the_inciterAI : public ScriptedAI
             {
                 m_creature->HandleEmote(EMOTE_STATE_LAUGH);
                 m_uiInciteChaosTimer = 55000;
-                m_uiInciteChaosWaitTimer = 16000;
+                m_uiInciteChaosWaitTimer = 55000;
                 return;
             }
         }

@@ -195,17 +195,17 @@ struct boss_lady_vashjAI : public ScriptedAI
         m_uiShockBlastTimer           = urand(1000, 60000);
         m_uiEntangleTimer             = 30000;
         m_uiStaticChargeTimer         = urand(10000, 25000);
-        m_shootTimer                  = 2000;
+        m_shootTimer                  = 5000;
 
         m_uiForkedLightningTimer      = urand(3000, 5000);
-        m_uiEnchantedElementalTimer   = 10000;
+        m_uiEnchantedElementalTimer   = 30000;
         m_uiTaintedElementalTimer     = 53000;
         m_uiCoilfangEliteTimer        = 47000;
         m_uiCoilfangStriderTimer      = 62000;
 
         m_uiSummonSporebatTimer       = 10000;
         m_uiSummonSporebatStaticTimer = 30000;
-        m_uiPersuasionTimer           = 30000;
+        m_uiPersuasionTimer           = 600000;
 
         m_lastSporebatSpell = 0;
 
@@ -281,7 +281,7 @@ struct boss_lady_vashjAI : public ScriptedAI
 
                         if (DoCastSpellIfCan(nullptr, SPELL_PERSUASION) == CAST_OK)
                         {
-                            m_uiPersuasionTimer = urand(25000, 35000);
+                            m_uiPersuasionTimer = urand(600000, 600000);
                             m_actionReadyStatus[i] = false;
                             return;
                         }
@@ -352,7 +352,7 @@ struct boss_lady_vashjAI : public ScriptedAI
                                 if (urand(0, 5) == 0)
                                     DoScriptText(urand(0, 1) ? SAY_BOWSHOT1 : SAY_BOWSHOT2, m_creature);
 
-                                m_shootTimer = urand(2000, 3000);
+                                m_shootTimer = urand(3000, 5000);
                                 m_actionReadyStatus[i] = false;
                                 return;
                             }
@@ -517,7 +517,7 @@ struct boss_lady_vashjAI : public ScriptedAI
             if (m_creature->getVictim())
                 DoStartMovement(m_creature->getVictim());
 
-            m_shootTimer = 2000;
+            m_shootTimer = 5000;
             m_actionReadyStatus[VASHJ_ACTION_SHOOT] = false;
             DoCastSpellIfCan(m_creature->getVictim(), SPELL_SHOOT);       
         }
@@ -788,7 +788,7 @@ struct boss_lady_vashjAI : public ScriptedAI
                         m_creature->CastSpell(creature, SPELL_WAVE_A, TRIGGERED_OLD_TRIGGERED);
                 }
 
-                m_uiEnchantedElementalTimer = 10000;
+                m_uiEnchantedElementalTimer = 30000;
             }
             else
                 m_uiEnchantedElementalTimer -= uiDiff;

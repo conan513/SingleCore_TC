@@ -8,6 +8,9 @@
 extern void AddSC_battleground();
 
 // custom
+extern void AddSC_Teleporter();
+extern void AddSC_barber();
+extern void AddSC_Npc_Beastmaster();
 
 // examples
 extern void AddSC_example_creature();
@@ -350,6 +353,9 @@ void AddScripts()
     AddSC_battleground();
 
     // custom
+    AddSC_Teleporter();
+    AddSC_barber();
+    AddSC_Npc_Beastmaster();
 
     // examples
     AddSC_example_creature();

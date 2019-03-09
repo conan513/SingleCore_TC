@@ -36,6 +36,8 @@
 
 #include <cstdarg>
 
+#define ITEM_ENTRIX_CRYSTAL 38186
+
 namespace MaNGOS
 {
     class BattleGroundChatBuilder
@@ -873,25 +875,40 @@ void BattleGround::RewardMark(Player* plr, uint32 count)
     switch (GetTypeID())
     {
         case BATTLEGROUND_AV:
-            if (count == ITEM_WINNER_COUNT)
+            if (count == ITEM_WINNER_COUNT) {
                 RewardSpellCast(plr, SPELL_AV_MARK_WINNER);
-            else
+                RewardItem(plr, ITEM_ENTRIX_CRYSTAL, 8);
+            } else {
                 RewardSpellCast(plr, SPELL_AV_MARK_LOSER);
+                RewardItem(plr,ITEM_ENTRIX_CRYSTAL, 3);
+                }
             break;
         case BATTLEGROUND_WS:
-            if (count == ITEM_WINNER_COUNT)
+            if (count == ITEM_WINNER_COUNT) {
                 RewardSpellCast(plr, SPELL_WS_MARK_WINNER);
-            else
+                RewardItem(plr, ITEM_ENTRIX_CRYSTAL, 8);
+            } else {
                 RewardSpellCast(plr, SPELL_WS_MARK_LOSER);
+                RewardItem(plr, ITEM_ENTRIX_CRYSTAL, 3);
+                }
             break;
         case BATTLEGROUND_AB:
-            if (count == ITEM_WINNER_COUNT)
+            if (count == ITEM_WINNER_COUNT) {
                 RewardSpellCast(plr, SPELL_AB_MARK_WINNER);
-            else
+                RewardItem(plr,ITEM_ENTRIX_CRYSTAL, 8);
+            } else {
                 RewardSpellCast(plr, SPELL_AB_MARK_LOSER);
+                RewardItem(plr,ITEM_ENTRIX_CRYSTAL, 3);
+                }
             break;
         case BATTLEGROUND_EY:
-            RewardItem(plr, ITEM_EY_MARK_OF_HONOR, count);
+            if (count == ITEM_WINNER_COUNT) {
+                RewardItem(plr, ITEM_EY_MARK_OF_HONOR, count);
+                RewardItem(plr,ITEM_ENTRIX_CRYSTAL, 8);
+            } else {
+                RewardItem(plr,ITEM_EY_MARK_OF_HONOR, 1);
+                RewardItem(plr,ITEM_ENTRIX_CRYSTAL, 3);
+                }
             break;
         default:
             break;

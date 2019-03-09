@@ -197,11 +197,11 @@ void instance_dark_portal::SetData(uint32 uiType, uint32 uiData)
         {
             // Set the delay to the next time rift from the point the rift despawns
             if (uiData == DONE)
-                m_uiNextPortalTimer = IsBossTimeRift() ? 125000 : 3000;
+                m_uiNextPortalTimer = IsBossTimeRift() ? 50000 : 3000;
             // Set the delay to the next time rift from the point the rift summons it's guardian
             // ToDo: research if these timers are correct
             else if (uiData == SPECIAL)
-                m_uiNextPortalTimer = IsBossTimeRift() ? 0 : m_uiWorldStateRiftCount > 12 ? 90000 : 2 * MINUTE * IN_MILLISECONDS;
+                m_uiNextPortalTimer = IsBossTimeRift() ? 0 : m_uiWorldStateRiftCount > 12 ? 50000 : 0.5 * MINUTE * IN_MILLISECONDS;
 
             m_auiEncounter[uiType] = uiData;
             return;

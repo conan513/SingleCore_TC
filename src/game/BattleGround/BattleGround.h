@@ -76,7 +76,11 @@ enum BattleGroundMarks
     SPELL_AB_MARK_WINNER            = 24953,
     SPELL_AV_MARK_LOSER             = 24954,
     SPELL_AV_MARK_WINNER            = 24955,
-    ITEM_EY_MARK_OF_HONOR           = 29024
+    ITEM_EY_MARK_OF_HONOR           = 29024,
+    ITEM_WS_MARK_OF_HONOR           = 20558,
+    ITEM_AB_MARK_OF_HONOR           = 20559,
+    ITEM_AV_MARK_OF_HONOR           = 20560,
+    ITEM_ENTRIX_CRYSTAL             = 38186
 };
 
 enum BattleGroundMarksCount

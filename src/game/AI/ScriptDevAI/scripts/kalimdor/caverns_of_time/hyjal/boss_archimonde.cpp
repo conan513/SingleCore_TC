@@ -134,7 +134,7 @@ struct boss_archimondeAI : public ScriptedAI
     void MoveInLineOfSight(Unit* pWho) override
     {
         // If the boss reaches the tree during the fight, then he enrages - the distance is not very clear
-        if (!m_bIsEnraged && pWho->GetEntry() == NPC_CHANNEL_TARGET && pWho->IsWithinDistInMap(m_creature, 75.0f))
+        if (!m_bIsEnraged && pWho->GetEntry() == NPC_CHANNEL_TARGET && pWho->IsWithinDistInMap(m_creature, 275.0f))
         {
             m_uiEnrageTimer = 1000;
             m_bIsEnraged = true;
@@ -251,7 +251,7 @@ struct boss_archimondeAI : public ScriptedAI
                 if (m_uiFingerOfDeathTimer < uiDiff)
                 {
                     if (DoCastSpellIfCan(m_creature, urand(0, 1) ? SPELL_FINGER_DEATH_DUMMY : SPELL_FINGER_DEATH_SCRIPT) == CAST_OK)
-                        m_uiFingerOfDeathTimer = 1000;
+                        m_uiFingerOfDeathTimer = 5000;
                 }
                 else
                     m_uiFingerOfDeathTimer -= uiDiff;
@@ -290,7 +290,7 @@ struct boss_archimondeAI : public ScriptedAI
             if (Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0, nullptr, SELECT_FLAG_PLAYER))
             {
                 if (DoCastSpellIfCan(pTarget, SPELL_GRIP_OF_THE_LEGION) == CAST_OK)
-                    m_uiGripOfTheLegionTimer = urand(5000, 25000);
+                    m_uiGripOfTheLegionTimer = urand(20000, 25000);
             }
         }
         else
@@ -301,7 +301,7 @@ struct boss_archimondeAI : public ScriptedAI
             if (DoCastSpellIfCan(m_creature->getVictim(), SPELL_AIR_BURST) == CAST_OK)
             {
                 DoScriptText(urand(0, 1) ? SAY_AIR_BURST1 : SAY_AIR_BURST2, m_creature);
-                m_uiAirBurstTimer = urand(25000, 40000);
+                m_uiAirBurstTimer = urand(35000, 40000);
             }
         }
         else
@@ -320,7 +320,7 @@ struct boss_archimondeAI : public ScriptedAI
             if (DoCastSpellIfCan(m_creature, SPELL_DOOMFIRE_STRIKE) == CAST_OK)
             {
                 DoScriptText(urand(0, 1) ? SAY_DOOMFIRE1 : SAY_DOOMFIRE2, m_creature);
-                m_uiDoomfireTimer = urand(10000, 15000);
+                m_uiDoomfireTimer = urand(14000, 15000);
             }
         }
         else

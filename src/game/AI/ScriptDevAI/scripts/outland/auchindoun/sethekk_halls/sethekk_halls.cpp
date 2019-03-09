@@ -175,7 +175,7 @@ float triggerPositions[TRIGGER_COUNT][4] =
 
 void instance_sethekk_halls::StartAnzuIntro(Player* player)
 {
-    Creature* target = player->SummonCreature(NPC_INVIS_RAVEN_GOD_TARGET, -87.08602f, 287.8433f, 83.77484f, 3.455752f, TEMPSPAWN_MANUAL_DESPAWN, 0, true);
+    Creature* target = player->SummonCreature(NPC_INVIS_RAVEN_GOD_TARGET, -87.08602f, 287.8433f, 28.386f, 3.455752f, TEMPSPAWN_MANUAL_DESPAWN, 0, true);
     target->CastSpell(nullptr, SPELL_PURPLE_BANISH_STATE, TRIGGERED_NONE);
     Creature* portal = player->SummonCreature(NPC_INVIS_RAVEN_GOD_PORTAL, -87.28478f, 287.6349f, 27.17761f, 0.5759587f, TEMPSPAWN_MANUAL_DESPAWN, 0, true);
     portal->CastSpell(nullptr, SPELL_OTHERWORLDLY_PORTAL, TRIGGERED_NONE);

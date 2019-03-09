@@ -169,7 +169,7 @@ void instance_sunwell_plateau::OnObjectCreate(GameObject* pGo)
         case GO_ICE_BARRIER:
             break;
         case GO_FIRE_BARRIER:
-            if (m_auiEncounter[TYPE_KALECGOS] == DONE && m_auiEncounter[TYPE_BRUTALLUS] == DONE && m_auiEncounter[TYPE_FELMYST] == DONE)
+            if (/*m_auiEncounter[TYPE_KALECGOS] == DONE && */m_auiEncounter[TYPE_BRUTALLUS] == DONE && m_auiEncounter[TYPE_FELMYST] == DONE)
                 pGo->SetGoState(GO_STATE_ACTIVE);
             break;
         case GO_MURU_ENTER_GATE:
@@ -281,7 +281,7 @@ void instance_sunwell_plateau::SetData(uint32 uiType, uint32 uiData)
 
         std::ostringstream saveStream;
         saveStream << m_auiEncounter[0] << " " << m_auiEncounter[1] << " " << m_auiEncounter[2] << " "
-                   << m_auiEncounter[3] << " " << m_auiEncounter[4] << " " << m_auiEncounter[5];
+                   << m_auiEncounter[3] << " " << m_auiEncounter[4]; /* << " " << m_auiEncounter[5];*/
 
         m_strInstData = saveStream.str();
 
@@ -363,7 +363,7 @@ void instance_sunwell_plateau::Load(const char* in)
 
     std::istringstream loadStream(in);
     loadStream >> m_auiEncounter[0] >> m_auiEncounter[1] >> m_auiEncounter[2] >>
-               m_auiEncounter[3] >> m_auiEncounter[4] >> m_auiEncounter[5];
+               m_auiEncounter[3] >> m_auiEncounter[4]; /* >> m_auiEncounter[5]; */
 
     for (uint32& i : m_auiEncounter)
     {
@@ -401,7 +401,7 @@ void instance_sunwell_plateau::DoSortFlightTriggers()
     lTriggers.sort(sortByPositionX);
     for (auto& lTrigger : lTriggers)
     {
-        if (lTrigger->GetPositionY() < 600.0f)
+        if (lTrigger->GetPositionY() < 500.0f)
             m_vRightFlightTriggersVect.push_back(lTrigger->GetObjectGuid());
         else
             m_vLeftFlightTriggersVect.push_back(lTrigger->GetObjectGuid());

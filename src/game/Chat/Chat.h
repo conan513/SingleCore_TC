@@ -497,6 +497,7 @@ class ChatHandler
         bool HandleReloadSpellThreatsCommand(char* args);
         bool HandleReloadTaxiShortcuts(char* args);
         bool HandleReloadSpellPetAurasCommand(char* args);
+        bool HandleReloadItemTemplateCommand(char* args);
         bool HandleReloadExpectedSpamRecords(char* args);
 
         bool HandleResetAllCommand(char* args);

@@ -134,9 +134,9 @@ struct NalorakkBearEventInfo
 
 static const NalorakkBearEventInfo aBearEventInfo[MAX_BEAR_WAVES] =
 {
-    {SAY_WAVE1_AGGRO,    0, 0, 0, 0, 45.0f},
-    {SAY_WAVE2_STAIR1,   -54.948f, 1419.772f, 27.303f, 0.03f, 37.0f},
-    {SAY_WAVE3_STAIR2,   -80.303f, 1372.622f, 40.764f, 1.67f, 35.0f},
+    {SAY_WAVE1_AGGRO,    -77.495f, 1294.760f, 48.487f, 1.66f, 60.0f},
+    {SAY_WAVE2_STAIR1,   -77.495f, 1294.760f, 48.487f, 1.66f, 60.0f},
+    {SAY_WAVE3_STAIR2,   -77.495f, 1294.760f, 48.487f, 1.66f, 60.0f},
     {SAY_WAVE4_PLATFORM, -77.495f, 1294.760f, 48.487f, 1.66f, 60.0f}
 };
 
@@ -185,6 +185,7 @@ class instance_zulaman : public ScriptedInstance
         TimeEventNpcInfo m_aEventNpcInfo[MAX_CHESTS];
 
         uint32 m_uiEventTimer;
+        uint32 m_uiKontrolaTimer;
         uint32 m_uiGongCount;
 
         NalorakkTrashInfo m_aNalorakkEvent[MAX_BEAR_WAVES];

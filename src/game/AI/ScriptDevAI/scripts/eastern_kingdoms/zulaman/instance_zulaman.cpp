@@ -26,6 +26,7 @@ EndScriptData */
 
 instance_zulaman::instance_zulaman(Map* pMap) : ScriptedInstance(pMap),
     m_uiEventTimer(MINUTE * IN_MILLISECONDS),
+    m_uiKontrolaTimer(0.1 * IN_MILLISECONDS),
     m_uiGongCount(0),
     m_uiBearEventPhase(0),
     m_bIsBearPhaseInProgress(false)
@@ -216,7 +217,7 @@ void instance_zulaman::SetData(uint32 uiType, uint32 uiData)
                 if (m_auiEncounter[TYPE_RUN_EVENT_TIME])
                     SetData(TYPE_RUN_EVENT_TIME, m_auiEncounter[TYPE_RUN_EVENT_TIME]);
                 else
-                    SetData(TYPE_RUN_EVENT_TIME, 20);   // 20 Minutes as default time
+                    SetData(TYPE_RUN_EVENT_TIME, 5);   // 20 Minutes as default time
                 DoUpdateWorldState(WORLD_STATE_ZUL_AMAN_EVENT_RUN_IS_ACTIVE, 1);
             }
             if (uiData == FAIL)
@@ -247,7 +248,7 @@ void instance_zulaman::SetData(uint32 uiType, uint32 uiData)
             {
                 if (m_auiEncounter[TYPE_EVENT_RUN] == IN_PROGRESS)
                 {
-                    m_auiEncounter[TYPE_RUN_EVENT_TIME] += 10; // Add 10 minutes
+                    m_auiEncounter[TYPE_RUN_EVENT_TIME] += 5; // Add 10 minutes
                     SetData(TYPE_RUN_EVENT_TIME, m_auiEncounter[TYPE_RUN_EVENT_TIME]);
                     DoChestEvent(INDEX_AKILZON);
                 }
@@ -259,7 +260,7 @@ void instance_zulaman::SetData(uint32 uiType, uint32 uiData)
             {
                 if (m_auiEncounter[TYPE_EVENT_RUN] == IN_PROGRESS)
                 {
-                    m_auiEncounter[TYPE_RUN_EVENT_TIME] += 15; // Add 15 minutes
+                    m_auiEncounter[TYPE_RUN_EVENT_TIME] += 10; // Add 15 minutes
                     SetData(TYPE_RUN_EVENT_TIME, m_auiEncounter[TYPE_RUN_EVENT_TIME]);
                     DoChestEvent(INDEX_NALORAKK);
                 }
@@ -520,6 +521,25 @@ void instance_zulaman::Update(uint32 uiDiff)
         }
         else
             m_uiEventTimer -= uiDiff;
+    }
+    // Kontrola despawn rescued npc
+    if (m_auiEncounter[TYPE_EVENT_RUN] == FAIL)
+    {
+        if (m_uiKontrolaTimer <= uiDiff)
+        {
+            for (const auto& i : m_aEventNpcInfo)
+               {
+                    // Not yet rescued, so too late
+                    if (!i.uiSavePosition)
+                    {
+                        if (Creature* pCreature = instance->GetCreature(i.npGuid))
+                            pCreature->ForcedDespawn();
+                    }
+                }
+            m_uiKontrolaTimer = 0.1 * IN_MILLISECONDS;
+        }
+    else
+            m_uiKontrolaTimer -= uiDiff;
     }
 }
 
