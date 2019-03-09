@@ -7033,7 +7033,7 @@ bool Spell::CheckTargetScript(Unit* target, SpellEffectIndex eff) const
                 return false;
             break;
         case 37433:                                         // Spout (The Lurker Below), only players affected if its not in water
-            if (target->IsUnderwater())
+            if (m_caster->IsInWater() && (m_caster->GetTypeId() != TYPEID_PLAYER || static_cast<Player*>(m_caster)->IsInHighLiquid()))
                 return false;
             break;
         case 37851:                                         // Tag Greater Felfire Diemetradon
