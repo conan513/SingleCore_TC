@@ -362,9 +362,6 @@ Unit::Unit() :
     for (float& m_createStat : m_createStats)
         m_createStat = 0.0f;
 
-    for (auto& m_createResistance : m_createResistances)
-        m_createResistance = 0;
-
     m_attacking = nullptr;
     m_modMeleeHitChance = 0.0f;
     m_modRangedHitChance = 0.0f;
