@@ -657,7 +657,7 @@ void BattleGround::EndBattleGround(Team winner)
     WorldPacket data;
     int32 winmsg_id = 0;
     uint32 winnerteam = 0;
-	uint32 pteam = 0;
+    uint32 pteam = 0;
 
     uint32 bgScoresWinner = TEAM_INDEX_NEUTRAL;
     uint64 battleground_id = 1;
@@ -791,22 +791,22 @@ void BattleGround::EndBattleGround(Team winner)
         // store battleground score statistics for each player
         if (isBattleGround() && sWorld.getConfig(CONFIG_BOOL_BATTLEGROUND_SCORE_STATISTICS))
         {
-           if (team == winner)
-			{
-				winnerteam = 1;
-			}
-			else
-				winnerteam = 0;
+            if (team == winner)
+	    {
+                winnerteam = 1;
+            }
+            else
+		winnerteam = 0;
 
-			//pteam = plr->GetTeam();
+	    //pteam = plr->GetTeam();
 
-			static SqlStatementID insPvPstatsPlayer;
+	    static SqlStatementID insPvPstatsPlayer;
             BattleGroundScoreMap::iterator score = m_PlayerScores.find(m_Player.first);
             SqlStatement stmt = CharacterDatabase.CreateStatement(insPvPstatsPlayer, "INSERT INTO pvpstats_players (battleground_id, character_guid, winner, score_killing_blows, score_deaths, score_honorable_kills, score_bonus_honor, score_damage_done, score_healing_done, attr_1, attr_2, attr_3, attr_4, attr_5) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
             stmt.addUInt32(battleground_id);
             stmt.addUInt32(plr->GetGUIDLow());
-			stmt.addUInt32(winnerteam);
+	    stmt.addUInt32(winnerteam);
             BattleGroundScore *pScore = score->second;
             stmt.addUInt32(pScore->GetKillingBlows());
             stmt.addUInt32(pScore->GetDeaths());
