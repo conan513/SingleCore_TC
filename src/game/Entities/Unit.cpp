@@ -368,10 +368,7 @@ Unit::Unit() :
 
     for (float& m_createStat : m_createStats)
         m_createStat = 0.0f;
-
-    for (auto& m_createResistance : m_createResistances)
-        m_createResistance = 0;
-
+    
     m_attacking = nullptr;
     m_modMeleeHitChance = 0.0f;
     m_modRangedHitChance = 0.0f;
@@ -7470,7 +7467,7 @@ bool Unit::IsImmuneToSpell(SpellEntry const* spellInfo, bool /*castOnSelf*/, uin
         {
             SpellImmuneList const& schoolList = m_spellImmune[IMMUNITY_SCHOOL];
             for (auto itr : schoolList)
-                if (!(itr.aura && IsPositiveEffectMask(itr.aura->GetSpellProto(), uint8(1 << (itr.aura->GetEffIndex() - 1))) && isPositive && !itr.aura->GetSpellProto()->HasAttribute(SPELL_ATTR_EX_UNAFFECTED_BY_SCHOOL_IMMUNE)) &&
+                if (!(itr.aura && IsPositiveEffectMask(itr.aura->GetSpellProto(), uint8(1 << (itr.aura->GetEffIndex() - 1))) && !isPositive && !itr.aura->GetSpellProto()->HasAttribute(SPELL_ATTR_EX_UNAFFECTED_BY_SCHOOL_IMMUNE)) &&
                     (itr.type & GetSpellSchoolMask(spellInfo)))
                     return true;
         }
@@ -9887,8 +9884,8 @@ void CharmInfo::InitCharmCreateSpells()
                     onlyselfcast = false;
             }
 
-            if (onlyselfcast || !IsPositiveSpell(spellId))  // only self cast and spells versus enemies are autocastable
-                newstate = ACT_DISABLED;
+            if (IsAutocastable(spellInfo))
+                newstate = ACT_ENABLED;
             else
                 newstate = ACT_PASSIVE;
 
