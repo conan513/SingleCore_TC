@@ -211,7 +211,7 @@ struct boss_archimondeAI : public ScriptedAI
     void UpdateAI(const uint32 uiDiff) override
     {
         
-		float m_fAngle;
+	float m_fAngle;
         // Intro timer
         if (m_uiDrainNordrassilTimer)
         {
@@ -244,16 +244,16 @@ struct boss_archimondeAI : public ScriptedAI
                 m_bIsEpilogue = true;
                 
                 // Start epilogue at 10% hp
-				if (m_bIsEpilogue)
-				{
-					if (DoCastSpellIfCan(m_creature, SPELL_PROTECTION_OF_ELUNE) == CAST_OK)
-					{
-						m_uiFingerOfDeathTimer = 5000;
-						m_bStartEpilogue = true;
-					}
-				}
-				else if (m_pInstance)
-					m_pInstance->SetData(TYPE_ARCHIMONDE, FAIL);
+		if (m_bIsEpilogue)
+		{
+			if (DoCastSpellIfCan(m_creature, SPELL_PROTECTION_OF_ELUNE) == CAST_OK)
+			{
+				m_uiFingerOfDeathTimer = 5000;
+				m_bStartEpilogue = true;
+			}
+		}
+		else if (m_pInstance)
+			m_pInstance->SetData(TYPE_ARCHIMONDE, FAIL);
             }
 
             if (m_bStartEpilogue)
@@ -270,7 +270,7 @@ struct boss_archimondeAI : public ScriptedAI
                 if (m_uiSummonWispTimer < uiDiff)
                 {
                     float fX, fY, fZ;
-					m_creature->GetNearPoint(m_creature, fX, fY, fZ, 0, 30.0f, m_fAngle + frand(0, M_PI_F * .5));
+		    m_creature->GetNearPoint(m_creature, fX, fY, fZ, 0, 30.0f, m_fAngle + frand(0, M_PI_F * .5));
                     m_creature->SummonCreature(NPC_ANCIENT_WISP, fX, fY, fZ, 0, TEMPSPAWN_TIMED_OOC_DESPAWN, 15000);
                     m_uiSummonWispTimer = urand(1000, 1500);
                 }
