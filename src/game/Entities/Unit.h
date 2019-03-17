@@ -273,11 +273,10 @@ typedef std::list<SpellImmune> SpellImmuneList;
 enum UnitModifierType
 {
     BASE_VALUE = 0,
-    BASE_EXCLUSIVE = 1,
-    BASE_PCT = 2,
-    TOTAL_VALUE = 3,
-    TOTAL_PCT = 4,
-    MODIFIER_TYPE_END = 5
+    BASE_PCT = 1,
+    TOTAL_VALUE = 2,
+    TOTAL_PCT = 3,
+    MODIFIER_TYPE_END = 4
 };
 
 enum WeaponDamageRange
@@ -1529,6 +1528,9 @@ class Unit : public WorldObject
         SpellMissInfo MagicSpellHitResult(Unit* pVictim, SpellEntry const* spell, SpellSchoolMask schoolMask);
         SpellMissInfo SpellHitResult(Unit* pVictim, SpellEntry const* spell, uint8 effectMask, bool reflectable = false);
 
+        bool CanDualWield() const { return m_canDualWield; }
+        void SetCanDualWield(bool value) { m_canDualWield = value; }
+
         // Unit Combat reactions API: Dodge/Parry/Block
         bool CanDodge() const { return m_canDodge; }
         bool CanParry() const { return m_canParry; }
@@ -1920,6 +1922,8 @@ class Unit : public WorldObject
         uint32 GetCreateMana() const { return GetUInt32Value(UNIT_FIELD_BASE_MANA); }
         uint32 GetCreatePowers(Powers power) const;
         float GetCreateStat(Stats stat) const { return m_createStats[stat]; }
+        void SetCreateResistance(SpellSchools school, int32 val) { m_createResistances[school] = val; }
+        int32 GetCreateResistance(SpellSchools school) const { return m_createResistances[school]; }
 
         void SetCurrentCastedSpell(Spell* pSpell);
         void InterruptSpell(CurrentSpellTypes spellType, bool withDelayed = true);
@@ -1981,6 +1985,7 @@ class Unit : public WorldObject
         void SetModifierValue(UnitMods unitMod, UnitModifierType modifierType, float value) { m_auraModifiersGroup[unitMod][modifierType] = value; }
         float GetModifierValue(UnitMods unitMod, UnitModifierType modifierType) const;
         float GetTotalStatValue(Stats stat) const;
+        int32 GetTotalResistanceValue(SpellSchools school) const;
         float GetTotalAuraModValue(UnitMods unitMod) const;
         SpellSchools GetSpellSchoolByAuraGroup(UnitMods unitMod) const;
         Stats GetStatByAuraGroup(UnitMods unitMod) const;
@@ -2354,6 +2359,7 @@ class Unit : public WorldObject
         uint32 m_attackTimer[MAX_ATTACK];
 
         float m_createStats[MAX_STATS];
+        int32 m_createResistances[MAX_SPELL_SCHOOL];
 
         Unit* m_attacking;
 
@@ -2396,6 +2402,8 @@ class Unit : public WorldObject
         bool m_canDodge;
         bool m_canParry;
         bool m_canBlock;
+
+        bool m_canDualWield = false;
 
         void DisableSpline();
         bool m_isCreatureLinkingTrigger;

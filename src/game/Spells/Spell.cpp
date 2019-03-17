@@ -5370,11 +5370,7 @@ SpellCastResult Spell::CheckCast(bool strict)
                 else if (m_caster->GetPetGuid())
                 {
                     if (plClass == CLASS_WARLOCK)                  // let warlock do a replacement summon
-                    {
-                        if (strict)     // Summoning Disorientation, trigger pet stun (cast by pet so it doesn't attack player)
-                            if (Pet* pet = ((Player*)m_caster)->GetPet())
-                                pet->CastSpell(pet, 32752, TRIGGERED_OLD_TRIGGERED, nullptr, nullptr, pet->GetObjectGuid());
-                    }
+                        static_cast<Player*>(m_caster)->UnsummonPetIfAny();
                     else
                         return SPELL_FAILED_ALREADY_HAVE_SUMMON;
                 }
@@ -5540,7 +5536,7 @@ SpellCastResult Spell::CheckCast(bool strict)
             }
             case SPELL_AURA_MOUNTED:
             {
-                if (m_caster->IsInWater() && (m_caster->GetTypeId() != TYPEID_PLAYER || !static_cast<Player*>(m_caster)->IsInShallowWater()))
+                if (m_caster->IsInWater() && (m_caster->GetTypeId() != TYPEID_PLAYER || static_cast<Player*>(m_caster)->IsInHighLiquid()))
                     return SPELL_FAILED_ONLY_ABOVEWATER;
 
                 if (m_caster->GetTypeId() == TYPEID_PLAYER && ((Player*)m_caster)->GetTransport())

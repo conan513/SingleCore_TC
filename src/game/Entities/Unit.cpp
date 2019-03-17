@@ -348,7 +348,6 @@ Unit::Unit() :
     for (auto& i : m_auraModifiersGroup)
     {
         i[BASE_VALUE] = 0.0f;
-        i[BASE_EXCLUSIVE] = 0.0f;
         i[BASE_PCT] = 1.0f;
         i[TOTAL_VALUE] = 0.0f;
         i[TOTAL_PCT] = 1.0f;
@@ -359,6 +358,9 @@ Unit::Unit() :
 
     for (int i = 0; i < MAX_STATS; ++i)
         m_createStats[i] = 0.0f;
+
+    for (auto& m_createResistance : m_createResistances)
+        m_createResistance = 0;
 
     m_attacking = nullptr;
     m_modMeleeHitChance = 0.0f;
@@ -3567,15 +3569,17 @@ float Unit::CalculateEffectiveMagicResistancePercent(const Unit* attacker, Spell
     {
         if (schools & 1)
         {
-            // Victim resistance
             int32 amount = GetResistance(SpellSchools(school));
-
-            // Modify by penetration, but can't go negative with it since early stages of development
             int32 penetration = attacker->GetResistancePenetration(SpellSchools(school));
-            amount = std::max((amount + penetration), ((amount > 0) ? 0 : amount));
 
-            if (!resistance || amount < resistance)
-                resistance = amount;
+            // Modify by penetration, but can't go negative with it
+            int32 result = (amount - penetration);
+
+            if (result < 0)
+                result = std::min(amount, 0);
+
+            if (!resistance || result < resistance)
+                resistance = result;
         }
     }
 
@@ -5919,7 +5923,7 @@ bool Unit::IsClientControlled(Player const* exactClient /*= nullptr*/) const
         return false;
 
     // These flags are meant to be used when server controls this unit, client control is taken away
-    if (HasFlag(UNIT_FIELD_FLAGS, (UNIT_FLAG_UNK_0 | UNIT_FLAG_CLIENT_CONTROL_LOST | UNIT_FLAG_CONFUSED | UNIT_FLAG_FLEEING)))
+    if (HasFlag(UNIT_FIELD_FLAGS, (UNIT_FLAG_CLIENT_CONTROL_LOST | UNIT_FLAG_CONFUSED | UNIT_FLAG_FLEEING)))
         return false;
 
     // If unit is possessed, it has lost original control...
@@ -8489,7 +8493,6 @@ bool Unit::HandleStatModifier(UnitMods unitMod, UnitModifierType modifierType, f
     switch (modifierType)
     {
         case BASE_VALUE:
-        case BASE_EXCLUSIVE:
         case TOTAL_VALUE:
             m_auraModifiersGroup[unitMod][modifierType] += apply ? amount : -amount;
             break;
@@ -8577,6 +8580,31 @@ float Unit::GetTotalStatValue(Stats stat) const
     return value;
 }
 
+int32 Unit::GetTotalResistanceValue(SpellSchools school) const
+{
+    UnitMods unitMod = UnitMods(UNIT_MOD_RESISTANCE_START + school);
+
+    if (m_auraModifiersGroup[unitMod][TOTAL_PCT] <= 0.0f)
+        return 0.0f;
+
+    // value = ((base_value * base_pct) + total_value) * total_pct
+    float value = GetCreateResistance(school);
+
+    const bool vulnerability = (value < 0);
+
+    value += m_auraModifiersGroup[unitMod][BASE_VALUE];
+    value *= m_auraModifiersGroup[unitMod][BASE_PCT];
+    value += m_auraModifiersGroup[unitMod][TOTAL_VALUE];
+    value *= m_auraModifiersGroup[unitMod][TOTAL_PCT];
+
+    // Auras can't cause resistances to dip below 0 since early vanilla
+    // PS: Actually, they can, but only visually advertised in the fields, calculations ignore it, we limit both
+    if (value < 0 && !vulnerability)
+        value = 0;
+
+    return int32(value);
+}
+
 float Unit::GetTotalAuraModValue(UnitMods unitMod) const
 {
     if (unitMod >= UNIT_MOD_END)
@@ -8589,7 +8617,6 @@ float Unit::GetTotalAuraModValue(UnitMods unitMod) const
         return 0.0f;
 
     float value  = m_auraModifiersGroup[unitMod][BASE_VALUE];
-    value += m_auraModifiersGroup[unitMod][BASE_EXCLUSIVE];
     value *= m_auraModifiersGroup[unitMod][BASE_PCT];
     value += m_auraModifiersGroup[unitMod][TOTAL_VALUE];
     value *= m_auraModifiersGroup[unitMod][TOTAL_PCT];
@@ -9053,8 +9080,8 @@ void CharmInfo::InitCharmCreateSpells()
                     onlyselfcast = false;
             }
 
-            if (onlyselfcast || !IsPositiveSpell(spellId))  // only self cast and spells versus enemies are autocastable
-                newstate = ACT_DISABLED;
+            if (IsAutocastable(spellInfo))
+                newstate = ACT_ENABLED;
             else
                 newstate = ACT_PASSIVE;
 
