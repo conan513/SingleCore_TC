@@ -144,9 +144,12 @@ void Player::UpdateArmor()
 float Player::GetHealthBonusFromStamina() const
 {
     float stamina = GetStat(STAT_STAMINA);
-
+    DEBUG_LOG("In Player::GetHealthBonusFromStamina() for %s", this->GetName());
+    DEBUG_LOG("Stamina from GetStat(): %.3f", stamina);
     float baseStam = stamina < 20 ? stamina : 20;
     float moreStam = stamina - baseStam;
+    DEBUG_LOG("baseStam: %.3f, moreStam: %.3f", baseStam, moreStam);
+    DEBUG_LOG("returning %.3f", baseStam + (moreStam * 10.0f));
 
     return baseStam + (moreStam * 10.0f);
 }
@@ -790,11 +793,17 @@ void Pet::UpdateArmor()
 void Pet::UpdateMaxHealth()
 {
     UnitMods unitMod = UNIT_MOD_HEALTH;
-    float stamina = GetStat(STAT_STAMINA) - GetCreateStat(STAT_STAMINA);
 
     float value = GetModifierValue(unitMod, BASE_VALUE) + GetCreateHealth();
     value *= GetModifierValue(unitMod, BASE_PCT);
-    value += GetModifierValue(unitMod, TOTAL_VALUE) + std::max((stamina - 20) * 10 + 20, 0.f);
+    // Fixes issue where pets do not benefit from stamina buffs,
+    //   e.g. Great Stamina, PW: Fortitude, Blood Pact
+    //   unless total stamina bonus > 20
+    // cf. Player::GetHealthBonusFromStamina()
+    float stamina = GetStat(STAT_STAMINA);
+    float baseStam = GetCreateStat(STAT_STAMINA);
+    value += GetModifierValue(unitMod, TOTAL_VALUE) + 
+        baseStam < 20 ? stamina : (stamina - baseStam) * 10;
     value *= GetModifierValue(unitMod, TOTAL_PCT);
 
     SetMaxHealth((uint32)value);
