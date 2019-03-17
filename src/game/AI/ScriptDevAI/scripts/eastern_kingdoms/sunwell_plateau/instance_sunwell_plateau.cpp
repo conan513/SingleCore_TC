@@ -401,7 +401,7 @@ void instance_sunwell_plateau::DoSortFlightTriggers()
     lTriggers.sort(sortByPositionX);
     for (auto& lTrigger : lTriggers)
     {
-        if (lTrigger->GetPositionY() < 500.0f)
+        if (lTrigger->GetPositionY() < 600.0f)
             m_vRightFlightTriggersVect.push_back(lTrigger->GetObjectGuid());
         else
             m_vLeftFlightTriggersVect.push_back(lTrigger->GetObjectGuid());

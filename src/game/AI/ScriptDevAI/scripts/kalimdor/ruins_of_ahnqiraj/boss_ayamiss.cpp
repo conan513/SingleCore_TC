@@ -124,8 +124,8 @@ struct boss_ayamissAI : public ScriptedAI
             return;
 
         // Cast feed on target
-        if (Unit* pTarget = m_creature->GetMap()->GetUnit(m_paralyzeTarget))
-            pSummoned->CastSpell(pTarget, SPELL_FEED, TRIGGERED_OLD_TRIGGERED, nullptr, nullptr, m_creature->GetObjectGuid());
+        //if (Unit* pTarget = m_creature->GetMap()->GetUnit(m_paralyzeTarget))
+        //    pSummoned->CastSpell(pTarget, SPELL_FEED, TRIGGERED_OLD_TRIGGERED, nullptr, nullptr, m_creature->GetObjectGuid());
     }
 
     void UpdateAI(const uint32 uiDiff) override
@@ -154,7 +154,7 @@ struct boss_ayamissAI : public ScriptedAI
         // Paralyze
         if (m_uiParalyzeTimer < uiDiff)
         {
-            Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 1, SPELL_PARALYZE, SELECT_FLAG_PLAYER);
+            /*Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 1, SPELL_PARALYZE, SELECT_FLAG_PLAYER);
             if (!pTarget)
                 pTarget = m_creature->getVictim();
 
@@ -166,7 +166,7 @@ struct boss_ayamissAI : public ScriptedAI
                 // Summon a larva
                 uint8 uiLoc = urand(0, 1);
                 m_creature->SummonCreature(NPC_LARVA, aAyamissSpawnLocs[uiLoc].m_fX, aAyamissSpawnLocs[uiLoc].m_fY, aAyamissSpawnLocs[uiLoc].m_fZ, 0, TEMPSPAWN_TIMED_OOC_OR_CORPSE_DESPAWN, 30000);
-            }
+            }*/
         }
         else
             m_uiParalyzeTimer -= uiDiff;

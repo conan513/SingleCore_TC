@@ -134,7 +134,7 @@ struct boss_archimondeAI : public ScriptedAI
     void MoveInLineOfSight(Unit* pWho) override
     {
         // If the boss reaches the tree during the fight, then he enrages - the distance is not very clear
-        if (!m_bIsEnraged && pWho->GetEntry() == NPC_CHANNEL_TARGET && pWho->IsWithinDistInMap(m_creature, 275.0f))
+        if (!m_bIsEnraged && pWho->GetEntry() == NPC_CHANNEL_TARGET && pWho->IsWithinDistInMap(m_creature, 75.0f))
         {
             m_uiEnrageTimer = 1000;
             m_bIsEnraged = true;

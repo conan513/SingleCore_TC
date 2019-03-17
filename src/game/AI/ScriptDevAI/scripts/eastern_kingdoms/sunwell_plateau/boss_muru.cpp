@@ -158,7 +158,7 @@ struct boss_muruAI : public Scripted_NoMovementAI
     void DoSummonHumanoids()
     {
         // summon 2 berserkers and 1 fury mage on each side
-        for (uint8 i = 0; i < 1; i++)
+        for (uint8 i = 0; i < 2; i++)
         {
             DoCastSpellIfCan(m_creature, SPELL_SUMMON_BERSERKER_1, CAST_TRIGGERED);
         //    DoCastSpellIfCan(m_creature, SPELL_SUMMON_BERSERKER_2, CAST_TRIGGERED);
