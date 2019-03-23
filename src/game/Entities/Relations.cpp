@@ -141,9 +141,6 @@ static ReputationRank GetFactionReaction(FactionTemplateEntry const* thisTemplat
                     if (unitPlayer->HasFlag(PLAYER_FLAGS, PLAYER_FLAGS_CONTESTED_PVP) && thisTemplate->IsContestedGuardFaction())
                         return REP_HOSTILE;
 
-                    if (const ReputationRank* rank = unitPlayer->GetReputationMgr().GetForcedRankIfAny(thisTemplate))
-                        return (*rank);
-
                     const FactionEntry* thisFactionEntry = sFactionStore.LookupEntry(thisTemplate->faction);
                     if (thisFactionEntry && thisFactionEntry->HasReputation())
                     {
@@ -213,9 +210,6 @@ ReputationRank Unit::GetReactionTo(Unit const* unit) const
         {
             if (const FactionTemplateEntry* unitFactionTemplate = unit->GetFactionTemplateEntry())
             {
-                if (const ReputationRank* rank = thisPlayer->GetReputationMgr().GetForcedRankIfAny(unitFactionTemplate))
-                    return (*rank);
-
                 const FactionEntry* unitFactionEntry = sFactionStore.LookupEntry(unitFactionTemplate->faction);
 
                 // If the faction has reputation ranks available, "at war" and contested PVP flags decide outcome
