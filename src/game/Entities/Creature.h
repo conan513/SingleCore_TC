@@ -226,8 +226,11 @@ struct CreatureData
 
     // helper function
     ObjectGuid GetObjectGuid(uint32 lowguid) const { return ObjectGuid(CreatureInfo::GetHighGuid(), id, lowguid); }
-    uint32 GetRandomRespawnTime() const { return urand(spawntimesecsmin, spawntimesecsmax); }
-
+    uint32 GetRandomRespawnTime() const { 
+        uint32 randtime = urand(spawntimesecsmin, spawntimesecsmax);
+        
+        return randtime > 1200 ? randtime : 1200;
+    }
     // return false if it should be handled by GameEventMgr or PoolMgr
     bool IsNotPartOfPoolOrEvent() const { return (!gameEvent && !GuidPoolId && !EntryPoolId); }
 };
