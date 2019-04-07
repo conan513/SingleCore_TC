@@ -229,7 +229,7 @@ struct CreatureData
     uint32 GetRandomRespawnTime() const { 
         uint32 randtime = urand(spawntimesecsmin, spawntimesecsmax);
         
-        return randtime > 1200 ? randtime : 1200;
+        return randtime > 1800 ? randtime : 1800;
     }
     // return false if it should be handled by GameEventMgr or PoolMgr
     bool IsNotPartOfPoolOrEvent() const { return (!gameEvent && !GuidPoolId && !EntryPoolId); }
