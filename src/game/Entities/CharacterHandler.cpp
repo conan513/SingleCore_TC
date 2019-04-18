@@ -109,6 +109,11 @@ void PlayerbotHolder::HandlePlayerBotLoginCallback(QueryResult * dummy, SqlQuery
         return;
 
     PlayerbotLoginQueryHolder* lqh = (PlayerbotLoginQueryHolder*)holder;
+    if (sObjectMgr.GetPlayer(lqh->GetGuid()))
+    {
+       delete holder;
+       return;
+    }
     uint32 masterAccount = lqh->GetMasterAccountId();
 
     WorldSession* masterSession = masterAccount ? sWorld.FindSession(masterAccount) : NULL;
