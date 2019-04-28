@@ -145,7 +145,7 @@ static ReputationRank GetFactionReaction(FactionTemplateEntry const* thisTemplat
                     if (thisFactionEntry && thisFactionEntry->HasReputation())
                     {
                         const ReputationMgr& reputationMgr = unitPlayer->GetReputationMgr();
-                        return reputationMgr.GetRank(thisFactionEntry);
+                        return reputationMgr.IsAtWar(thisFactionEntry) ? REP_HOSTILE : reputationMgr.GetRank(thisFactionEntry);
                     }
                 }
 
@@ -326,6 +326,7 @@ bool Unit::IsFriend(Unit const* unit) const
 /////////////////////////////////////////////////
 bool Unit::CanAttack(const Unit* unit) const
 {
+    //return true;
     // Simple sanity check
     if (!unit)
         return false;
@@ -405,6 +406,7 @@ bool Unit::CanAttack(const Unit* unit) const
 /////////////////////////////////////////////////
 bool Unit::CanAttackNow(const Unit* unit) const
 {
+    //return true;
     // Simple sanity check
     if (!unit)
         return false;
@@ -437,6 +439,7 @@ bool Unit::CanAttackNow(const Unit* unit) const
 /////////////////////////////////////////////////
 bool Unit::CanAssist(const Unit* unit, bool /*ignoreFlags*/) const
 {
+    //return true;
     // Simple sanity check
     if (!unit)
         return false;
@@ -501,6 +504,7 @@ bool Unit::CanAssist(const Unit* unit, bool /*ignoreFlags*/) const
 /////////////////////////////////////////////////
 bool Unit::CanAssist(Corpse const* corpse) const
 {
+    //return true;
     return GetReactionTo(corpse) > REP_NEUTRAL;
 }
 
@@ -513,6 +517,7 @@ bool Unit::CanAssist(Corpse const* corpse) const
 /////////////////////////////////////////////////
 bool Unit::CanCooperate(const Unit* unit) const
 {
+    //return true;
     // Simple sanity check
     if (!unit)
         return false;
@@ -1181,6 +1186,7 @@ bool Unit::IsFogOfWarVisibleStats(Unit const* other) const
 /////////////////////////////////////////////////
 bool Unit::CanAssistInCombatAgainst(Unit const* who, Unit const* enemy) const
 {
+    return true;
     if (GetMap()->Instanceable()) // in dungeons nothing else needs to be evaluated
         return true;
 
