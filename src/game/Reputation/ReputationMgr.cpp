@@ -190,7 +190,7 @@ uint32 ReputationMgr::GetDefaultStateFlags(FactionEntry const* factionEntry) con
 	};
 
 	if (find(std::begin(playerFactions), std::end(playerFactions), factionEntry->ID) != end(playerFactions)) {
-		return 1;
+		return 0;
 	}
 
     int idx = factionEntry->GetIndexFitTo(raceMask, classMask);
