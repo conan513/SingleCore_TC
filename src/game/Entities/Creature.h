@@ -227,7 +227,7 @@ struct CreatureData
     // helper function
     ObjectGuid GetObjectGuid(uint32 lowguid) const { return ObjectGuid(CreatureInfo::GetHighGuid(), id, lowguid); }
     uint32 GetRandomRespawnTime() const { 
-        uint32 mintime = 1800;
+        uint32 mintime = 3600;
         uint32 randtime = urand(spawntimesecsmin, spawntimesecsmax);
         
         return randtime > mintime ? randtime : mintime;
