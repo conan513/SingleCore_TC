@@ -337,10 +337,17 @@ SpellModifier::SpellModifier(SpellModOp _op, SpellModType _type, int32 _value, A
 
 bool SpellModifier::isAffectedOnSpell(SpellEntry const* spell) const
 {
+	// Should make sure spell is not null.
+	if (!spell) return false;
+	
     SpellEntry const* affect_spell = sSpellTemplate.LookupEntry<SpellEntry>(spellId);
     // False if affect_spell == nullptr or spellFamily not equal
     if (!affect_spell || affect_spell->SpellFamilyName != spell->SpellFamilyName)
+    {
+		affect_spell = nullptr;
         return false;
+	}
+	affect_spell = nullptr;
     return spell->IsFitToFamilyMask(mask);
 }
 

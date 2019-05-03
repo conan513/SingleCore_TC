@@ -105,8 +105,8 @@ struct npc_dashel_stonefistAI : public ScriptedAI
         Reset();
     }
 
-    uint32 m_uiStartEventTimer;
-    uint32 m_uiEndEventTimer;
+    uint32 m_uiStartEventTimer = 0;
+    uint32 m_uiEndEventTimer = 0;
     ObjectGuid m_playerGuid;
 
     void Reset() override

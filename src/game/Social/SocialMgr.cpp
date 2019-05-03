@@ -189,6 +189,8 @@ void SocialMgr::GetFriendInfo(Player* player, uint32 friend_lowguid, FriendInfo&
         return;
 
     Player* pFriend = ObjectAccessor::FindPlayer(ObjectGuid(HIGHGUID_PLAYER, friend_lowguid));
+    if (!pFriend)
+       return;
 
     Team team = player->GetTeam();
     AccountTypes security = player->GetSession()->GetSecurity();

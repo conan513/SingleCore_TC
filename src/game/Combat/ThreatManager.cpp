@@ -80,6 +80,7 @@ HostileReference::HostileReference(Unit* unit, ThreatManager* threatManager, flo
     iUnitGuid = unit->GetObjectGuid();
     m_online = true;
     iAccessible = true;
+	m_suppresabilityToggle = false;
 }
 
 //============================================================
