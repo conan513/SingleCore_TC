@@ -164,7 +164,7 @@ GroupQueueInfo* BattleGroundQueue::AddGroup(Player* leader, Group* grp, BattleGr
     if (!isRated && !isPremade)
         index += PVP_TEAM_COUNT;                            // BG_QUEUE_PREMADE_* -> BG_QUEUE_NORMAL_*
 
-    if (ginfo->GroupTeam == HORDE && !sWorld.getConfig(CONFIG_BOOL_CFBG_ENABLED))
+    if (ginfo->GroupTeam == HORDE)
         ++index;                                            // BG_QUEUE_*_ALLIANCE -> BG_QUEUE_*_HORDE
 
     DEBUG_LOG("Adding Group to BattleGroundQueue bgTypeId : %u, bracket_id : %u, index : %u", BgTypeId, bracketId, index);
@@ -313,9 +313,6 @@ void BattleGroundQueue::RemovePlayer(ObjectGuid guid, bool decreaseInvitedCount)
     // we count from MAX_BATTLEGROUND_QUEUES - 1 to 0
     // variable index removes useless searching in other team's queue
     uint32 index = BattleGround::GetTeamIndexByTeamId(group->GroupTeam);
-    
-     if (sWorld.getConfig(CONFIG_BOOL_CFBG_ENABLED))
-        index = TEAM_INDEX_ALLIANCE;
 
     for (int8 bracket_id_tmp = MAX_BATTLEGROUND_BRACKETS - 1; bracket_id_tmp >= 0 && bracket_id == -1; --bracket_id_tmp)
     {
