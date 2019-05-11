@@ -21,6 +21,7 @@
 #include "Server/WorldSession.h"
 #include "Log.h"
 #include "Entities/Player.h"
+#include "World/World.h"
 
 void WorldSession::HandleDuelAcceptedOpcode(WorldPacket& recvPacket)
 {
@@ -57,6 +58,35 @@ void WorldSession::HandleDuelAcceptedOpcode(WorldPacket& recvPacket)
     time_t now = time(nullptr);
     self->duel->startTimer = now;
     opponent->duel->startTimer = now;
+
+
+    if (sWorld.getConfig(CONFIG_BOOL_DUELRESET_ENABLED))
+    {
+        std::vector<Unit*> UnitsToReset = { self, opponent };
+
+        // Also fill pets up if they're alive
+        for (size_t i = 0; i < UnitsToReset.size(); ++i)
+            if (Pet* pet = UnitsToReset[i]->GetPet())
+                if (pet->isAlive())
+                    UnitsToReset.push_back(pet);
+
+        for (auto& i : UnitsToReset)
+        {
+            // Reset health and regenerating powers
+            i->SetHealth(i->GetMaxHealth());
+            i->SetPower(POWER_MANA, i->GetMaxPower(POWER_MANA));
+            i->SetPower(POWER_ENERGY, i->GetMaxPower(POWER_ENERGY));
+
+            // Remove all cooldowns for pets
+            if (!i->IsPlayer())
+                i->RemoveAllCooldowns();
+
+            // Remove arena cooldowns if player isn't in a dungeon
+            if (Player* player = i->ToPlayer())
+                if (player->GetMap() && !player->GetMap()->IsDungeon())
+                    player->RemoveArenaSpellCooldowns();
+        }
+    }
 
     self->SendDuelCountdown(3000);
     opponent->SendDuelCountdown(3000);

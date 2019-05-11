@@ -17,11 +17,14 @@
 #
 
 language: cpp
-cache: ccache
+cache:
+    ccache: true
+    directories:
+        - $HOME/Library/Caches/Homebrew
 
 # reduce clone time by only getting the latest commit and not the whole history (default for travis is 100)
 git:
-  depth: 1
+  depth: 10
 
 # make use of the new container based infrastructure at travis to improve performance (we don't need sudo)
 sudo: false
@@ -81,7 +84,7 @@ install: |-
   if [ "$TRAVIS_OS_NAME" == "osx" ]
   then
     brew update
-    brew install mysql++
+    brew install mariadb
   fi
 
 script: |-
@@ -92,3 +95,12 @@ script: |-
   cmake -DCMAKE_INSTALL_PREFIX=../_install -DBUILD_EXTRACTORS=ON -DBUILD_PLAYERBOT=ON -DPCH=$PCH_FLAG ..
   make -j2
   make install
+
+after_success:
+  - wget https://raw.githubusercontent.com/DiscordHooks/travis-ci-discord-webhook/master/send.sh
+  - chmod +x send.sh
+  - ./send.sh success $WEBHOOK_URL
+after_failure:
+  - wget https://raw.githubusercontent.com/DiscordHooks/travis-ci-discord-webhook/master/send.sh
+  - chmod +x send.sh
+  - ./send.sh failure $WEBHOOK_URL

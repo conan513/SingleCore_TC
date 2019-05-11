@@ -41,6 +41,8 @@
 #include "Loot/LootMgr.h"
 #include "Spells/SpellMgr.h"
 
+#include "Custom/CPlayer.h"
+
 Object::Object(): m_updateFlag(0), m_itsNewObject(false)
 {
     m_objectTypeId      = TYPEID_OBJECT;
@@ -252,15 +254,15 @@ void Object::BuildMovementUpdate(ByteBuffer* data, uint8 updateFlags) const
         {
             Player* player = ((Player*)unit);
             if (player->GetTransport())
-                player->m_movementInfo.AddMovementFlag(MOVEFLAG_ONTRANSPORT);
+                player->m_movementInfo->AddMovementFlag(MOVEFLAG_ONTRANSPORT);
             else
-                player->m_movementInfo.RemoveMovementFlag(MOVEFLAG_ONTRANSPORT);
+                player->m_movementInfo->RemoveMovementFlag(MOVEFLAG_ONTRANSPORT);
         }
 
         // Update movement info time
-        unit->m_movementInfo.UpdateTime(WorldTimer::getMSTime());
+        unit->m_movementInfo->UpdateTime(WorldTimer::getMSTime());
         // Write movement info
-        unit->m_movementInfo.Write(*data);
+        unit->m_movementInfo->Write(*data);
 
         // Unit speeds
         *data << float(unit->GetSpeed(MOVE_WALK));
@@ -273,7 +275,7 @@ void Object::BuildMovementUpdate(ByteBuffer* data, uint8 updateFlags) const
         *data << float(unit->GetSpeed(MOVE_TURN_RATE));
 
         // 0x08000000
-        if (unit->m_movementInfo.GetMovementFlags() & MOVEFLAG_SPLINE_ENABLED)
+        if (unit->m_movementInfo->GetMovementFlags() & MOVEFLAG_SPLINE_ENABLED)
             Movement::PacketBuilder::WriteCreate(*unit->movespline, *data);
     }
     // 0x40
@@ -491,25 +493,33 @@ void Object::BuildValuesUpdate(uint8 updatetype, ByteBuffer* data, UpdateMask* u
                 {
                     *data << uint32(m_floatValues[index]);
                 }
-
-                // Fog of War: replace absolute health values with percentages for non-allied units according to settings
-                else if ((index == UNIT_FIELD_HEALTH || index == UNIT_FIELD_MAXHEALTH) &&
-                         !(static_cast<const Unit*>(this))->IsFogOfWarVisibleHealth(target))
+                else if (index == UNIT_FIELD_HEALTH || index == UNIT_FIELD_MAXHEALTH)
                 {
-                    *data << uint32(index == UNIT_FIELD_MAXHEALTH ? 100 : ceil(100.0 * m_uint32Values[UNIT_FIELD_HEALTH] / m_uint32Values[UNIT_FIELD_MAXHEALTH]));
-                }
+                    uint32 value = m_uint32Values[index];
 
+                    // Fog of War: replace absolute health values with percentages for non-allied units according to settings
+                    if (!static_cast<const Unit*>(this)->IsFogOfWarVisibleHealth(target))
+                    {
+                        switch (index)
+                        {
+                            case UNIT_FIELD_HEALTH:     value = uint32(ceil((100.0 * value) / m_uint32Values[UNIT_FIELD_MAXHEALTH]));   break;
+                            case UNIT_FIELD_MAXHEALTH:  value = 100;                                                                    break;
+                        }
+                    }
+
+                    *data << value;
+                }
                 // Fog of War: hide stat values for non-allied units according to settings
                 else if ((index == UNIT_FIELD_RANGEDATTACKTIME ||
                           index == UNIT_FIELD_MINDAMAGE || index == UNIT_FIELD_MAXDAMAGE ||
                           index == UNIT_FIELD_MINOFFHANDDAMAGE || index == UNIT_FIELD_MAXOFFHANDDAMAGE ||
-                          index == UNIT_FIELD_MINOFFHANDDAMAGE || (index >= UNIT_FIELD_STAT0 && index < UNIT_FIELD_BASE_MANA) ||
+                          (index >= UNIT_FIELD_STAT0 && index < UNIT_FIELD_BASE_MANA) ||
                           index == UNIT_FIELD_BASE_HEALTH || index == UNIT_FIELD_ATTACK_POWER ||
                           index == UNIT_FIELD_ATTACK_POWER_MODS || index == UNIT_FIELD_ATTACK_POWER_MULTIPLIER ||
                           index == UNIT_FIELD_RANGED_ATTACK_POWER || index == UNIT_FIELD_RANGED_ATTACK_POWER_MODS ||
                           index == UNIT_FIELD_RANGED_ATTACK_POWER_MULTIPLIER || index == UNIT_FIELD_MINRANGEDDAMAGE ||
                           index == UNIT_FIELD_MAXRANGEDDAMAGE || (index >= UNIT_FIELD_POWER_COST_MODIFIER && index <= UNIT_FIELD_MAXHEALTHMODIFIER)) &&
-                          !(static_cast<const Unit*>(this))->IsFogOfWarVisibleStats(target))
+                          !static_cast<const Unit*>(this)->IsFogOfWarVisibleStats(target))
                 {
                     *data << uint32(0);
                 }
@@ -612,6 +622,28 @@ void Object::BuildValuesUpdate(uint8 updatetype, ByteBuffer* data, UpdateMask* u
                     }
 
                     *data << dynflagsValue;
+                }
+                else if (index == UNIT_FIELD_FACTIONTEMPLATE)
+                {
+                    uint32 value = m_uint32Values[index];
+
+                    // [XFACTION]: Alter faction if detected crossfaction group interaction when updating faction field:
+                    if (this != target && GetTypeId() == TYPEID_PLAYER && sWorld.getConfig(CONFIG_BOOL_ALLOW_TWO_SIDE_INTERACTION_GROUP))
+                    {
+                        Player const* thisPlayer = static_cast<Player const*>(this);
+                        const uint32 targetTeam = target->GetTeam();
+
+                        if (thisPlayer->GetTeam() != targetTeam && !thisPlayer->HasCharmer() && target->IsInGroup(thisPlayer))
+                        {
+                            switch (targetTeam)
+                            {
+                                case ALLIANCE:  value = 1054;   break;  // "Alliance Generic"
+                                case HORDE:     value = 1495;   break;  // "Horde Generic"
+                            }
+                        }
+                    }
+
+                    *data << value;
                 }
                 else                                        // Unhandled index, just send
                 {
@@ -1014,7 +1046,7 @@ void Object::MarkForClientUpdate()
     }
 }
 
-void Object::ForceValuesUpdateAtIndex(uint32 index)
+void Object::ForceValuesUpdateAtIndex(uint16 index)
 {
     m_changedValues[index] = true;
     if (m_inWorld && !m_objectUpdated)
@@ -1050,7 +1082,10 @@ void WorldObject::Relocate(float x, float y, float z, float orientation)
     m_position.o = orientation;
 
     if (isType(TYPEMASK_UNIT))
-        ((Unit*)this)->m_movementInfo.ChangePosition(x, y, z, orientation);
+        ((Unit*)this)->m_movementInfo->ChangePosition(x, y, z, orientation);
+
+    if (isType(TYPEMASK_PLAYER))
+        this->ToCPlayer()->HandleRelocate(x, y, z, orientation);
 }
 
 void WorldObject::Relocate(float x, float y, float z)
@@ -1060,7 +1095,10 @@ void WorldObject::Relocate(float x, float y, float z)
     m_position.z = z;
 
     if (isType(TYPEMASK_UNIT))
-        ((Unit*)this)->m_movementInfo.ChangePosition(x, y, z, GetOrientation());
+        ((Unit*)this)->m_movementInfo->ChangePosition(x, y, z, GetOrientation());
+
+    if (isType(TYPEMASK_PLAYER))
+        this->ToCPlayer()->HandleRelocate(x, y, z, GetOrientation());
 }
 
 void WorldObject::SetOrientation(float orientation)
@@ -1068,7 +1106,7 @@ void WorldObject::SetOrientation(float orientation)
     m_position.o = orientation;
 
     if (isType(TYPEMASK_UNIT))
-        ((Unit*)this)->m_movementInfo.ChangeOrientation(orientation);
+        ((Unit*)this)->m_movementInfo->ChangeOrientation(orientation);
 }
 
 uint32 WorldObject::GetZoneId() const

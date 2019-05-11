@@ -55,6 +55,9 @@
 #include "immersive.h"
 #endif
 
+#include "Custom/Custom.h"
+#include "Custom/SpellRegulator.hpp"
+
 #include <math.h>
 #include <array>
 
@@ -222,6 +225,7 @@ void MovementInfo::Read(ByteBuffer& data)
     data >> moveFlags;
     data >> moveFlags2;
     data >> time;
+    acTime = time;
     data >> pos.x;
     data >> pos.y;
     data >> pos.z;
@@ -312,6 +316,8 @@ Unit::Unit() :
     m_spellProcsHappening(false),
     m_auraUpdateMask(0)
 {
+    m_movementInfo = MovementInfoPtr(new MovementInfo());
+
     m_objectType |= TYPEMASK_UNIT;
     m_objectTypeId = TYPEID_UNIT;
     // 2.3.2 - 0x70
@@ -663,7 +669,7 @@ bool Unit::UpdateMeleeAttackingState()
 
 void Unit::SendHeartBeat()
 {
-    m_movementInfo.UpdateTime(WorldTimer::getMSTime());
+    m_movementInfo->UpdateTime(WorldTimer::getMSTime());
     WorldPacket data(MSG_MOVE_HEARTBEAT, 64);
     data << GetPackGUID();
     data << m_movementInfo;
@@ -803,6 +809,9 @@ uint32 Unit::DealDamage(Unit* pVictim, uint32 damage, CleanDamage const* cleanDa
 
         return 0;
     }
+
+    if (spellProto)
+        sCustom.spellRegulator->RegulateSpell(spellProto->Id, damage);
 
     DEBUG_FILTER_LOG(LOG_FILTER_DAMAGE, "DealDamageStart");
 
@@ -4880,10 +4889,12 @@ bool Unit::RemoveNoStackAurasDueToAuraHolder(SpellAuraHolder* holder)
         const bool own = (holder->GetCasterGuid() == existing->GetCasterGuid());
 
         // early checks that spellId is passive non stackable spell
-        if (IsPassiveSpell(existingSpellProto))
+        // Experimental: passive abilities dont stack with itself
+        if (IsPassiveSpell(existingSpellProto) && (spellId != existingSpellId || !spellProto->HasAttribute(SPELL_ATTR_ABILITY)))
         {
             // passive non-stackable spells not stackable only for same caster
-            if (!own)
+            // Experimental: exclude party passive auras from this
+            if (!own && !IsSpellHaveEffect(spellProto, SPELL_EFFECT_APPLY_AREA_AURA_PARTY))
                 continue;
 
             // passive non-stackable spells not stackable only with another rank of same spell
@@ -5743,6 +5754,8 @@ void Unit::RemoveAllGameObjects()
 
 void Unit::SendSpellNonMeleeDamageLog(SpellNonMeleeDamage* log) const
 {
+    sCustom.spellRegulator->RegulateSpell(log->SpellID, log->damage);
+
     WorldPacket data(SMSG_SPELLNONMELEEDAMAGELOG, (8 + 8 + 4 + 4 + 1 + 4 + 4 + 1 + 1 + 4 + 4 + 1));
     data << log->target->GetPackGUID();
     data << log->attacker->GetPackGUID();
@@ -5811,6 +5824,8 @@ void Unit::SendPeriodicAuraLog(SpellPeriodicAuraLogInfo* pInfo) const
 {
     Aura* aura = pInfo->aura;
     Modifier* mod = aura->GetModifier();
+
+    sCustom.spellRegulator->RegulateSpell(aura->GetId(), pInfo->damage);
 
     WorldPacket data(SMSG_PERIODICAURALOG, 30);
     data << aura->GetTarget()->GetPackGUID();
@@ -5950,7 +5965,7 @@ bool Unit::CanInitiateAttack() const
         return false;
 
     if (HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE))
-        if (GetTypeId() != TYPEID_UNIT || (GetTypeId() == TYPEID_UNIT && !((Creature*)this)->GetForceAttackingCapability()))
+        if (GetTypeId() != TYPEID_UNIT || !((Creature*)this)->GetForceAttackingCapability())
             return false;
 
     if (GetTypeId() == TYPEID_UNIT && !((Creature*)this)->CanAggro())
@@ -6388,30 +6403,6 @@ Player* Unit::GetBeneficiaryPlayer() const
     return (GetTypeId() == TYPEID_PLAYER ? const_cast<Player*>(static_cast<Player const*>(this)) : nullptr);
 }
 
-Player const* Unit::GetControllingPlayer() const
-{
-    // TBC+ clientside logic counterpart
-    if (ObjectGuid const& masterGuid = GetMasterGuid())
-    {
-        if (Unit const* master = ObjectAccessor::GetUnit(*this, masterGuid))
-        {
-            if (master->GetTypeId() == TYPEID_PLAYER)
-                return static_cast<Player const*>(master);
-            if (ObjectGuid const& masterMasterGuid = master->GetMasterGuid())
-            {
-                if (Unit const* masterMaster = ObjectAccessor::GetUnit(*this, masterMasterGuid))
-                {
-                    if (masterMaster->GetTypeId() == TYPEID_PLAYER)
-                        return static_cast<Player const*>(masterMaster);
-                }
-            }
-        }
-    }
-    else if (GetTypeId() == TYPEID_PLAYER)
-        return static_cast<Player const*>(this);
-    return nullptr;
-}
-
 bool Unit::IsClientControlled(Player const* exactClient /*= nullptr*/) const
 {
     // Severvide method to check if unit is client controlled (optionally check for specific client in control)
@@ -6794,6 +6785,9 @@ void Unit::UnsummonAllTotems() const
 
 int32 Unit::DealHeal(Unit* pVictim, uint32 addhealth, SpellEntry const* spellProto, bool critical)
 {
+    if (spellProto)
+        sCustom.spellRegulator->RegulateSpell(spellProto->Id, addhealth);
+
     int32 gain = pVictim->ModifyHealth(int32(addhealth));
 
     Unit* unit = this;
@@ -10135,7 +10129,7 @@ void Unit::SetImmobilizedState(bool apply, bool stun)
         else
         {
             // Clear unit movement flags
-            m_movementInfo.SetMovementFlags(MOVEFLAG_NONE);
+            m_movementInfo->SetMovementFlags(MOVEFLAG_NONE);
             SetRoot(true);
         }
     }
@@ -10143,7 +10137,7 @@ void Unit::SetImmobilizedState(bool apply, bool stun)
     {
         clearUnitState(state);
         // Prevent giving ability to move if more immobilizers are active
-        if (!hasUnitState(immobilized) && (player || m_movementInfo.HasMovementFlag(MOVEFLAG_ROOT)))
+        if (!hasUnitState(immobilized) && (player || m_movementInfo->HasMovementFlag(MOVEFLAG_ROOT)))
             SetRoot(false);
     }
 }
@@ -10359,18 +10353,21 @@ bool Unit::IsSeatedState() const
     return standState != UNIT_STAND_STATE_SLEEP && standState != UNIT_STAND_STATE_STAND;
 }
 
-void Unit::SetStandState(uint8 state)
+void Unit::SetStandState(uint8 state, bool acknowledge/* = false*/)
 {
+    if (getStandState() == state)
+        return;
+
     SetByteValue(UNIT_FIELD_BYTES_1, 0, state);
 
     if (!IsSeatedState())
         RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_NOT_SEATED);
 
-    if (GetTypeId() == TYPEID_PLAYER)
+    if (!acknowledge && GetTypeId() == TYPEID_PLAYER)
     {
         WorldPacket data(SMSG_STANDSTATE_UPDATE, 1);
-        data << (uint8)state;
-        ((Player*)this)->GetSession()->SendPacket(data);
+        data << uint8(state);
+        static_cast<Player*>(this)->GetSession()->SendPacket(data);
     }
 }
 
@@ -11197,7 +11194,7 @@ void Unit::UpdateSplineMovement(uint32 t_diff)
 
 void Unit::DisableSpline()
 {
-    m_movementInfo.RemoveMovementFlag(MovementFlags(MOVEFLAG_SPLINE_ENABLED | MOVEFLAG_FORWARD));
+    m_movementInfo->RemoveMovementFlag(MovementFlags(MOVEFLAG_SPLINE_ENABLED | MOVEFLAG_FORWARD));
     movespline->_Interrupt();
 }
 

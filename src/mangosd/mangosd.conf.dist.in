@@ -3,7 +3,7 @@
 #####################################
 
 [MangosdConf]
-ConfVersion=2019020601
+ConfVersion=2019050101
 
 ###################################################################################################################
 # CONNECTIONS AND DIRECTORIES
@@ -854,8 +854,13 @@ PlayerCommands = 1
 #    AllowTwoSide.Interaction.Guild
 #    AllowTwoSide.Interaction.Auction
 #    AllowTwoSide.Interaction.Mail
-#        Allow or not common :chat(say,yell);channel(chat)group(join)guild(join);merge all auction houses for players from
-#        different teams, send mail to different team.
+#        Allow or disallow players from different teams to:
+#        - chat with each other (say, yell);
+#        - have merged chat channels;
+#        - join each other's groups;
+#        - join each other's guilds;
+#        - have merged auction house listings;
+#        - send in-game mail;
 #        Default: 0 (Not allowed)
 #                 1 (Allowed)
 #
@@ -1497,11 +1502,15 @@ Death.Ghost.RunSpeed.Battleground = 1.0
 #        Default: 1800000 (30 minutes)
 #                 0 - disable premade group matches (group always added to bg team in normal way)
 #
-#    BattleGround.CrossfactionQueueing
+#    BattleGround.Crossfaction.Queueing
 #        Enable crossfaction battleground queueing.
 #        Default: 0 - (Disabled)
 #                 1 - (Enabled)
 #
+#    BattleGround.Crossfaction.ReplaceRacials
+#       Replace racial spells with the ones from the race you're faking
+#        Default: 0 - (Disabled)
+#                 1 - (Enabled)
 #
 ###################################################################################################################
 
@@ -1512,7 +1521,8 @@ Battleground.ScoreStatistics = 0
 Battleground.InvitationType = 0
 BattleGround.PrematureFinishTimer = 300000
 BattleGround.PremadeGroupWaitForMatch = 1800000
-BattleGround.CrossfactionQueueing = 1
+BattleGround.Crossfaction.Queueing = 0
+BattleGround.Crossfaction.ReplaceRacials = 0
 
 ###################################################################################################################
 # ARENA CONFIG
@@ -1715,3 +1725,110 @@ SOAP.Port = 7878
 CharDelete.Method = 0
 CharDelete.MinLevel = 0
 CharDelete.KeepDays = 30
+
+
+###################################################################################################################
+# CUSTOM NON BLIZZLIKE SERVER FEATURES
+#
+#    Custom.DuelReset
+#        Reset health, mana and arena cooldowns when duel starts
+#        Default: 0 - Disabled
+#             1 - Enabled
+#
+#    Custom.AutoLearnSpells
+#        Enables or disables automatic learning of spells
+#        Default: 0 - Disabled
+#      1 - Enabled
+#
+#    Custom.AutoBroadcastTimer
+#        Default timer between announcements
+#               Default: 0   - Disabled
+#                        300 - 300 seconds (5 minutes)
+#
+#    Custom.AutoBroadcastPrefix
+#        Prefix that's always applied for AutoBroadcast messages
+#        Default: "" - No prefixed text
+#
+#
+#    Custom.AntiCheat.SpeedCheat
+#        Enables or disables AntiCheat module
+#        Default: 0 - Disabled
+#                 1 - Enabled
+#
+#
+#    Custom.AntiCheat.Teleport
+#        Enables or disables AntiCheat module
+#        Default: 0 - Disabled
+#                 1 - Enabled
+#
+#
+#    Custom.AntiCheat.Fly
+#        Enables or disables AntiCheat module
+#        Default: 0 - Disabled
+#                 1 - Enabled
+#
+#
+#    Custom.AntiCheat.Jump
+#        Enables or disables AntiCheat module
+#        Default: 0 - Disabled
+#                 1 - Enabled
+#
+#
+#    Custom.AntiCheat.Gravity
+#        Enables or disables AntiCheat module
+#        Default: 0 - Disabled
+#                 1 - Enabled
+#
+#
+#    Custom.AntiCheat.WaterWalking
+#        Enables or disables AntiCheat module
+#        Default: 0 - Disabled
+#                 1 - Enabled
+#
+#
+#    Custom.AntiCheat.WallClimbing
+#        Enables or disables AntiCheat module
+#        Default: 0 - Disabled
+#                 1 - Enabled
+#
+#
+#    Custom.AntiCheat.WallJumping
+#        Enables or disables AntiCheat module
+#        Default: 0 - Disabled
+#                 1 - Enabled
+#
+#
+#    Custom.AntiCheat.Tele2Plane
+#        Enables or disables AntiCheat module
+#        Default: 0 - Disabled
+#                 1 - Enabled
+#
+#
+#    Custom.AntiCheat.NoFall
+#        Enables or disables AntiCheat module
+#        Default: 0 - Disabled
+#                 1 - Enabled
+#
+#
+#    Custom.AntiCheat.Time
+#        Enables or disables AntiCheat module
+#        Default: 0 - Disabled
+#                 1 - Enabled
+#
+###################################################################################################################
+
+Custom.DuelReset = 0
+Custom.AutoLearnSpells = 0
+Custom.AutoBroadcastTimer = 0
+Custom.AutoBroadcastPrefix = ""
+Custom.AntiCheat.SpeedCheat = 0
+Custom.AntiCheat.Teleport = 0
+Custom.AntiCheat.Fly = 0
+Custom.AntiCheat.Jump = 0
+Custom.AntiCheat.Gravity = 0
+Custom.AntiCheat.WaterWalking = 0
+Custom.AntiCheat.WallClimbing = 0
+Custom.AntiCheat.WallJumping = 0
+Custom.AntiCheat.Tele2Plane = 0
+Custom.AntiCheat.NoFall = 0
+Custom.AntiCheat.Time = 0

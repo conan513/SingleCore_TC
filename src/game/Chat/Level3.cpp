@@ -57,6 +57,8 @@
 #include "Server/SQLStorages.h"
 #include "Loot/LootMgr.h"
 
+#include "Custom/CPlayer.h"
+
 static uint32 ahbotQualityIds[MAX_AUCTION_QUALITY] =
 {
     LANG_AHBOT_QUALITY_GREY, LANG_AHBOT_QUALITY_WHITE,
@@ -5702,6 +5704,8 @@ bool ChatHandler::HandleGMFlyCommand(char* args)
         target = m_session->GetPlayer();
 
     target->SetCanFly(value);
+    target->ToCPlayer()->SetGMFly(value);
+
     PSendSysMessage(LANG_COMMAND_FLYMODE_STATUS, GetNameLink(target).c_str(), args);
     return true;
 }

@@ -1,5 +1,14 @@
 # C(ontinued)-MaNGOS -- README
-[![Build Status](https://travis-ci.org/cmangos/mangos-tbc.svg?branch=master)](https://travis-ci.org/cmangos/mangos-tbc) [![Windows Build status](https://ci.appveyor.com/api/projects/status/github/cmangos/mangos-tbc?branch=master&svg=true)](https://ci.appveyor.com/project/cmangos/mangos-tbc/branch/master)
+[![Build Status](https://travis-ci.org/Lillecarl/mangos-tbc.svg?branch=b16)](https://travis-ci.org/Lillecarl/mangos-tbc)
+
+## Additional features
+* Serverside anticheat
+* Crossfaction Battlegrounds
+* AutoBroadcaster (very basic)
+* AutoTrainer (Auto Learn Spells when they're available)
+* Spell Regulator (Put modifiers on damage and healing spells)
+
+If you're interested in anything specific to this CMaNGOS fork, then I'm on Discord (sometimes) LilleCarl#8098 [My Server](https://discord.gg/qgTkNXa)
 
 This file is part of the CMaNGOS Project. See [AUTHORS](AUTHORS.md) and [COPYRIGHT](COPYRIGHT.md) files for Copyright information
 

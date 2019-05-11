@@ -34,6 +34,8 @@
 #include "Grids/GridNotifiersImpl.h"
 #include "Chat/Chat.h"
 
+#include "Custom/CPlayer.h"
+
 #include <cstdarg>
 
 #define ITEM_ENTRIX_CRYSTAL 38186
@@ -1060,6 +1062,8 @@ void BattleGround::RemovePlayerAtLeave(ObjectGuid guid, bool Transport, bool Sen
 
     if (plr)
     {
+        plr->ToCPlayer()->CFLeaveBattleGround();
+
         // Remove flag set in BattleGround::BlockMovement()
         plr->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_CLIENT_CONTROL_LOST);
 
@@ -1219,10 +1223,10 @@ void BattleGround::StartBattleGround()
 
 void BattleGround::AddPlayer(Player* plr)
 {
-    plr->CFJoinBattleGround();
-    
+    plr->ToCPlayer()->CFJoinBattleGround();
+
     // remove afk from player
-    if (plr->HasFlag(PLAYER_FLAGS, PLAYER_FLAGS_AFK))
+    if (plr->isAFK())
         plr->ToggleAFK();
 
     // score struct must be created in inherited class

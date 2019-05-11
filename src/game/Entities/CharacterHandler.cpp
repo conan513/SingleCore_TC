@@ -38,6 +38,9 @@
 #include "Util.h"
 #include "Tools/Language.h"
 #include "AI/ScriptDevAI/ScriptDevAIMgr.h"
+#include "Spells/SpellMgr.h"
+#include "Custom/CPlayer.h"
+
 #ifdef ENABLE_PLAYERBOTS
 #include "playerbot.h"
 #include "PlayerbotAIConfig.h"
@@ -189,7 +192,7 @@ bool LoginQueryHolder::Initialize()
     if (sWorld.getConfig(CONFIG_BOOL_DECLINED_NAMES_USED))
         res &= SetPQuery(PLAYER_LOGIN_QUERY_LOADDECLINEDNAMES,   "SELECT genitive, dative, accusative, instrumental, prepositional FROM character_declinedname WHERE guid = '%u'", m_guid.GetCounter());
     // in other case still be dummy query
-    res &= SetPQuery(PLAYER_LOGIN_QUERY_LOADGUILD,           "SELECT guildid,`rank` FROM guild_member WHERE guid = '%u'", m_guid.GetCounter());
+    res &= SetPQuery(PLAYER_LOGIN_QUERY_LOADGUILD,           "SELECT guildid,'rank' FROM guild_member WHERE guid = '%u'", m_guid.GetCounter());
     res &= SetPQuery(PLAYER_LOGIN_QUERY_LOADARENAINFO,       "SELECT arenateamid, played_week, played_season, personal_rating FROM arena_team_member WHERE guid='%u'", m_guid.GetCounter());
     res &= SetPQuery(PLAYER_LOGIN_QUERY_LOADBGDATA,          "SELECT instance_id, team, join_x, join_y, join_z, join_o, join_map FROM character_battleground_data WHERE guid = '%u'", m_guid.GetCounter());
     res &= SetPQuery(PLAYER_LOGIN_QUERY_LOADSKILLS,          "SELECT skill, value, max FROM character_skills WHERE guid = '%u'", m_guid.GetCounter());
@@ -454,7 +457,7 @@ void WorldSession::HandleCharCreateOpcode(WorldPacket& recv_data)
         }
     }
 
-    Player* pNewChar = new Player(this);
+    CPlayer* pNewChar = new CPlayer(this);
     if (!pNewChar->Create(sObjectMgr.GeneratePlayerLowGuid(), name, race_, class_, gender, skin, face, hairStyle, hairColor, facialHair, outfitId))
     {
         // Player not create (race/class problem?)
@@ -572,18 +575,18 @@ void WorldSession::HandlePlayerLoginOpcode(WorldPacket& recv_data)
     {
         // player is reconnecting
 
-        if (!isLogingOut())
-        {
-            sLog.outError("HandlePlayerLoginOpcode> %s try to login again, AccountId = %u", pCurrChar->GetGuidStr().c_str(), GetAccountId());
-            data << (uint8)CHAR_LOGIN_FAILED;
-            SendPacket(data, true);
-            return;
-        }
-
         if (!pCurrChar)
         {
             sLog.outError("HandlePlayerLoginOpcode> %s try to login a second char, AccountId = %u", _player->GetGuidStr().c_str(), GetAccountId());
             data << (uint8)CHAR_LOGIN_DUPLICATE_CHARACTER;
+            SendPacket(data, true);
+            return;
+        }
+
+        if (!isLogingOut())
+        {
+            sLog.outError("HandlePlayerLoginOpcode> %s try to login again, AccountId = %u", pCurrChar->GetGuidStr().c_str(), GetAccountId());
+            data << (uint8)CHAR_LOGIN_FAILED;
             SendPacket(data, true);
             return;
         }
@@ -614,7 +617,7 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder* holder)
 {
     ObjectGuid playerGuid = holder->GetGuid();
 
-    Player* pCurrChar = new Player(this);
+    Player* pCurrChar = new CPlayer(this);
     pCurrChar->GetMotionMaster()->Initialize();
     SetPlayer(pCurrChar);
     m_playerLoading = true;
@@ -848,6 +851,15 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder* holder)
         pCurrChar->FakeDisplayID();
     }
     pCurrChar->FixLanguageSkills();
+
+    if (!pCurrChar->ToCPlayer()->NativeTeam())
+    {
+        pCurrChar->SetByteValue(UNIT_FIELD_BYTES_0, 0, pCurrChar->ToCPlayer()->getFRace());
+        pCurrChar->setFaction(pCurrChar->ToCPlayer()->getFFaction());
+        pCurrChar->ToCPlayer()->FakeDisplayID();
+    }
+
+    pCurrChar->ToCPlayer()->OnLogin();
 
     m_playerLoading = false;
     delete holder;

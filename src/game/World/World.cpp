@@ -72,6 +72,8 @@
 #include "RandomPlayerbotMgr.h"
 #endif
 
+#include "Custom/Custom.h"
+
 #include <algorithm>
 #include <mutex>
 #include <cstdarg>
@@ -833,6 +835,8 @@ void World::LoadConfigSettings(bool reload)
     
     setConfig(CONFIG_BOOL_CFBG_ENABLED, "BattleGround.CrossfactionQueueing", true); // Should be false for PR
 
+    sCustom.LoadConfig();
+
     sLog.outString();
 }
 
@@ -1355,6 +1359,10 @@ void World::SetInitialWorldSettings()
     sAuctionBot.Initialize();
     sLog.outString();
 
+    sLog.outString("Loading custom database related stuff");
+    sCustom.Load();
+    sLog.outString();
+
 #ifdef ENABLE_PLAYERBOTS
     auctionbot.Init();
     sPlayerbotAIConfig.Initialize();
@@ -1419,6 +1427,8 @@ void World::DetectDBCLang()
 /// Update the World !
 void World::Update(uint32 diff)
 {
+    sCustom.Update(diff);
+
     m_currentMSTime = WorldTimer::getMSTime();
     m_currentTime = std::chrono::time_point_cast<std::chrono::milliseconds>(Clock::now());
     m_currentDiff = diff;

@@ -185,6 +185,7 @@ enum eConfigUInt32Values
     CONFIG_UINT32_FOGOFWAR_STEALTH,
     CONFIG_UINT32_FOGOFWAR_HEALTH,
     CONFIG_UINT32_FOGOFWAR_STATS,
+    CONFIG_UINT32_AUTOBROADCAST_TIMER,
     CONFIG_UINT32_VALUE_COUNT
 };
 
@@ -344,6 +345,20 @@ enum eConfigBoolValues
     CONFIG_BOOL_PATH_FIND_OPTIMIZE,
     CONFIG_BOOL_PATH_FIND_NORMALIZE_Z,
     CONFIG_BOOL_CFBG_ENABLED,
+    CONFIG_BOOL_CFBG_REPLACERACIALS,
+    CONFIG_BOOL_DUELRESET_ENABLED,
+    CONFIG_BOOL_AUTOLEARNSPELLS,
+    CONFIG_BOOL_ANTICHEAT_SPEEDCHEAT,
+    CONFIG_BOOL_ANTICHEAT_TELEPORT,
+    CONFIG_BOOL_ANTICHEAT_FLY,
+    CONFIG_BOOL_ANTICHEAT_JUMP,
+    CONFIG_BOOL_ANTICHEAT_GRAVITY,
+    CONFIG_BOOL_ANTICHEAT_WATERWALKING,
+    CONFIG_BOOL_ANTICHEAT_WALLCLIMBING,
+    CONFIG_BOOL_ANTICHEAT_WALLJUMPING,
+    CONFIG_BOOL_ANTICHEAT_TELE2PLANE,
+    CONFIG_BOOL_ANTICHEAT_NOFALL,
+    CONFIG_BOOL_ANTICHEAT_TIME,
     CONFIG_BOOL_VALUE_COUNT
 };
 
@@ -439,6 +454,7 @@ struct CliCommandHolder
 /// The World
 class World
 {
+    friend class Custom;
     public:
         static volatile uint32 m_worldLoopCounter;
 
@@ -715,6 +731,9 @@ class World
         static uint32 m_currentMSTime;
         static TimePoint m_currentTime;
         static uint32 m_currentDiff;
+
+    public:
+        const SessionMap GetSessions() { return m_sessions; }
 };
 
 extern uint32 realmID;
