@@ -997,6 +997,13 @@ class Player : public Unit
 
         void GiveXP(uint32 xp, Creature* victim, float groupRate = 1.f);
         void GiveLevel(uint32 level);
+		void GiveParagonXP(uint32 xp);
+		uint32 GetParagonLevel() { return m_paragon_level; }
+		uint32 GetXpForNextParagonLevel();
+		void SetParagonLevel(uint32 paragonLevel) { m_paragon_level = paragonLevel; }
+		void GiveParagonLevel(uint32 level);
+		uint32 GetParagonXP() { return m_paragon_xp; }
+		void SetParagonXP(uint32 newXP) { m_paragon_xp = newXP; }
 
         void InitStatsForLevel(bool reapplyMods = false);
 
@@ -2244,6 +2251,8 @@ class Player : public Unit
         void _LoadBGData(QueryResult* result);
         void _LoadIntoDataField(const char* data, uint32 startOffset, uint32 count);
         void _LoadCreatedInstanceTimers();
+		void _LoadParagonInformation();
+		void _LoadAccountMoney();
         void _SaveNewInstanceIdTimer();
 
         /*********************************************************/
@@ -2260,6 +2269,8 @@ class Player : public Unit
         void _SaveSpells();
         void _SaveBGData();
         void _SaveStats();
+		void _SaveParagonInformation();
+		void _SaveAccountMoney();
 
         void _SetCreateBits(UpdateMask* updateMask, Player* target) const override;
         void _SetUpdateBits(UpdateMask* updateMask, Player* target) const override;
@@ -2296,6 +2307,8 @@ class Player : public Unit
         float m_stored_honor;
         uint32 m_stored_honorableKills;
         uint32 m_stored_dishonorableKills;
+		uint32 m_paragon_level;
+		uint32 m_paragon_xp;
         int32 m_standing_pos;
 
         void outDebugStatsValues() const;

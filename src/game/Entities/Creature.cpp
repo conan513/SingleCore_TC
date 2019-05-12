@@ -255,14 +255,15 @@ bool Creature::InitEntry(uint32 Entry, CreatureData const* data /*=nullptr*/, Ga
     if (eventData && eventData->entry_id)
         Entry = eventData->entry_id;
 
-    CreatureInfo const* normalInfo = ObjectMgr::GetCreatureTemplate(Entry);
+    CreatureInfo * normalInfo = (CreatureInfo*)ObjectMgr::GetCreatureTemplate(Entry);
+
     if (!normalInfo)
     {
         sLog.outErrorDb("Creature::UpdateEntry creature entry %u does not exist.", Entry);
         return false;
     }
 
-    CreatureInfo const* cinfo = normalInfo;
+    CreatureInfo * cinfo = normalInfo;
 
     SetEntry(Entry);                                        // normal entry always
     m_creatureInfo = cinfo;                                 // map mode related always
@@ -655,7 +656,7 @@ void Creature::RegeneratePower()
                     float ManaIncreaseRate = sWorld.getConfig(CONFIG_FLOAT_RATE_POWER_MANA);
                     float Spirit = GetStat(STAT_SPIRIT);
 
-                    addValue = (Spirit / 5.0f + 17.0f) * ManaIncreaseRate;
+                    addValue = (Spirit / 5.0f + 17.0f) * ManaIncreaseRate / 4;
                 }
             }
             else
@@ -663,10 +664,10 @@ void Creature::RegeneratePower()
             break;
         case POWER_ENERGY:
             // ToDo: for vehicle this is different - NEEDS TO BE FIXED!
-            addValue = 20 * sWorld.getConfig(CONFIG_FLOAT_RATE_POWER_ENERGY);
+            addValue = 20 * sWorld.getConfig(CONFIG_FLOAT_RATE_POWER_ENERGY) / 4;
             break;
         case POWER_FOCUS:
-            addValue = 24 * sWorld.getConfig(CONFIG_FLOAT_RATE_POWER_FOCUS);
+            addValue = 24 * sWorld.getConfig(CONFIG_FLOAT_RATE_POWER_FOCUS) / 4;
             break;
         default:
             return;
@@ -1177,7 +1178,7 @@ void Creature::SelectLevel(uint32 forcedLevel /*= USE_DEFAULT_DATABASE_LEVEL*/)
     float meleeAttackPwr = 0.f;
     float rangedAttackPwr = 0.f;
 
-    float damageMod = _GetDamageMod(rank);
+    float damageMod = _GetDamageMod(rank, GetMap());
     float damageMulti = cinfo->DamageMultiplier * damageMod;
     bool usedDamageMulti = false;
 
@@ -1256,7 +1257,7 @@ void Creature::SelectLevel(uint32 forcedLevel /*= USE_DEFAULT_DATABASE_LEVEL*/)
         }
     }
 
-    health *= _GetHealthMod(rank); // Apply custom config setting
+    health *= _GetHealthMod(rank, GetMap()); // Apply custom config setting
     if (health < 1)
         health = 1;
 
@@ -1316,8 +1317,15 @@ void Creature::SelectLevel(uint32 forcedLevel /*= USE_DEFAULT_DATABASE_LEVEL*/)
     SetModifierValue(UNIT_MOD_ATTACK_POWER_RANGED, BASE_VALUE, rangedAttackPwr * damageMod);
 }
 
-float Creature::_GetHealthMod(int32 Rank)
+float Creature::_GetHealthMod(int32 Rank, Map* currMap)
 {
+
+	if (currMap->IsRaid())
+		return sWorld.getConfig(CONFIG_FLOAT_RATE_CREATURE_RAID_HP);
+
+	if (currMap->IsDungeon())
+		return sWorld.getConfig(CONFIG_FLOAT_RATE_CREATURE_DUNGEON_HP);
+
     switch (Rank)                                           // define rates for each elite rank
     {
         case CREATURE_ELITE_NORMAL:
@@ -1335,8 +1343,15 @@ float Creature::_GetHealthMod(int32 Rank)
     }
 }
 
-float Creature::_GetDamageMod(int32 Rank)
+float Creature::_GetDamageMod(int32 Rank, Map* currMap)
 {
+
+	if (currMap->IsRaid())
+		return sWorld.getConfig(CONFIG_FLOAT_RATE_CREATURE_RAID_DAMAGE);
+
+	if (currMap->IsDungeon())
+		return sWorld.getConfig(CONFIG_FLOAT_RATE_CREATURE_DUNGEON_DAMAGE);
+
     switch (Rank)                                           // define rates for each elite rank
     {
         case CREATURE_ELITE_NORMAL:
@@ -1354,8 +1369,15 @@ float Creature::_GetDamageMod(int32 Rank)
     }
 }
 
-float Creature::_GetSpellDamageMod(int32 Rank)
+float Creature::_GetSpellDamageMod(int32 Rank, Map* currMap)
 {
+
+	if (currMap->IsRaid())
+		return sWorld.getConfig(CONFIG_FLOAT_RATE_CREATURE_RAID_SPELLDAMAGE);
+
+	if (currMap->IsDungeon())
+		return sWorld.getConfig(CONFIG_FLOAT_RATE_CREATURE_DUNGEON_SPELLDAMAGE);
+
     switch (Rank)                                           // define rates for each elite rank
     {
         case CREATURE_ELITE_NORMAL:
@@ -1603,6 +1625,82 @@ void Creature::SetDeathState(DeathState s)
             i_motionMaster.MoveFall();
 
         Unit::SetDeathState(CORPSE);
+
+
+		// attempt a temporary spawn on creature death
+		if (roll_chance_f(sWorld.getConfig(CONFIG_FLOAT_GOBLIN_SPAWN_CHANCE))) {
+
+			uint32 spawnId = 0;
+
+			if (Creature::getLevel() > 19) {
+				spawnId = 25001;
+			}
+			if (Creature::getLevel() > 21) {
+				spawnId = 25002;
+			}
+			if (Creature::getLevel() > 23) {
+				spawnId = 25003;
+			}
+			if (Creature::getLevel() > 25) {
+				spawnId = 25004;
+			}
+			if (Creature::getLevel() > 27) {
+				spawnId = 25005;
+			}
+			if (Creature::getLevel() > 29) {
+				spawnId = 25006;
+			}
+			if (Creature::getLevel() > 31) {
+				spawnId = 25007;
+			}
+			if (Creature::getLevel() > 33) {
+				spawnId = 25008;
+			}
+			if (Creature::getLevel() > 35) {
+				spawnId = 25009;
+			}
+			if (Creature::getLevel() > 37) {
+				spawnId = 25010;
+			}
+			if (Creature::getLevel() > 39) {
+				spawnId = 25011;
+			}
+			if (Creature::getLevel() > 41) {
+				spawnId = 25012;
+			}
+			if (Creature::getLevel() > 43) {
+				spawnId = 25013;
+			}
+			if (Creature::getLevel() > 45) {
+				spawnId = 25014;
+			}
+			if (Creature::getLevel() > 47) {
+				spawnId = 25015;
+			}
+			if (Creature::getLevel() > 49) {
+				spawnId = 25016;
+			}
+			if (Creature::getLevel() > 51) {
+				spawnId = 25017;
+			}
+			if (Creature::getLevel() > 53) {
+				spawnId = 25018;
+			}
+			if (Creature::getLevel() > 55) {
+				spawnId = 25019;
+			}
+			if (Creature::getLevel() > 57) {
+				spawnId = 25020;
+			}
+			if (spawnId != 0) {
+				Creature* pCreature;
+				pCreature = Creature::SummonCreature(spawnId, 0.0f, 0.0f, 0.0f, 0.0f, TEMPSPAWN_TIMED_OOC_DESPAWN, 30000);
+
+				if (!pCreature)
+					sLog.outErrorEventAI("Failed to spawn creature %u.", spawnId);
+			}
+		}
+		// end attempt
     }
 
     if (s == JUST_ALIVED)

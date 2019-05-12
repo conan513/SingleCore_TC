@@ -374,7 +374,12 @@ void World::LoadConfigSettings(bool reload)
 
     ///- Read all rates from the config file
     setConfigPos(CONFIG_FLOAT_RATE_HEALTH,                               "Rate.Health",                               1.0f);
+	setConfigPos(CONFIG_FLOAT_RATE_HEALTH_SITTING,						 "Rate.Health.Sitting",						  1.5f);
+	setConfigPos(CONFIG_FLOAT_RATE_MANA_SITTING,						 "Rate.Mana.Sitting",						  1.0f);
+	setConfig(	 CONFIG_BOOL_HEALTH_REGEN_IN_COMBAT,					 "Rate.Health.In.Combat",					  false);
+	setConfig(	 CONFIG_BOOL_CONSUME_AMMO,								 "Rate.Consume.Ammo",						  true);
     setConfigPos(CONFIG_FLOAT_RATE_POWER_MANA,                           "Rate.Mana",                                 1.0f);
+	setConfigPos(CONFIG_FLOAT_RATE_MANA_CASTING_DELAY,					 "Rate.Mana.Casting.Delay",					  5.0f);
     setConfigPos(CONFIG_FLOAT_RATE_POWER_RAGE_INCOME,                    "Rate.Rage.Income",                          1.0f);
     setConfigPos(CONFIG_FLOAT_RATE_POWER_RAGE_LOSS,                      "Rate.Rage.Loss",                            1.0f);
     setConfigPos(CONFIG_FLOAT_RATE_POWER_FOCUS,                          "Rate.Focus",                                1.0f);
@@ -395,6 +400,7 @@ void World::LoadConfigSettings(bool reload)
     setConfigPos(CONFIG_FLOAT_RATE_XP_KILL,                              "Rate.XP.Kill",                              1.0f);
     setConfigPos(CONFIG_FLOAT_RATE_XP_QUEST,                             "Rate.XP.Quest",                             1.0f);
     setConfigPos(CONFIG_FLOAT_RATE_XP_EXPLORE,                           "Rate.XP.Explore",                           1.0f);
+	setConfigPos(CONFIG_FLOAT_RATE_XP_LEVEL_MOD,						 "Rate.XP.Level.Mod",						  0.0f);
     setConfigPos(CONFIG_FLOAT_RATE_REPUTATION_GAIN,                      "Rate.Reputation.Gain",                      1.0f);
     setConfigPos(CONFIG_FLOAT_RATE_REPUTATION_LOWLEVEL_KILL,             "Rate.Reputation.LowLevel.Kill",             0.2f);
     setConfigPos(CONFIG_FLOAT_RATE_REPUTATION_LOWLEVEL_QUEST,            "Rate.Reputation.LowLevel.Quest",            0.2f);
@@ -413,6 +419,12 @@ void World::LoadConfigSettings(bool reload)
     setConfigPos(CONFIG_FLOAT_RATE_CREATURE_ELITE_RAREELITE_SPELLDAMAGE, "Rate.Creature.Elite.RAREELITE.SpellDamage", 1.0f);
     setConfigPos(CONFIG_FLOAT_RATE_CREATURE_ELITE_WORLDBOSS_SPELLDAMAGE, "Rate.Creature.Elite.WORLDBOSS.SpellDamage", 1.0f);
     setConfigPos(CONFIG_FLOAT_RATE_CREATURE_ELITE_RARE_SPELLDAMAGE,      "Rate.Creature.Elite.RARE.SpellDamage", 1.0f);
+	setConfigPos(CONFIG_FLOAT_RATE_CREATURE_DUNGEON_HP, "Rate.Creature.Dungeon.HP", 1.0f);
+	setConfigPos(CONFIG_FLOAT_RATE_CREATURE_DUNGEON_DAMAGE, "Rate.Creature.Dungeon.Damage", 1.0f);
+	setConfigPos(CONFIG_FLOAT_RATE_CREATURE_DUNGEON_SPELLDAMAGE, "Rate.Creature.Dungeon.SpellDamage", 1.0f);
+	setConfigPos(CONFIG_FLOAT_RATE_CREATURE_RAID_HP, "Rate.Creature.Raid.HP", 1.0f);
+	setConfigPos(CONFIG_FLOAT_RATE_CREATURE_RAID_DAMAGE, "Rate.Creature.Raid.Damage", 1.0f);
+	setConfigPos(CONFIG_FLOAT_RATE_CREATURE_RAID_SPELLDAMAGE, "Rate.Creature.Raid.SpellDamage", 1.0f);
     setConfigPos(CONFIG_FLOAT_RATE_CREATURE_AGGRO, "Rate.Creature.Aggro", 1.0f);
     setConfig(CONFIG_FLOAT_RATE_REST_INGAME,                    "Rate.Rest.InGame", 1.0f);
     setConfig(CONFIG_FLOAT_RATE_REST_OFFLINE_IN_TAVERN_OR_CITY, "Rate.Rest.Offline.InTavernOrCity", 1.0f);
@@ -427,8 +439,11 @@ void World::LoadConfigSettings(bool reload)
     setConfigPos(CONFIG_FLOAT_RATE_MINING_NEXT,   "Rate.Mining.Next", 1.0f);
     setConfigPos(CONFIG_FLOAT_RATE_INSTANCE_RESET_TIME, "Rate.InstanceResetTime", 1.0f);
     setConfigPos(CONFIG_FLOAT_RATE_TALENT, "Rate.Talent", 1.0f);
+	setConfigPos(CONFIG_FLOAT_RATE_TALENT_MAX_RESET_COST_GOLD, "Rate.Talent.Max.Reset.Cost.Gold", 50.0f);
     setConfigPos(CONFIG_FLOAT_RATE_CORPSE_DECAY_LOOTED, "Rate.Corpse.Decay.Looted", 0.0f);
 
+	setConfigPos(CONFIG_FLOAT_RATE_FLIGHT_PATH_SPEED, "Rate.Flight.Path.Speed", 32.0f);
+	setConfigPos(CONFIG_FLOAT_GOBLIN_SPAWN_CHANCE, "Rate.Goblin.Spawn.Chance", 0.0f);
     setConfigMinMax(CONFIG_FLOAT_RATE_TARGET_POS_RECALCULATION_RANGE, "TargetPosRecalculateRange", 1.5f, CONTACT_DISTANCE, ATTACK_DISTANCE);
 
     setConfigPos(CONFIG_FLOAT_RATE_DURABILITY_LOSS_DAMAGE, "DurabilityLossChance.Damage", 0.5f);
@@ -513,6 +528,8 @@ void World::LoadConfigSettings(bool reload)
     // must be after CONFIG_UINT32_CHARACTERS_PER_REALM
     setConfigMin(CONFIG_UINT32_CHARACTERS_PER_ACCOUNT, "CharactersPerAccount", 50, getConfig(CONFIG_UINT32_CHARACTERS_PER_REALM));
 
+	setConfig(CONFIG_UINT32_TALENT_PLAYER_LEVEL, "TalentPlayerLevel", 10);
+
     setConfigMinMax(CONFIG_UINT32_SKIP_CINEMATICS, "SkipCinematics", 0, 0, 2);
 
     if (configNoReload(reload, CONFIG_UINT32_MAX_PLAYER_LEVEL, "MaxPlayerLevel", DEFAULT_MAX_LEVEL))
@@ -523,6 +540,8 @@ void World::LoadConfigSettings(bool reload)
     setConfigMinMax(CONFIG_UINT32_START_PLAYER_MONEY, "StartPlayerMoney", 0, 0, MAX_MONEY_AMOUNT);
 
     setConfig(CONFIG_UINT32_MAX_HONOR_POINTS, "MaxHonorPoints", 75000);
+	setConfig(CONFIG_UINT32_XP_PARAGON_LEVEL, "ParagonLevelXP", 100000);
+	setConfig(CONFIG_UINT32_PARAGON_LVL_REQUIREMENT, "ParagonXPLevelRequirement", 60);
 
     setConfigMinMax(CONFIG_UINT32_START_HONOR_POINTS, "StartHonorPoints", 0, 0, getConfig(CONFIG_UINT32_MAX_HONOR_POINTS));
 
@@ -532,6 +551,11 @@ void World::LoadConfigSettings(bool reload)
 
     setConfig(CONFIG_BOOL_LONG_TAXI_PATHS_PERSISTENCE, "LongFlightPathsPersistence", false);
     setConfig(CONFIG_BOOL_ALL_TAXI_PATHS, "AllFlightPaths", false);
+	setConfig(CONFIG_BOOL_CAN_RES_PLAYERS, "CanResPlayers", true);
+	setConfig(CONFIG_BOOL_GOLD_ACCOUNT_WIDE, "GoldAccountWide", false);
+	setConfig(CONFIG_BOOL_BANK_ACCOUNT_WIDE, "BankAccountWide", false);
+
+	
 
     setConfig(CONFIG_BOOL_INSTANCE_IGNORE_LEVEL, "Instance.IgnoreLevel", false);
     setConfig(CONFIG_BOOL_INSTANCE_IGNORE_RAID,  "Instance.IgnoreRaid", false);
@@ -590,6 +614,8 @@ void World::LoadConfigSettings(bool reload)
     setConfig(CONFIG_UINT32_SKILL_CHANCE_SKINNING_STEPS, "SkillChance.SkinningSteps", 75);
 
     setConfig(CONFIG_UINT32_SKILL_GAIN_CRAFTING,  "SkillGain.Crafting",  1);
+	setConfig(CONFIG_UINT32_SKILL_GAIN_XP_REWARD, "SkillGain.XP.Reward", 0);
+	setConfig(CONFIG_UINT32_SKILL_USE_XP_REWARD, "SkillUse.XP.Reward", 0);
     setConfig(CONFIG_UINT32_SKILL_GAIN_DEFENSE,   "SkillGain.Defense",   1);
     setConfig(CONFIG_UINT32_SKILL_GAIN_GATHERING, "SkillGain.Gathering", 1);
     setConfig(CONFIG_UINT32_SKILL_GAIN_WEAPON,       "SkillGain.Weapon",    1);

@@ -389,7 +389,7 @@ bool FlightPathMovementGenerator::Update(Player& player, const uint32& /*diff*/)
         }
         init.SetFirstPointId(int32(offset));
         init.SetFly();
-        init.SetVelocity(PLAYER_FLIGHT_SPEED);
+        init.SetVelocity(sWorld.getConfig(CONFIG_FLOAT_RATE_FLIGHT_PATH_SPEED));
         init.Launch();
         return true;
     }

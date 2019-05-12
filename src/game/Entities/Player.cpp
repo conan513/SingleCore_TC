@@ -774,6 +774,8 @@ bool Player::Create(uint32 guidlow, const std::string& name, uint8 race, uint8 c
         SetUInt32Value(UNIT_FIELD_LEVEL, sWorld.getConfig(CONFIG_UINT32_START_PLAYER_LEVEL));
 
     SetUInt32Value(PLAYER_FIELD_COINAGE, sWorld.getConfig(CONFIG_UINT32_START_PLAYER_MONEY));
+	_LoadAccountMoney();
+	_LoadParagonInformation();
 
     // Played time
     m_Last_tick = time(nullptr);
@@ -2095,10 +2097,10 @@ void Player::RegenerateAll()
 {
     if (m_regenTimer != 0)
         return;
-
+	
     // Not in combat or they have regeneration
     if (!isInCombat() || HasAuraType(SPELL_AURA_MOD_REGEN_DURING_COMBAT) ||
-            HasAuraType(SPELL_AURA_MOD_HEALTH_REGEN_IN_COMBAT))
+            HasAuraType(SPELL_AURA_MOD_HEALTH_REGEN_IN_COMBAT) || sWorld.getConfig(CONFIG_BOOL_HEALTH_REGEN_IN_COMBAT))
     {
         RegenerateHealth();
         if (!isInCombat() && !HasAuraType(SPELL_AURA_INTERRUPT_REGEN))
@@ -2128,22 +2130,24 @@ void Player::Regenerate(Powers power)
             if (recentCast)
             {
                 // Mangos Updates Mana in intervals of 2s, which is correct
-                addvalue = m_modManaRegenInterrupt *  ManaIncreaseRate * 2.00f;
+                addvalue = m_modManaRegenInterrupt *  ManaIncreaseRate * 0.50f;
             }
             else
             {
-                addvalue = m_modManaRegen * ManaIncreaseRate * 2.00f;
+                addvalue = m_modManaRegen * ManaIncreaseRate * 0.50f;
             }
+			if (!IsStandState())
+				addvalue *= sWorld.getConfig(CONFIG_FLOAT_RATE_MANA_SITTING);
         }   break;
         case POWER_RAGE:                                    // Regenerate rage
         {
             float RageDecreaseRate = sWorld.getConfig(CONFIG_FLOAT_RATE_POWER_RAGE_LOSS);
-            addvalue = 20 * RageDecreaseRate;               // 2 rage by tick (= 2 seconds => 1 rage/sec)
+            addvalue = 20 * RageDecreaseRate / 4;               // 2 rage by tick (= 2 seconds => 1 rage/sec)
         }   break;
         case POWER_ENERGY:                                  // Regenerate energy (rogue)
         {
             float EnergyRate = sWorld.getConfig(CONFIG_FLOAT_RATE_POWER_ENERGY);
-            addvalue = 20 * EnergyRate;
+            addvalue = 20 * EnergyRate / 4;
             break;
         }
         case POWER_FOCUS:
@@ -2190,10 +2194,10 @@ void Player::RegenerateHealth()
     float addvalue = 0.0f;
 
     // normal regen case (maybe partly in combat case)
-    if (!isInCombat() || HasAuraType(SPELL_AURA_MOD_REGEN_DURING_COMBAT))
+    if (!isInCombat() || HasAuraType(SPELL_AURA_MOD_REGEN_DURING_COMBAT) || sWorld.getConfig(CONFIG_BOOL_HEALTH_REGEN_IN_COMBAT))
     {
         addvalue = OCTRegenHPPerSpirit() * HealthIncreaseRate;
-        if (!isInCombat())
+        if (!isInCombat() || sWorld.getConfig(CONFIG_BOOL_HEALTH_REGEN_IN_COMBAT))
         {
             AuraList const& mModHealthRegenPct = GetAurasByType(SPELL_AURA_MOD_HEALTH_REGEN_PERCENT);
             for (auto i : mModHealthRegenPct)
@@ -2203,7 +2207,7 @@ void Player::RegenerateHealth()
             addvalue *= GetTotalAuraModifier(SPELL_AURA_MOD_REGEN_DURING_COMBAT) / 100.0f;
 
         if (!IsStandState())
-            addvalue *= 1.5;
+            addvalue *= sWorld.getConfig(CONFIG_FLOAT_RATE_HEALTH_SITTING);
     }
 
     // always regeneration bonus (including combat)
@@ -2212,7 +2216,7 @@ void Player::RegenerateHealth()
     if (addvalue < 0)
         addvalue = 0;
 
-    ModifyHealth(int32(addvalue));
+    ModifyHealth(int32(ceil(addvalue / 4)));
 }
 
 Creature* Player::GetNPCIfCanInteractWith(ObjectGuid guid, uint32 npcflagmask)
@@ -2443,6 +2447,10 @@ void Player::SendLogXPGain(uint32 GivenXP, Unit* victim, uint32 RestXP, float gr
     GetSession()->SendPacket(data);
 }
 
+uint32 Player::GetXpForNextParagonLevel() {
+	return sWorld.getConfig(CONFIG_UINT32_XP_PARAGON_LEVEL) * (GetParagonLevel() + 0.5);
+}
+
 void Player::GiveXP(uint32 xp, Creature* victim, float groupRate)
 {
     if (xp < 1)
@@ -2457,9 +2465,10 @@ void Player::GiveXP(uint32 xp, Creature* victim, float groupRate)
     sImmersive.OnGiveXP(this, xp, victim);
 #endif
 
-    // XP to money conversion processed in Player::RewardQuest
-    if (level >= sWorld.getConfig(CONFIG_UINT32_MAX_PLAYER_LEVEL))
-        return;
+	if (GetParagonLevel() < 10)
+		xp = xp * (1 + (0.1 * GetParagonLevel())); // Multiply by paragon level
+	else
+		xp = xp * 2;
 
     // XP resting bonus for kill
     uint32 rested_bonus_xp = victim ? GetXPRestBonus(xp) : 0;
@@ -2468,20 +2477,50 @@ void Player::GiveXP(uint32 xp, Creature* victim, float groupRate)
 
     uint32 curXP = GetUInt32Value(PLAYER_XP);
     uint32 nextLvlXP = GetUInt32Value(PLAYER_NEXT_LEVEL_XP);
+
     uint32 newXP = curXP + xp + rested_bonus_xp;
 
-    while (newXP >= nextLvlXP && level < sWorld.getConfig(CONFIG_UINT32_MAX_PLAYER_LEVEL))
+	GiveParagonXP(xp + rested_bonus_xp);
+
+	if (level >= sWorld.getConfig(CONFIG_UINT32_MAX_PLAYER_LEVEL))
+		return;
+
+    while (newXP >= nextLvlXP)
     {
         newXP -= nextLvlXP;
 
-        if (level < sWorld.getConfig(CONFIG_UINT32_MAX_PLAYER_LEVEL))
-            GiveLevel(level + 1);
-
+		if (level < sWorld.getConfig(CONFIG_UINT32_MAX_PLAYER_LEVEL))
+		{
+			GiveLevel(level + 1);
+			if (level + 1 >= sWorld.getConfig(CONFIG_UINT32_MAX_PLAYER_LEVEL))
+			{
+				newXP = GetUInt32Value(PLAYER_XP);
+			}
+		}
         level = getLevel();
         nextLvlXP = GetUInt32Value(PLAYER_NEXT_LEVEL_XP);
     }
 
     SetUInt32Value(PLAYER_XP, newXP);
+}
+
+void Player::GiveParagonXP(uint32 xp)
+{
+
+	if (getLevel() < sWorld.getConfig(CONFIG_UINT32_PARAGON_LVL_REQUIREMENT))
+		return;
+
+	uint32 nextLvlXP = GetXpForNextParagonLevel();
+	uint32 newXP = GetParagonXP() + xp;
+
+	while (newXP >= nextLvlXP)
+	{
+		newXP -= nextLvlXP;
+		GiveParagonLevel(GetParagonLevel() + 1);
+		nextLvlXP = GetXpForNextParagonLevel();
+	}
+
+	SetParagonXP(newXP);
 }
 
 // Update player to next level
@@ -2553,11 +2592,75 @@ void Player::GiveLevel(uint32 level)
     SendQuestGiverStatusMultiple();
 }
 
+// Update player to next level
+// Current player experience not update (must be update by caller)
+void Player::GiveParagonLevel(uint32 level)
+{
+	if (level == GetParagonLevel())
+		return;
+	
+	uint32 plClass = getClass();
+
+	PlayerLevelInfo info;
+	sObjectMgr.GetPlayerLevelInfo(getRace(), plClass, getLevel(), &info);
+
+	//for (int i = STAT_STRENGTH; i < MAX_STATS; ++i)         // Stats loop (0-4)
+	//	info.stats[i] += level;
+
+	PlayerClassLevelInfo classInfo;
+	sObjectMgr.GetPlayerClassLevelInfo(plClass, getLevel(), &classInfo);
+
+	// send levelup info to client
+	WorldPacket data(SMSG_LEVELUP_INFO, (4 + 4 + MAX_POWERS * 4 + MAX_STATS * 4));
+	data << uint32(getLevel());
+	data << uint32(int32(classInfo.basehealth) - int32(GetCreateHealth()));
+	// for(int i = 0; i < MAX_POWERS; ++i)                  // Powers loop (0-6)
+	data << uint32(int32(classInfo.basemana) - int32(GetCreateMana()));
+	data << uint32(0);
+	data << uint32(0);
+	data << uint32(0);
+	data << uint32(0);
+	// end for
+	for (int i = STAT_STRENGTH; i < MAX_STATS; ++i)         // Stats loop (0-4)
+		data << uint32(int32(info.stats[i] + 1) - GetCreateStat(Stats(i)));
+
+	GetSession()->SendPacket(data);
+
+	SetUInt32Value(PLAYER_NEXT_LEVEL_XP, sObjectMgr.GetXPForLevel(getLevel()));
+	SetParagonLevel(level);
+
+	// save base values (bonuses already included in stored stats
+	for (int i = STAT_STRENGTH; i < MAX_STATS; ++i)
+		SetCreateStat(Stats(i), info.stats[i]);
+
+	SetCreateHealth(classInfo.basehealth);
+	SetCreateMana(classInfo.basemana);
+
+	InitTalentForLevel();
+
+	UpdateAllStats();
+
+	// set current level health and mana/energy to maximum after applying all mods.
+	if (isAlive())
+		SetHealth(GetMaxHealth());
+	SetPower(POWER_MANA, GetMaxPower(POWER_MANA));
+	SetPower(POWER_ENERGY, GetMaxPower(POWER_ENERGY));
+	if (GetPower(POWER_RAGE) > GetMaxPower(POWER_RAGE))
+		SetPower(POWER_RAGE, GetMaxPower(POWER_RAGE));
+
+	// update level to hunter/summon pet
+	if (Pet * pet = GetPet())
+		pet->SynchronizeLevelWithOwner();
+
+	// resend quests status directly
+	SendQuestGiverStatusMultiple();
+}
+
 void Player::UpdateFreeTalentPoints(bool resetIfNeed)
 {
     uint32 level = getLevel();
     // talents base at level diff ( talents = level - 9 but some can be used already)
-    if (level < 10)
+    if (level < sWorld.getConfig(CONFIG_UINT32_TALENT_PLAYER_LEVEL))
     {
         // Remove all talent points
         if (m_usedTalentCount > 0)                          // Free any used talents
@@ -2569,7 +2672,7 @@ void Player::UpdateFreeTalentPoints(bool resetIfNeed)
     }
     else
     {
-        uint32 talentPointsForLevel = CalculateTalentsPoints();
+        uint32 talentPointsForLevel = CalculateTalentsPoints() + GetParagonLevel();
 
         // if used more that have then reset
         if (m_usedTalentCount > talentPointsForLevel)
@@ -3495,6 +3598,9 @@ void Player::_SaveSpellCooldowns()
 
 uint32 Player::resetTalentsCost() const
 {
+	if (m_resetTalentsCost >= sWorld.getConfig(CONFIG_FLOAT_RATE_TALENT_MAX_RESET_COST_GOLD))
+		return sWorld.getConfig(CONFIG_FLOAT_RATE_TALENT_MAX_RESET_COST_GOLD) * GOLD;
+
     // The first time reset costs 1 gold
     if (m_resetTalentsCost < 1 * GOLD)
         return 1 * GOLD;
@@ -4254,6 +4360,14 @@ void Player::BuildPlayerRepop()
 
 void Player::ResurrectPlayer(float restore_percent, bool applySickness)
 {
+
+	if (!sWorld.getConfig(CONFIG_BOOL_CAN_RES_PLAYERS))
+	{
+		ChatHandler(this).PSendSysMessage("You cannot do that. Resurrections are disabled.");
+		return;
+	}
+		
+
     // remove death flag + set aura
     SetByteValue(UNIT_FIELD_BYTES_1, 3, 0x00);
 
@@ -4929,15 +5043,15 @@ float Player::OCTRegenHPPerSpirit() const
 
     switch (Class)
     {
-        case CLASS_DRUID:   regen = (Spirit * 0.11 + 1);    break;
-        case CLASS_HUNTER:  regen = (Spirit * 0.43 - 5.5);  break;
-        case CLASS_MAGE:    regen = (Spirit * 0.11 + 1);    break;
-        case CLASS_PALADIN: regen = (Spirit * 0.25);        break;
-        case CLASS_PRIEST:  regen = (Spirit * 0.15 + 1.4);  break;
-        case CLASS_ROGUE:   regen = (Spirit * 0.84 - 13);   break;
-        case CLASS_SHAMAN:  regen = (Spirit * 0.28 - 3.6);  break;
-        case CLASS_WARLOCK: regen = (Spirit * 0.12 + 1.5);  break;
-        case CLASS_WARRIOR: regen = (Spirit * 1.26 - 22.6); break;
+        case CLASS_MAGE:
+		case CLASS_WARLOCK:
+        case CLASS_PRIEST:  regen = (Spirit * 0.15 + 3);  break;
+		case CLASS_SHAMAN:
+		case CLASS_DRUID:
+		case CLASS_HUNTER:
+		case CLASS_ROGUE:
+		case CLASS_WARRIOR:
+		case CLASS_PALADIN: regen = (Spirit * 0.20 + 3);  break;
     }
 
     return regen;
@@ -5106,6 +5220,9 @@ bool Player::UpdateSkillPro(uint16 SkillId, int32 Chance, uint16 diff)
     if (!SkillId)
         return false;
 
+	if (sWorld.getConfig(CONFIG_UINT32_SKILL_USE_XP_REWARD) > 0)
+		GiveXP(sWorld.getConfig(CONFIG_UINT32_SKILL_USE_XP_REWARD), nullptr);
+
     if (Chance <= 0)                                        // speedup in 0 chance case
     {
         DEBUG_LOG("Player::UpdateSkillPro Chance=%3.1f%% missed", Chance / 10.0);
@@ -5143,6 +5260,10 @@ bool Player::UpdateSkillPro(uint16 SkillId, int32 Chance, uint16 diff)
             skillStatus.uState = SKILL_CHANGED;
 
         DEBUG_LOG("Player::UpdateSkillPro Chance=%3.1f%% taken", Chance / 10.0);
+
+		if(sWorld.getConfig(CONFIG_UINT32_SKILL_GAIN_XP_REWARD) > 0)
+			GiveXP(sWorld.getConfig(CONFIG_UINT32_SKILL_GAIN_XP_REWARD), nullptr);
+
         return true;
     }
 
@@ -7176,7 +7297,7 @@ void Player::UpdateEquipSpellsAtFormChange()
 
 void Player::CastItemCombatSpell(Unit* Target, WeaponAttackType attType, bool spellProc)
 {
-    Item* item = GetWeaponForAttack(attType, true, true);
+    Item* item = GetWeaponForAttack(attType, true, false);
     if (!item)
         return;
 
@@ -12286,13 +12407,13 @@ void Player::RewardQuest(Quest const* pQuest, uint32 reward, Object* questGiver,
     QuestStatusData& q_status = mQuestStatus[quest_id];
 
     // Used for client inform but rewarded only in case not max level
-    uint32 xp = uint32(pQuest->XPValue(this) * sWorld.getConfig(CONFIG_FLOAT_RATE_XP_QUEST));
+    uint32 xp = uint32(pQuest->XPValue(this) * (sWorld.getConfig(CONFIG_FLOAT_RATE_XP_QUEST) + (getLevel() * sWorld.getConfig(CONFIG_FLOAT_RATE_XP_LEVEL_MOD))));
 
-    if (getLevel() < sWorld.getConfig(CONFIG_UINT32_MAX_PLAYER_LEVEL))
-        GiveXP(xp, nullptr);
-    else
-        ModifyMoney(int32(pQuest->GetRewMoneyMaxLevel() * sWorld.getConfig(CONFIG_FLOAT_RATE_DROP_MONEY)));
-
+    if (getLevel() == sWorld.getConfig(CONFIG_UINT32_MAX_PLAYER_LEVEL))
+		ModifyMoney(int32(pQuest->GetRewMoneyMaxLevel() * sWorld.getConfig(CONFIG_FLOAT_RATE_DROP_MONEY)));
+        
+	GiveXP(xp, nullptr);
+    
     // Give player extra money if GetRewOrReqMoney > 0 and get ReqMoney if negative
     ModifyMoney(pQuest->GetRewOrReqMoney());
 
@@ -13649,8 +13770,8 @@ bool Player::LoadFromDB(ObjectGuid guid, SqlQueryHolder* holder)
     //"honor_highest_rank, honor_standing, stored_honor_rating, stored_dishonorablekills, stored_honorable_kills,"
     // 43               44
     //"watchedFaction,  drunk,"
-    // 45      46      47      48      49      50      51             52              53      54
-    //"health, power1, power2, power3, power4, power5, exploredZones, equipmentCache, ammoId, actionBars  FROM characters WHERE guid = '%u'", GUID_LOPART(m_guid));
+    // 45      46      47      48      49      50      51             52              53      54		 55
+    //"health, power1, power2, power3, power4, power5, exploredZones, equipmentCache, ammoId, actionBars, paragon  FROM characters WHERE guid = '%u'", GUID_LOPART(m_guid));
     QueryResult* result = holder->GetResult(PLAYER_LOGIN_QUERY_LOADFROM);
 
     if (!result)
@@ -13982,6 +14103,9 @@ bool Player::LoadFromDB(ObjectGuid guid, SqlQueryHolder* holder)
     SetGuidValue(PLAYER_DUEL_ARBITER, ObjectGuid());
     SetUInt32Value(PLAYER_DUEL_TEAM, 0);
 
+	_LoadParagonInformation();
+	_LoadAccountMoney();
+
     // reset stats before loading any modifiers
     InitStatsForLevel();
 
@@ -14092,6 +14216,7 @@ bool Player::LoadFromDB(ObjectGuid guid, SqlQueryHolder* holder)
 
     _LoadSpellCooldowns(holder->GetResult(PLAYER_LOGIN_QUERY_LOADSPELLCOOLDOWNS));
     _LoadCreatedInstanceTimers();
+	
 
     // Spell code allow apply any auras to dead character in load time in aura/spell/item loading
     // Do now before stats re-calculation cleanup for ghost state unexpected auras
@@ -14311,6 +14436,9 @@ void Player::_LoadAuras(QueryResult* result, uint32 timediff)
 
     if (getClass() == CLASS_WARRIOR && !HasAuraType(SPELL_AURA_MOD_SHAPESHIFT))
         CastSpell(this, SPELL_ID_PASSIVE_BATTLE_STANCE, TRIGGERED_OLD_TRIGGERED);
+
+	//if(GetParagonLevel() > 0)
+		//CastSpell(this, 33393, TRIGGERED_OLD_TRIGGERED);
 }
 
 void Player::LoadCorpse()
@@ -15269,7 +15397,7 @@ void Player::SaveToDB()
     uberInsert.addUInt32(GetUInt32Value(PLAYER_AMMO_ID));
 
     uberInsert.addUInt32(uint32(GetByteValue(PLAYER_FIELD_BYTES, 2)));
-
+	
     uberInsert.Execute();
 
     if (m_mailsUpdated)                                     // save mails only when needed
@@ -15283,6 +15411,9 @@ void Player::SaveToDB()
     _SaveActions();
     _SaveAuras();
     _SaveSkills();
+	_SaveParagonInformation();
+	_SaveAccountMoney();
+
     _SaveNewInstanceIdTimer();
     m_reputationMgr.SaveToDB();
     _SaveHonorCP();
@@ -15758,6 +15889,36 @@ void Player::_SaveSkills()
 
         ++itr;
     }
+}
+
+void Player::_SaveParagonInformation()
+{
+	if (getLevel() < sWorld.getConfig(CONFIG_UINT32_PARAGON_LVL_REQUIREMENT))
+		return;
+
+	static SqlStatementID delParagon;
+	static SqlStatementID insParagon;
+
+	SqlStatement stmtDel = CharacterDatabase.CreateStatement(delParagon, "DELETE FROM account_paragon WHERE guid = ?");
+	SqlStatement stmtIns = CharacterDatabase.CreateStatement(insParagon, "INSERT INTO account_paragon (guid,paragon_level,paragon_xp) VALUES (?, ?, ?)");
+
+	stmtDel.PExecute(GetSession()->GetAccountId());
+	stmtIns.PExecute(GetSession()->GetAccountId(), GetParagonLevel(), GetParagonXP());
+}
+
+void Player::_SaveAccountMoney()
+{
+	if (!sWorld.getConfig(CONFIG_BOOL_GOLD_ACCOUNT_WIDE))
+		return;
+
+	static SqlStatementID delMoney;
+	static SqlStatementID insMoney;
+
+	SqlStatement stmtDel = CharacterDatabase.CreateStatement(delMoney, "DELETE FROM account_money WHERE guid = ?");
+	SqlStatement stmtIns = CharacterDatabase.CreateStatement(insMoney, "INSERT INTO account_money (guid,money) VALUES (?, ?)");
+
+	stmtDel.PExecute(GetSession()->GetAccountId());
+	stmtIns.PExecute(GetSession()->GetAccountId(), GetMoney());
 }
 
 void Player::_SaveSpells()
@@ -18789,7 +18950,7 @@ Item* Player::ConvertItem(Item* item, uint32 newItemId)
 
 uint32 Player::CalculateTalentsPoints() const
 {
-    uint32 talentPointsForLevel = getLevel() < 10 ? 0 : getLevel() - 9;
+    uint32 talentPointsForLevel = getLevel() < sWorld.getConfig(CONFIG_UINT32_TALENT_PLAYER_LEVEL) ? 0 : getLevel() - (sWorld.getConfig(CONFIG_UINT32_TALENT_PLAYER_LEVEL) - 1);
     return uint32(talentPointsForLevel * sWorld.getConfig(CONFIG_FLOAT_RATE_TALENT));
 }
 
@@ -19740,6 +19901,52 @@ void Player::AddNewInstanceId(uint32 instanceId)
 {
     if (m_enteredInstances.find(instanceId) == m_enteredInstances.end())
         m_enteredInstances.emplace(instanceId, std::chrono::time_point_cast<std::chrono::milliseconds>(Clock::now() + std::chrono::hours(1)));
+}
+
+void Player::_LoadParagonInformation()
+{
+	QueryResult* result = CharacterDatabase.PQuery("SELECT paragon_level, paragon_xp FROM account_paragon WHERE guid = '%u'", m_session->GetAccountId());
+	if (!result)
+	{
+		static SqlStatementID insertInsertTimer;
+
+		SqlStatement stmt = CharacterDatabase.CreateStatement(insertInsertTimer, "INSERT INTO account_paragon (guid, paragon_level, paragon_xp) VALUES(?,0,0)");
+
+		stmt.addUInt32(m_session->GetAccountId());
+		stmt.Execute();
+
+		SetParagonLevel(0);
+		SetParagonXP(0);
+	}
+	else
+	{
+		Field* fields = result->Fetch();
+		SetParagonLevel(fields[0].GetUInt32());
+		SetParagonXP(fields[1].GetUInt32());
+	}
+}
+
+void Player::_LoadAccountMoney()
+{
+	if (!sWorld.getConfig(CONFIG_BOOL_GOLD_ACCOUNT_WIDE))
+		return;
+
+	QueryResult* result = CharacterDatabase.PQuery("SELECT money FROM account_money WHERE guid = '%u'", m_session->GetAccountId());
+	if (!result)
+	{
+		static SqlStatementID insertInsertTimer;
+
+		SqlStatement stmt = CharacterDatabase.CreateStatement(insertInsertTimer, "INSERT INTO account_money (guid, money) VALUES( ?, ?)");
+
+		stmt.addUInt32(m_session->GetAccountId());
+		stmt.addUInt32(GetMoney());
+		stmt.Execute();
+	}
+	else
+	{
+		Field* fields = result->Fetch();
+		SetMoney(fields[0].GetUInt32());
+	}
 }
 
 void Player::_LoadCreatedInstanceTimers()

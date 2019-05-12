@@ -359,7 +359,7 @@ namespace MaNGOS
 
             xp_gain *= target->GetCreatureInfo()->ExperienceMultiplier;
 
-            return (uint32)(xp_gain * sWorld.getConfig(CONFIG_FLOAT_RATE_XP_KILL));
+            return (uint32)(xp_gain * (sWorld.getConfig(CONFIG_FLOAT_RATE_XP_KILL) + (player->getLevel() * sWorld.getConfig(CONFIG_FLOAT_RATE_XP_LEVEL_MOD))));
         }
 
         inline float xp_in_group_rate(uint32 count, bool isRaid)

@@ -56,7 +56,7 @@ Pet::Pet(PetType type) :
     m_petModeFlags(PET_MODE_DEFAULT), m_originalCharminfo(nullptr)
 {
     m_name = "Pet";
-    m_regenTimer = 4000;
+    m_regenTimer = 1000;
 
     // pets always have a charminfo, even if they are not actually charmed
     InitCharmInfo(this);
@@ -717,7 +717,7 @@ void Pet::RegenerateAll(uint32 update_diff)
 
         RegeneratePower();
 
-        m_regenTimer = 4000;
+        m_regenTimer = 1000;
     }
     else
         m_regenTimer -= update_diff;
@@ -727,8 +727,8 @@ void Pet::RegenerateAll(uint32 update_diff)
 
     if (m_happinessTimer <= update_diff)
     {
-        LooseHappiness();
-        m_happinessTimer = 7500;
+        LoseHappiness();
+        m_happinessTimer = 30000;
     }
     else
         m_happinessTimer -= update_diff;
@@ -742,7 +742,7 @@ void Pet::RegenerateAll(uint32 update_diff)
         m_loyaltyTimer -= update_diff;
 }
 
-void Pet::LooseHappiness()
+void Pet::LoseHappiness()
 {
     uint32 curValue = GetPower(POWER_HAPPINESS);
     if (curValue <= 0)
@@ -1318,7 +1318,7 @@ void Pet::InitStatsForLevel(uint32 petlevel)
                     float minDmg = (cCLS->BaseDamage * cInfo->DamageVariance + (cCLS->BaseMeleeAttackPower / 14) * (cInfo->MeleeBaseAttackTime / 1000)) * cInfo->DamageMultiplier;
 
                     // Apply custom damage setting (from config)
-                    minDmg *= _GetDamageMod(cInfo->Rank);
+                    //minDmg *= _GetDamageMod(cInfo->Rank, GetMap());
 
                     SetBaseWeaponDamage(BASE_ATTACK, MINDAMAGE, float(minDmg));
                     SetBaseWeaponDamage(BASE_ATTACK, MAXDAMAGE, float(minDmg * 1.5));
@@ -1368,7 +1368,7 @@ void Pet::InitStatsForLevel(uint32 petlevel)
                 float minDmg = (cCLS->BaseDamage * cInfo->DamageVariance + (cCLS->BaseMeleeAttackPower / 14) * (cInfo->MeleeBaseAttackTime / 1000)) * cInfo->DamageMultiplier;
 
                 // Get custom setting
-                minDmg *= _GetDamageMod(cInfo->Rank);
+                minDmg *= _GetDamageMod(cInfo->Rank, GetMap());
 
                 // If the damage value is not passed on as float it will result in damage = 1; but only for guardian type pets, though...
                 SetBaseWeaponDamage(BASE_ATTACK, MINDAMAGE, float(minDmg));
@@ -1378,7 +1378,7 @@ void Pet::InitStatsForLevel(uint32 petlevel)
                 minDmg = (cCLS->BaseDamage * cInfo->DamageVariance + (cCLS->BaseRangedAttackPower / 14) * (cInfo->RangedBaseAttackTime / 1000)) * cInfo->DamageMultiplier;
 
                 // Get custom setting
-                minDmg *= _GetDamageMod(cInfo->Rank);
+                minDmg *= _GetDamageMod(cInfo->Rank, GetMap());
 
                 SetBaseWeaponDamage(RANGED_ATTACK, MINDAMAGE, float(minDmg));
                 SetBaseWeaponDamage(RANGED_ATTACK, MAXDAMAGE, float(minDmg * 1.5));
@@ -1430,10 +1430,10 @@ void Pet::InitStatsForLevel(uint32 petlevel)
             mana *= cInfo->PowerMultiplier;
 
         armor *= cInfo->ArmorMultiplier;
-    }
 
-    // Apply custom health setting (from config)
-    health *= _GetHealthMod(cInfo->Rank);
+		// Apply custom health setting (from config)
+		//health *= _GetHealthMod(cInfo->Rank, GetMap());
+    }
 
     // A pet cannot not have health
     if (health < 1)

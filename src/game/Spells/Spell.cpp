@@ -4051,7 +4051,7 @@ void Spell::TakePower()
 
 void Spell::TakeAmmo() const
 {
-    if (m_attackType == RANGED_ATTACK && m_caster->GetTypeId() == TYPEID_PLAYER)
+    if (m_attackType == RANGED_ATTACK && m_caster->GetTypeId() == TYPEID_PLAYER && sWorld.getConfig(CONFIG_BOOL_CONSUME_AMMO))
     {
         Item* pItem = ((Player*)m_caster)->GetWeaponForAttack(RANGED_ATTACK, true, false);
 

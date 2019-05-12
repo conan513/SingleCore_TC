@@ -313,6 +313,8 @@ uint32 Group::RemoveMember(ObjectGuid guid, uint8 method)
 
     _updateMembersOnRosterChanged(player);
 
+    _updateMembersOnRosterChanged(player);
+
     // remove member and change leader (if need) only if strong more 2 members _before_ member remove
     if (GetMembersCount() > GetMembersMinCount())
     {

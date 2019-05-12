@@ -207,7 +207,7 @@ class Pet : public Creature
         bool CanFly() const { return false; } // pet are not able to fly. TODO: check if this is right
 
         void RegenerateAll(uint32 update_diff) override;    // overwrite Creature::RegenerateAll
-        void LooseHappiness();
+        void LoseHappiness();
         void TickLoyaltyChange();
         void ModifyLoyalty(int32 addvalue);
         HappinessState GetHappinessState() const;
