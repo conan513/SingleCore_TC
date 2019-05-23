@@ -344,7 +344,7 @@ namespace MaNGOS
             if (xp_gain == 0.0f)
                 return 0;
 
-            if (target->IsElite())
+            if (target->IsElite() && target->GetMap()->HasGroupedPlayers())
             {
                 if (target->GetMap()->IsNoRaid())
                     xp_gain *= 2.5f;
@@ -354,7 +354,7 @@ namespace MaNGOS
 
             xp_gain *= target->GetCreatureInfo()->ExperienceMultiplier;
 
-            return (uint32)(std::nearbyint(xp_gain * sWorld.getConfig(CONFIG_FLOAT_RATE_XP_KILL)));
+            return (uint32)(std::nearbyint(xp_gain * sWorld.getConfig(CONFIG_FLOAT_RATE_XP_KILL));
         }
 
         inline float xp_in_group_rate(uint32 count, bool /*isRaid*/)

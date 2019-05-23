@@ -1383,6 +1383,13 @@ void Creature::SelectLevel(uint32 forcedLevel /*= USE_DEFAULT_DATABASE_LEVEL*/)
 
 float Creature::_GetHealthMod(int32 Rank)
 {
+
+	if (currMap->IsRaid())
+		return sWorld.getConfig(CONFIG_FLOAT_RATE_CREATURE_RAID_HP);
+
+	if (currMap->IsDungeon() && !currMap->HasGroupedPlayers())
+		return sWorld.getConfig(CONFIG_FLOAT_RATE_CREATURE_DUNGEON_HP);
+
     switch (Rank)                                           // define rates for each elite rank
     {
         case CREATURE_ELITE_NORMAL:
@@ -1402,6 +1409,15 @@ float Creature::_GetHealthMod(int32 Rank)
 
 float Creature::_GetDamageMod(int32 Rank)
 {
+
+	if (currMap->IsRaid())
+		return sWorld.getConfig(CONFIG_FLOAT_RATE_CREATURE_RAID_DAMAGE);
+
+	if (currMap->IsDungeon() && !currMap->HasGroupedPlayers()) {
+		return sWorld.getConfig(CONFIG_FLOAT_RATE_CREATURE_DUNGEON_DAMAGE);
+	}
+		
+
     switch (Rank)                                           // define rates for each elite rank
     {
         case CREATURE_ELITE_NORMAL:
@@ -1421,6 +1437,13 @@ float Creature::_GetDamageMod(int32 Rank)
 
 float Creature::_GetSpellDamageMod(int32 Rank)
 {
+
+	if (currMap->IsRaid())
+		return sWorld.getConfig(CONFIG_FLOAT_RATE_CREATURE_RAID_SPELLDAMAGE);
+
+	if (currMap->IsDungeon() && !currMap->HasGroupedPlayers())
+		return sWorld.getConfig(CONFIG_FLOAT_RATE_CREATURE_DUNGEON_SPELLDAMAGE);
+
     switch (Rank)                                           // define rates for each elite rank
     {
         case CREATURE_ELITE_NORMAL:

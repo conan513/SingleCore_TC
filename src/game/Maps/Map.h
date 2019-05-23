@@ -112,7 +112,7 @@ class Map : public GridRefManager<NGridType>
             m_unloadTimer -= diff;
             return false;
         }
-
+		
         virtual void Initialize(bool loadInstanceData = true);
 
         virtual bool Add(Player*);
@@ -203,6 +203,7 @@ class Map : public GridRefManager<NGridType>
         bool isCellMarked(uint32 pCellId) const { return marked_cells.test(pCellId); }
         void markCell(uint32 pCellId) { marked_cells.set(pCellId); }
 
+		bool HasGroupedPlayers();
         bool HavePlayers() const { return !m_mapRefManager.isEmpty(); }
         uint32 GetPlayersCountExceptGMs() const;
         bool ActiveObjectsNearGrid(uint32 x, uint32 y) const;
@@ -463,7 +464,7 @@ class DungeonMap : public Map
         void SendResetWarnings(uint32 timeLeft) const;
         void SetResetSchedule(bool on);
         uint32 GetMaxPlayers() const;
-
+		
         Team GetInstanceTeam() { return m_team; };
 
         // can't be nullptr for loaded map

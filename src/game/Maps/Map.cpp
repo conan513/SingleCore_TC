@@ -95,6 +95,7 @@ Map::Map(uint32 id, time_t expiry, uint32 InstanceId)
       i_gridExpiry(expiry), m_TerrainData(sTerrainMgr.LoadTerrain(id)),
       i_data(nullptr), i_script_id(0),
       m_cycleCounter(0), m_updateTimeMin(INT_MAX), m_updateTimeMax(0), m_updateTimeTotal(0)
+	  
 {
     m_weatherSystem = new WeatherSystem(this);
 }
@@ -1145,6 +1146,15 @@ void Map::RemoveAllObjectsInRemoveList()
     // DEBUG_LOG("Object remover 2 check.");
 }
 
+bool Map::HasGroupedPlayers()
+{
+	for (const auto& itr : m_mapRefManager)
+		if (!itr.getSource()->isGameMaster() && itr.getSource()->GetGroup())
+			return true;
+
+	return false;
+}
+
 uint32 Map::GetPlayersCountExceptGMs() const
 {
     uint32 count = 0;
@@ -1674,6 +1684,7 @@ uint32 DungeonMap::GetMaxPlayers() const
     InstanceTemplate const* iTemplate = ObjectMgr::GetInstanceTemplate(GetId());
     if (!iTemplate)
         return 0;
+		
     return iTemplate->maxPlayers;
 }
 
@@ -1764,7 +1775,7 @@ bool Map::CanEnter(Player* player)
 {
     if (player->GetMapRef().getTarget() == this)
         return false;
-
+	
     return true;
 }
 
