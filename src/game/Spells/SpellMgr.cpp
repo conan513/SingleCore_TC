@@ -2975,7 +2975,34 @@ bool IsCreatureDRSpell(SpellEntry const* spellInfo)
     {
         case 36924: // Harbinger Skyriss - Mind Rend
         case 31480: return true; // Kazrogal War Stomp - confirmed via video
-        default: return false;
+        default: 
+			uint32 mechanic = GetAllSpellMechanicMask(spellInfo);
+			
+			if (!mechanic)
+				return false;
+
+			if (mechanic & (1 << (MECHANIC_STUN - 1)))
+				return true;
+			if (mechanic & (1 << (MECHANIC_SLEEP - 1)))
+				return true;
+			if (mechanic & (1 << (MECHANIC_POLYMORPH - 1)))
+				return true;
+			if (mechanic & (1 << (MECHANIC_ROOT - 1)))
+				return true;
+			if (mechanic & (1 << (MECHANIC_FEAR - 1)))
+				return true;
+			if (mechanic & (1 << (MECHANIC_CHARM - 1)))
+				return true;
+			if (mechanic & (1 << (MECHANIC_SILENCE - 1)))
+				return true;
+			if (mechanic & (1 << (MECHANIC_DISARM - 1)))
+				return true;
+			if (mechanic & (1 << (MECHANIC_FREEZE - 1)))
+				return true;
+			if (mechanic & ((1 << (MECHANIC_KNOCKOUT - 1)) | (1 << (MECHANIC_SAPPED - 1))))
+				return true;
+
+			return false;
     }
 }
 

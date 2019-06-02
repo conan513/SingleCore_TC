@@ -222,7 +222,7 @@ bool Group::AddInvite(Player* player)
         group = player->GetOriginalGroup();
     if (group)
         return false;
-
+	
     RemoveInvite(player);
 
     m_invitees.insert(player);
@@ -811,6 +811,8 @@ bool Group::_removeMember(ObjectGuid guid)
                 player->SetOriginalGroup(nullptr);
             else
                 player->SetGroup(nullptr);
+
+			player->ResetInstances(INSTANCE_RESET_GROUP_DISBAND);
         }
     }
 

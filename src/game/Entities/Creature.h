@@ -550,6 +550,23 @@ struct SelectAttackingTargetParams
     };
 };
 
+
+inline float dungeonScaleForMap(uint32 mapId) {
+
+	switch (mapId) {
+	case 230:
+		return sWorld.getConfig(CONFIG_FLOAT_RATE_CREATURE_DUNGEON_SCALE_BRD);
+	case 329:
+		return sWorld.getConfig(CONFIG_FLOAT_RATE_CREATURE_DUNGEON_SCALE_STRAT);
+	case 429:
+		return sWorld.getConfig(CONFIG_FLOAT_RATE_CREATURE_DUNGEON_SCALE_DIREMAUL);
+	case 289:
+		return sWorld.getConfig(CONFIG_FLOAT_RATE_CREATURE_DUNGEON_SCALE_SCHOLO);
+	default:
+		return 1.0f;
+	}
+}
+
 class Creature : public Unit
 {
     public:

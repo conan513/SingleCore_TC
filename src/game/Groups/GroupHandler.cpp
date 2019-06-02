@@ -66,6 +66,12 @@ void WorldSession::HandleGroupInviteOpcode(WorldPacket& recv_data)
     }
 
     Player* initiator = GetPlayer();
+
+	if (initiator->GetMap()->IsDungeon() && !initiator->GetGroup()) {
+		SendPartyResult(PARTY_OP_INVITE, membername, ERR_ALREADY_IN_GROUP_S); // error message is not so appropriated but no other option for classic
+		return;
+	}
+
     Player* recipient = sObjectMgr.GetPlayer(membername.c_str());
 
     // no player
@@ -118,6 +124,13 @@ void WorldSession::HandleGroupInviteOpcode(WorldPacket& recv_data)
         SendPartyResult(PARTY_OP_INVITE, membername, ERR_ALREADY_IN_GROUP_S);
         return;
     }
+	else
+	{
+		if (recipient->GetMap()->IsDungeon()) {
+			SendPartyResult(PARTY_OP_INVITE, membername, ERR_ALREADY_IN_GROUP_S);
+			return;
+		}
+	}
 
     if (initiatorGroup)
     {
@@ -187,6 +200,8 @@ void WorldSession::HandleGroupAcceptOpcode(WorldPacket& /*recv_data*/)
     // remove in from invites in any case
     group->RemoveInvite(GetPlayer());
 
+	GetPlayer()->ResetInstances(INSTANCE_RESET_GROUP_JOIN);
+
     /** error handling **/
     /********************/
 
@@ -202,8 +217,11 @@ void WorldSession::HandleGroupAcceptOpcode(WorldPacket& /*recv_data*/)
     // forming a new group, create it
     if (!group->IsCreated())
     {
-        if (leader)
-            group->RemoveInvite(leader);
+		if (leader) {
+			group->RemoveInvite(leader);
+			leader->ResetInstances(INSTANCE_RESET_GROUP_JOIN);
+		}
+            
         if (group->Create(group->GetLeaderGuid(), group->GetLeaderName()))
             sObjectMgr.AddGroup(group);
         else

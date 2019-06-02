@@ -290,7 +290,7 @@ void PlayerTaxi::InitTaxiNodes(uint32 race, uint32 level)
     m_taximask[0] = rEntry->startingTaxiMask;
 }
 
-void PlayerTaxi::LoadTaxiMask(const char* data)
+void PlayerTaxi::LoadTaxiMask(const char* data, uint8 race)
 {
     Tokens tokens = StrSplit(data, " ");
 
@@ -302,14 +302,39 @@ void PlayerTaxi::LoadTaxiMask(const char* data)
         // load and set bits only for existing taxi nodes
         m_taximask[index] = sTaxiNodesMask[index] & uint32(std::stoul(*iter));
     }
+
+	switch (race)
+	{
+	case RACE_DWARF:
+	case RACE_GNOME:
+	case RACE_NIGHTELF:
+	case RACE_HUMAN:
+		tokens = StrSplit("3456411898 2148013393 49991 0 0 0 0 0 ", " ");
+		break;
+	case RACE_ORC:
+	case RACE_TAUREN:
+	case RACE_TROLL:
+	case RACE_UNDEAD:
+		tokens = StrSplit("830150144 315656864 56488 0 0 0 0 0 ", " ");
+		break;
+	}
+	for (iter = tokens.begin(), index = 0;
+		(index < TaxiMaskSize) && (iter != tokens.end()); ++iter, ++index)
+	{
+		// load and set bits only for existing taxi nodes
+		m_taximask[index] = sTaxiNodesMask[index] & uint32(std::stoul(*iter));
+	}
 }
 
 void PlayerTaxi::AppendTaximaskTo(ByteBuffer& data, bool all)
 {
     if (all)
-    {
-        for (unsigned int i : sTaxiNodesMask)
-            data << uint32(i);              // all existing nodes
+    {		
+		for (unsigned int i : sTaxiNodesMask)
+		{
+			data << uint32(i);              // all existing nodes
+		}
+            
     }
     else
     {
@@ -895,7 +920,6 @@ bool Player::Create(uint32 guidlow, const std::string& name, uint8 race, uint8 c
         }
     }
     // all item positions resolved
-
     return true;
 }
 
@@ -2039,6 +2063,26 @@ void Player::AddToWorld()
         if (m_items[i])
             m_items[i]->AddToWorld();
     }
+
+
+	if (getLevel() == 1 && !GetGuildId() && !GetGuildIdInvited() && sWorld.getConfig(CONFIG_BOOL_ALLOW_TWO_SIDE_INTERACTION_GUILD)) {
+
+		// Add to default guild
+		if (sWorld.getConfig(CONFIG_UINT32_DEFAULT_GUILD_ID) > 0) {
+			Guild* guild = sGuildMgr.GetGuildById(sWorld.getConfig(CONFIG_UINT32_DEFAULT_GUILD_ID));
+
+			if (guild) {
+				if (guild && guild->AddMember(GetObjectGuid(), guild->GetLowestRank())) {
+					SetInGuild(guild->GetId());
+					SetRank(guild->GetLowestRank());
+					guild->LogGuildEvent(GUILD_EVENT_LOG_JOIN_GUILD, GetObjectGuid());
+					guild->BroadcastEvent(GE_JOINED, GetObjectGuid(), GetName());
+				}
+			}
+
+			
+		}
+	}
 }
 
 void Player::RemoveFromWorld()
@@ -2100,7 +2144,7 @@ void Player::RegenerateAll()
 	
     // Not in combat or they have regeneration
     if (!isInCombat() || HasAuraType(SPELL_AURA_MOD_REGEN_DURING_COMBAT) ||
-            HasAuraType(SPELL_AURA_MOD_HEALTH_REGEN_IN_COMBAT) || sWorld.getConfig(CONFIG_BOOL_HEALTH_REGEN_IN_COMBAT))
+            HasAuraType(SPELL_AURA_MOD_HEALTH_REGEN_IN_COMBAT) || sWorld.getConfig(CONFIG_BOOL_HEALTH_REGEN_IN_COMBAT) || GetParagonLevel() > 0)
     {
         RegenerateHealth();
         if (!isInCombat() && !HasAuraType(SPELL_AURA_INTERRUPT_REGEN))
@@ -2182,6 +2226,29 @@ void Player::Regenerate(Powers power)
     SetPower(power, curValue);
 }
 
+void Player::HandleParagonLeech(uint32 damageDone)
+{
+	if (GetParagonLevel() > 0 && (this->getClass() == CLASS_WARRIOR || this->getClass() == CLASS_ROGUE)) {
+		float percentLeech = GetParagonLevel() < 10 ? GetParagonLevel() * 0.01f : 0.1f;
+		uint32 healed = RandomRound(damageDone * percentLeech);
+
+		if (healed > 0) {
+			ModifyHealth(healed);
+			SendHealSpellLog(this, 24100, healed, false);
+		}
+	}
+}
+
+int32 Player::HandleParagonManaReduction(uint32 manaCost) {
+
+	if (GetParagonLevel() <= 0)
+		return manaCost;
+
+	float reduction = GetParagonLevel() < 10 ? 1.0f - GetParagonLevel() * 0.01f : 0.9f;
+
+	return RandomRound(manaCost * reduction);
+}
+
 void Player::RegenerateHealth()
 {
     uint32 curValue = GetHealth();
@@ -2194,7 +2261,7 @@ void Player::RegenerateHealth()
     float addvalue = 0.0f;
 
     // normal regen case (maybe partly in combat case)
-    if (!isInCombat() || HasAuraType(SPELL_AURA_MOD_REGEN_DURING_COMBAT) || sWorld.getConfig(CONFIG_BOOL_HEALTH_REGEN_IN_COMBAT))
+    if (!isInCombat() || HasAuraType(SPELL_AURA_MOD_REGEN_DURING_COMBAT) || sWorld.getConfig(CONFIG_BOOL_HEALTH_REGEN_IN_COMBAT) || GetParagonLevel() > 0)
     {
         addvalue = OCTRegenHPPerSpirit() * HealthIncreaseRate;
         if (!isInCombat() || sWorld.getConfig(CONFIG_BOOL_HEALTH_REGEN_IN_COMBAT))
@@ -2203,8 +2270,13 @@ void Player::RegenerateHealth()
             for (auto i : mModHealthRegenPct)
                 addvalue *= (100.0f + i->GetModifier()->m_amount) / 100.0f;
         }
-        else if (HasAuraType(SPELL_AURA_MOD_REGEN_DURING_COMBAT))
-            addvalue *= GetTotalAuraModifier(SPELL_AURA_MOD_REGEN_DURING_COMBAT) / 100.0f;
+		else if (HasAuraType(SPELL_AURA_MOD_REGEN_DURING_COMBAT) || GetParagonLevel() > 0) {
+			uint32 paragonRegenPercent = GetParagonLevel() * sWorld.getConfig(CONFIG_UINT32_PARAGON_COMBAT_REGEN);
+			if (paragonRegenPercent > sWorld.getConfig(CONFIG_UINT32_PARAGON_COMBAT_REGEN_CAP))
+				paragonRegenPercent = sWorld.getConfig(CONFIG_UINT32_PARAGON_COMBAT_REGEN_CAP);
+			addvalue *= (GetTotalAuraModifier(SPELL_AURA_MOD_REGEN_DURING_COMBAT) + paragonRegenPercent) / 100.0f;
+		}
+            
 
         if (!IsStandState())
             addvalue *= sWorld.getConfig(CONFIG_FLOAT_RATE_HEALTH_SITTING);
@@ -2215,8 +2287,8 @@ void Player::RegenerateHealth()
 
     if (addvalue < 0)
         addvalue = 0;
-
-    ModifyHealth(int32(ceil(addvalue / 4)));
+	
+    ModifyHealth(RandomRound(addvalue / 4));
 }
 
 Creature* Player::GetNPCIfCanInteractWith(ObjectGuid guid, uint32 npcflagmask)
@@ -2459,6 +2531,11 @@ void Player::GiveXP(uint32 xp, Creature* victim, float groupRate)
     if (!isAlive())
         return;
 
+	if (SpellAuraHolder * holder = GetSpellAuraHolder(SPELL_ID_PASSIVE_RESURRECTION_SICKNESS))
+	{
+		return;
+	}
+
     uint32 level = getLevel();
 
 #ifdef ENABLE_IMMERSIVE
@@ -2485,21 +2562,16 @@ void Player::GiveXP(uint32 xp, Creature* victim, float groupRate)
 	if (level >= sWorld.getConfig(CONFIG_UINT32_MAX_PLAYER_LEVEL))
 		return;
 
-    while (newXP >= nextLvlXP)
-    {
-        newXP -= nextLvlXP;
+	while (newXP >= nextLvlXP && level < sWorld.getConfig(CONFIG_UINT32_MAX_PLAYER_LEVEL))
+	{
+		newXP -= nextLvlXP;
 
 		if (level < sWorld.getConfig(CONFIG_UINT32_MAX_PLAYER_LEVEL))
-		{
 			GiveLevel(level + 1);
-			if (level + 1 >= sWorld.getConfig(CONFIG_UINT32_MAX_PLAYER_LEVEL))
-			{
-				newXP = GetUInt32Value(PLAYER_XP);
-			}
-		}
-        level = getLevel();
-        nextLvlXP = GetUInt32Value(PLAYER_NEXT_LEVEL_XP);
-    }
+
+		level = getLevel();
+		nextLvlXP = GetUInt32Value(PLAYER_NEXT_LEVEL_XP);
+	}
 
     SetUInt32Value(PLAYER_XP, newXP);
 }
@@ -2590,6 +2662,10 @@ void Player::GiveLevel(uint32 level)
 
     // resend quests status directly
     SendQuestGiverStatusMultiple();
+
+	if (!sWorld.getConfig(CONFIG_BOOL_CAN_RES_PLAYERS) && level == sWorld.getConfig(CONFIG_UINT32_MAX_PLAYER_LEVEL)) {
+		sWorld.WorldMessage("Congratulations! %s has reached level %u", this->GetName(), level);
+	}
 }
 
 // Update player to next level
@@ -4363,8 +4439,14 @@ void Player::ResurrectPlayer(float restore_percent, bool applySickness)
 
 	if (!sWorld.getConfig(CONFIG_BOOL_CAN_RES_PLAYERS))
 	{
-		ChatHandler(this).PSendSysMessage("You cannot do that. Resurrections are disabled.");
-		return;
+		bool isBattleGround = this->GetMap()->IsBattleGround();
+
+		if (!isBattleGround) {
+			ChatHandler(this).PSendSysMessage("You cannot do that. Resurrections are disabled outside of battlegrounds.");
+			return;
+			//applySickness = true;
+		}
+		
 	}
 		
 
@@ -4430,6 +4512,18 @@ void Player::ResurrectPlayer(float restore_percent, bool applySickness)
             }
         }
     }
+	/*
+	if (!sWorld.getConfig(CONFIG_BOOL_CAN_RES_PLAYERS)) {
+		// set resurrection sickness
+		CastSpell(this, SPELL_ID_PASSIVE_RESURRECTION_SICKNESS, TRIGGERED_OLD_TRIGGERED);
+
+		if (SpellAuraHolder * holder = GetSpellAuraHolder(SPELL_ID_PASSIVE_RESURRECTION_SICKNESS))
+		{
+			holder->SetAuraDuration(-1);
+			holder->UpdateAuraDuration();
+		}
+	} 
+	*/
 }
 
 void Player::KillPlayer()
@@ -4451,6 +4545,10 @@ void Player::KillPlayer()
 
     // update visibility
     UpdateObjectVisibility();
+
+	if (!sWorld.getConfig(CONFIG_BOOL_CAN_RES_PLAYERS) && this->getLevel() > 9 && !this->GetMap()->IsBattleGround()) {
+		sWorld.WorldMessage("RIP %s, died at level %u", this->GetName(), this->getLevel());
+	}
 }
 
 Corpse* Player::CreateCorpse()
@@ -4914,88 +5012,91 @@ uint32 Player::GetShieldBlockValue() const
 
 float Player::GetMeleeCritFromAgility() const
 {
-    float valLevel1 = 0.0f;
-    float valLevel60 = 0.0f;
-    switch (getClass())
-    {
-        case CLASS_PALADIN:
-        case CLASS_SHAMAN:
-        case CLASS_DRUID:
-            valLevel1 = 4.6f;
-            valLevel60 = 20.0f;
-            break;
-        case CLASS_MAGE:
-            valLevel1 = 12.9f;
-            valLevel60 = 20.0f;
-            break;
-        case CLASS_ROGUE:
-            valLevel1 = 2.2f;
-            valLevel60 = 29.0f;
-            break;
-        case CLASS_HUNTER:
-            valLevel1 = 3.5f;
-            valLevel60 = 53.0f;
-            break;
-        case CLASS_PRIEST:
-            valLevel1 = 11.0f;
-            valLevel60 = 20.0f;
-            break;
-        case CLASS_WARLOCK:
-            valLevel1 = 8.4f;
-            valLevel60 = 20.0f;
-            break;
-        case CLASS_WARRIOR:
-            valLevel1 = 3.9f;
-            valLevel60 = 20.0f;
-            break;
-        default:
-            return 0.0f;
-    }
-    float classrate = valLevel1 * float(60.0f - getLevel()) / 59.0f + valLevel60 * float(getLevel() - 1.0f) / 59.0f;
-    return GetStat(STAT_AGILITY) / classrate;
+	float valLevel1 = 0.0f;
+	float valLevel60 = 0.0f;
+	// critical
+	switch (getClass())
+	{
+	case CLASS_PALADIN:
+	case CLASS_SHAMAN:
+	case CLASS_DRUID:
+		valLevel1 = 4.6f;
+		valLevel60 = 20.0f;
+		break;
+	case CLASS_MAGE:
+		valLevel1 = 12.9f;
+		valLevel60 = 20.0f;
+		break;
+	case CLASS_ROGUE:
+		valLevel1 = 2.2f;
+		valLevel60 = 29.0f;
+		break;
+	case CLASS_HUNTER:
+		valLevel1 = 3.5f;
+		valLevel60 = 53.0f;
+		break;
+	case CLASS_PRIEST:
+		valLevel1 = 11.0f;
+		valLevel60 = 20.0f;
+		break;
+	case CLASS_WARLOCK:
+		valLevel1 = 8.4f;
+		valLevel60 = 20.0f;
+		break;
+	case CLASS_WARRIOR:
+		valLevel1 = 3.9f;
+		valLevel60 = 20.0f;
+		break;
+	default:
+		return 0.0f;
+	}
+	float classrate = valLevel1 * float(60.0f - getLevel()) / 59.0f + valLevel60 * float(getLevel() - 1.0f) / 59.0f;
+	return GetStat(STAT_AGILITY) / classrate;
 }
+
 
 float Player::GetDodgeFromAgility(float amount) const
 {
-    float valLevel1 = 0.0f;
-    float valLevel60 = 0.0f;
-    switch (getClass())
-    {
-        case CLASS_PALADIN:
-        case CLASS_SHAMAN:
-        case CLASS_DRUID:
-            valLevel1 = 4.6f;
-            valLevel60 = 20.0f;
-            break;
-        case CLASS_MAGE:
-            valLevel1 = 12.9f;
-            valLevel60 = 20.0f;
-            break;
-        case CLASS_ROGUE:
-            valLevel1 = 1.1f;
-            valLevel60 = 14.5f;
-            break;
-        case CLASS_HUNTER:
-            valLevel1 = 1.8f;
-            valLevel60 = 26.5f;
-            break;
-        case CLASS_PRIEST:
-            valLevel1 = 11.0f;
-            valLevel60 = 20.0f;
-            break;
-        case CLASS_WARLOCK:
-            valLevel1 = 8.4f;
-            valLevel60 = 20.0f;
-            break;
-        case CLASS_WARRIOR:
-            valLevel1 = 3.9f;
-            valLevel60 = 20.0f;
-            break;
-        default:
-            return 0.0f;
-    }
-    float classrate = valLevel1 * float(60.0f - getLevel()) / 59.0f + valLevel60 * float(getLevel() - 1.0f) / 59.0f;
-    return amount / classrate;
+	float valLevel1 = 0.0f;
+	float valLevel60 = 0.0f;
+	// critical
+	switch (getClass())
+	{
+	case CLASS_PALADIN:
+	case CLASS_SHAMAN:
+	case CLASS_DRUID:
+		valLevel1 = 4.6f;
+		valLevel60 = 20.0f;
+		break;
+	case CLASS_MAGE:
+		valLevel1 = 12.9f;
+		valLevel60 = 20.0f;
+		break;
+	case CLASS_ROGUE:
+		valLevel1 = 1.1f;
+		valLevel60 = 14.5f;
+		break;
+	case CLASS_HUNTER:
+		valLevel1 = 1.8f;
+		valLevel60 = 26.5f;
+		break;
+	case CLASS_PRIEST:
+		valLevel1 = 11.0f;
+		valLevel60 = 20.0f;
+		break;
+	case CLASS_WARLOCK:
+		valLevel1 = 8.4f;
+		valLevel60 = 20.0f;
+		break;
+	case CLASS_WARRIOR:
+		valLevel1 = 3.9f;
+		valLevel60 = 20.0f;
+		break;
+	default:
+		return 0.0f;
+	}
+	float classrate = valLevel1 * float(60.0f - getLevel()) / 59.0f + valLevel60 * float(getLevel() - 1.0f) / 59.0f;
+	return amount / classrate;
 }
 
 float Player::GetSpellCritFromIntellect() const
@@ -5049,9 +5150,10 @@ float Player::OCTRegenHPPerSpirit() const
 		case CLASS_SHAMAN:
 		case CLASS_DRUID:
 		case CLASS_HUNTER:
-		case CLASS_ROGUE:
+		case CLASS_PALADIN: regen = (Spirit * 0.25 + 3);  break;
 		case CLASS_WARRIOR:
-		case CLASS_PALADIN: regen = (Spirit * 0.20 + 3);  break;
+		case CLASS_ROGUE: regen = (Spirit * 0.28 + 3);  break;
+		
     }
 
     return regen;
@@ -6476,6 +6578,10 @@ void Player::UpdateHonor()
     uint32 RP = uint32(GetRankPoints() >= 0 ? GetRankPoints() : -1 * GetRankPoints());
     RP = int8(((RP - prk.minRP) / (prk.maxRP - prk.minRP)) * (prk.positive ? 255 : -255));
 
+	if (sWorld.getConfig(CONFIG_BOOL_PARAGON_RANK) && GetParagonLevel() > 0) {
+		m_honor_rank.rank = m_highest_rank.rank = GetParagonLevel() < 14 ? GetParagonLevel() + 4 : 18;
+		m_honor_rank.visualRank = m_highest_rank.visualRank = GetParagonLevel() < 14 ? GetParagonLevel() : 14;
+	}
 
     // NEXT RANK BAR
     // PLAYER_FIELD_HONOR_BAR
@@ -11311,7 +11417,8 @@ void Player::ApplyEnchantment(Item* item, EnchantmentSlot slot, bool apply, bool
         {
             // set duration
             uint32 duration = item->GetEnchantmentDuration(slot);
-            if (duration > 0)
+
+			if (duration > 0)
                 AddEnchantmentDuration(item, slot, duration);
         }
         else
@@ -14056,7 +14163,7 @@ bool Player::LoadFromDB(ObjectGuid guid, SqlQueryHolder* holder)
     if (HasFlag(PLAYER_FLAGS, PLAYER_FLAGS_GM))
         SetUInt32Value(PLAYER_FLAGS, 0 | old_safe_flags);
 
-    m_taxi.LoadTaxiMask(fields[17].GetString());
+    m_taxi.LoadTaxiMask(fields[17].GetString(), getRace());
 
     uint32 extraflags = fields[31].GetUInt32();
 
@@ -14106,7 +14213,7 @@ bool Player::LoadFromDB(ObjectGuid guid, SqlQueryHolder* holder)
 	_LoadParagonInformation();
 	_LoadAccountMoney();
 
-    // reset stats before loading any modifiers
+	// reset stats before loading any modifiers
     InitStatsForLevel();
 
     // is it need, only in pre-2.x used and field byte removed later?

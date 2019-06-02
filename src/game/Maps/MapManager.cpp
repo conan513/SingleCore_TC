@@ -298,7 +298,7 @@ Map* MapManager::CreateInstance(uint32 id, Player* player)
     Map* pNewMap = nullptr;
     uint32 NewInstanceId;                                    // instanceId of the resulting map
     const MapEntry* entry = sMapStore.LookupEntry(id);
-
+	
     if (entry->IsBattleGround())
     {
         // find existing bg map for player
@@ -313,8 +313,9 @@ Map* MapManager::CreateInstance(uint32 id, Player* player)
         NewInstanceId = pSave->GetInstanceId();
         map = FindMap(id, NewInstanceId);
         // it is possible that the save exists but the map doesn't
-        if (!map)
-            pNewMap = CreateDungeonMap(id, NewInstanceId, pSave);
+		if (!map) {
+			pNewMap = CreateDungeonMap(id, NewInstanceId, pSave);
+		}   
     }
     else
     {

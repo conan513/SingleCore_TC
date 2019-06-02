@@ -422,6 +422,13 @@ void World::LoadConfigSettings(bool reload)
 	setConfigPos(CONFIG_FLOAT_RATE_CREATURE_DUNGEON_HP, "Rate.Creature.Dungeon.HP", 1.0f);
 	setConfigPos(CONFIG_FLOAT_RATE_CREATURE_DUNGEON_DAMAGE, "Rate.Creature.Dungeon.Damage", 1.0f);
 	setConfigPos(CONFIG_FLOAT_RATE_CREATURE_DUNGEON_SPELLDAMAGE, "Rate.Creature.Dungeon.SpellDamage", 1.0f);
+	setConfigPos(CONFIG_FLOAT_RATE_CREATURE_DUNGEON_SCALE_BRD, "Rate.Creature.Dungeon.Scale.BRD", 1.0f);
+	setConfigPos(CONFIG_FLOAT_RATE_CREATURE_DUNGEON_SCALE_STRAT, "Rate.Creature.Dungeon.Scale.Strat", 1.0f);
+	setConfigPos(CONFIG_FLOAT_RATE_CREATURE_DUNGEON_SCALE_DIREMAUL, "Rate.Creature.Dungeon.Scale.Diremaul", 1.0f);
+	setConfigPos(CONFIG_FLOAT_RATE_CREATURE_DUNGEON_SCALE_SCHOLO, "Rate.Creature.Dungeon.Scale.Scholo", 1.0f);
+	setConfigPos(CONFIG_FLOAT_RATE_CREATURE_DUNGEON_SCALE_2, "Rate.Creature.Dungeon.Scale.2", 1.0f);
+	setConfigPos(CONFIG_FLOAT_RATE_CREATURE_DUNGEON_SCALE_3, "Rate.Creature.Dungeon.Scale.3", 1.0f);
+	setConfigPos(CONFIG_FLOAT_RATE_CREATURE_DUNGEON_SCALE_4, "Rate.Creature.Dungeon.Scale.4", 1.0f);
 	setConfigPos(CONFIG_FLOAT_RATE_CREATURE_RAID_HP, "Rate.Creature.Raid.HP", 1.0f);
 	setConfigPos(CONFIG_FLOAT_RATE_CREATURE_RAID_DAMAGE, "Rate.Creature.Raid.Damage", 1.0f);
 	setConfigPos(CONFIG_FLOAT_RATE_CREATURE_RAID_SPELLDAMAGE, "Rate.Creature.Raid.SpellDamage", 1.0f);
@@ -546,6 +553,13 @@ void World::LoadConfigSettings(bool reload)
     setConfig(CONFIG_UINT32_MAX_HONOR_POINTS, "MaxHonorPoints", 75000);
 	setConfig(CONFIG_UINT32_XP_PARAGON_LEVEL, "ParagonLevelXP", 100000);
 	setConfig(CONFIG_UINT32_PARAGON_LVL_REQUIREMENT, "ParagonXPLevelRequirement", 60);
+	setConfig(CONFIG_UINT32_PARAGON_COMBAT_REGEN, "ParagonCombatRegen", 5);
+	setConfig(CONFIG_UINT32_PARAGON_COMBAT_REGEN_CAP, "ParagonCombatRegenCap", 50);
+	setConfig(CONFIG_UINT32_PARAGON_ARMOR, "ParagonArmor", 10);
+	setConfig(CONFIG_UINT32_PARAGON_RESISTANCE, "ParagonResistance", 2);
+	setConfig(CONFIG_UINT32_RES_SICKNESS_DURATION, "ResSicknessDuration", 10);
+	setConfig(CONFIG_UINT32_DEFAULT_GUILD_ID, "DefaultGuildId", 0);
+	setConfig(CONFIG_UINT32_MIN_ENCHANT_TIME, "MinEnchantTime", 0);
 
     setConfigMinMax(CONFIG_UINT32_START_HONOR_POINTS, "StartHonorPoints", 0, 0, getConfig(CONFIG_UINT32_MAX_HONOR_POINTS));
 
@@ -556,8 +570,11 @@ void World::LoadConfigSettings(bool reload)
     setConfig(CONFIG_BOOL_LONG_TAXI_PATHS_PERSISTENCE, "LongFlightPathsPersistence", false);
     setConfig(CONFIG_BOOL_ALL_TAXI_PATHS, "AllFlightPaths", false);
 	setConfig(CONFIG_BOOL_CAN_RES_PLAYERS, "CanResPlayers", true);
+	
 	setConfig(CONFIG_BOOL_GOLD_ACCOUNT_WIDE, "GoldAccountWide", false);
 	setConfig(CONFIG_BOOL_BANK_ACCOUNT_WIDE, "BankAccountWide", false);
+	setConfig(CONFIG_BOOL_ALWAYS_REMOVE_CREATURE_STEALTH, "AlwaysRemoveCreatureStealth", false);
+	setConfig(CONFIG_BOOL_PARAGON_RANK, "ParagonRank", false);
 
 	
 
@@ -2246,4 +2263,15 @@ void World::InvalidatePlayerDataToAllClient(ObjectGuid guid) const
     WorldPacket data(SMSG_INVALIDATE_PLAYER, 8);
     data << guid;
     SendGlobalMessage(data);
+}
+
+
+void World::WorldMessage(const char* format, ...)
+{
+	char buffer[256];
+	va_list args;
+	va_start(args, format);
+	vsnprintf(buffer, 256, format, args);
+	sWorld.SendWorldText(3, buffer);
+	va_end(args);
 }

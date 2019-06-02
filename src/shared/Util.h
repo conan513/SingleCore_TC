@@ -42,6 +42,10 @@ inline uint32 secsToTimeBitFields(time_t secs)
     return (lt->tm_year - 100) << 24 | lt->tm_mon  << 20 | (lt->tm_mday - 1) << 14 | lt->tm_wday << 11 | lt->tm_hour << 6 | lt->tm_min;
 }
 
+inline float levelScaleMod(float min, float max, uint32 level) {
+	return max - ((max - min) * ((level - 10) / 50));
+}
+
 /* Return a random number in the range min..max; (max-min) must be smaller than 32768. */
 int32 irand(int32 min, int32 max);
 
@@ -72,10 +76,16 @@ double rand_chance(void);
 
 float rand_chance_f(void);
 
+
 /* Return true if a random roll fits in the specified chance (range 0-100). */
 inline bool roll_chance_f(float chance)
 {
     return chance > rand_chance();
+}
+
+/* Return int rounded from float using random chance */
+inline uint32 RandomRound(float value) {
+	return floor(value) + (roll_chance_f((value - floor(value)) * 100) ? 1 : 0);
 }
 
 /* Return true if a random roll fits in the specified chance (range 0-100). */

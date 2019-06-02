@@ -1581,6 +1581,9 @@ void CreatureEventAI::EnterCombat(Unit* enemy)
     m_EventUpdateTime = EVENT_UPDATE_TIME;
     m_EventDiff = 0;
 
+	if (sWorld.getConfig(CONFIG_BOOL_ALWAYS_REMOVE_CREATURE_STEALTH))
+		m_creature->RemoveSpellsCausingAura(SPELL_AURA_MOD_STEALTH);
+
     UnitAI::EnterCombat(enemy);
 }
 
