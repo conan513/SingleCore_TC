@@ -593,12 +593,22 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder* holder)
     // "GetAccountId()==db stored account id" checked in LoadFromDB (prevent login not own character using cheating tools)
     if (!pCurrChar->LoadFromDB(playerGuid, holder))
     {
+		std::string pCurrName = "unknown"; // If pCurrChar is delted below then there is no way to reference the value for character name
         KickPlayer();                                       // disconnect client, player no set to session and it will not deleted or saved at kick
-        delete pCurrChar;                                   // delete it manually
+        // KickPlayer can sometimes delete the player by checking to see if the 
+        // the character is still on the Map.  If that is true then it deletes the player;
+        // So what happens then is that the core crashes trying to delete pCurrChar because that memory no longer exists.
+        // WorlSession.cpp --> KickPlayer () --> Map.cpp function DeleteFromWorld - Line 221 		
+        if (_player != nullptr)   // If player exists
+	    {
+			pCurrName = pCurrChar->GetGuidStr();     // Copy Name before delete
+		    delete pCurrChar;                                   // delete it manually
+			pCurrChar = nullptr;        // Make sure it's poited Null now
+		}	
         delete holder;                                      // delete all unprocessed queries
         m_playerLoading = false;
-
-        sLog.outError("HandlePlayerLogin> LoadFromDB failed to load %s, AccountId = %u", pCurrChar->GetGuidStr().c_str(), GetAccountId());
+        
+        sLog.outError("HandlePlayerLogin> LoadFromDB failed to load %s, AccountId = %u", pCurrName.c_str(), GetAccountId());
 
         WorldPacket data(SMSG_CHARACTER_LOGIN_FAILED, 1);
         data << (uint8)CHAR_LOGIN_NO_CHARACTER;
