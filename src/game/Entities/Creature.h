@@ -227,11 +227,17 @@ struct CreatureData
 
     // helper function
     ObjectGuid GetObjectGuid(uint32 lowguid) const { return ObjectGuid(CreatureInfo::GetHighGuid(), id, lowguid); }
-    uint32 GetRandomRespawnTime() const { 
-        uint32 mintime = 3600;
-        uint32 randtime = urand(spawntimesecsmin, spawntimesecsmax);
-        
-        return randtime > mintime ? randtime : mintime;
+    uint32 GetRandomRespawnTime() const
+	{
+		if (sWorld.getConfig(CONFIG_BOOL_SPP_SOLOMODE))
+		{
+			uint32 mintime = 3600;
+			uint32 randtime = urand(spawntimesecsmin, spawntimesecsmax);
+
+			return randtime > mintime ? randtime : mintime;
+		}
+		else
+			return urand(spawntimesecsmin, spawntimesecsmax);
     }
     // return false if it should be handled by GameEventMgr or PoolMgr
     bool IsNotPartOfPoolOrEvent() const { return (!gameEvent && !GuidPoolId && !EntryPoolId); }

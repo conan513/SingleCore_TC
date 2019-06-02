@@ -469,6 +469,10 @@ void World::LoadConfigSettings(bool reload)
     setConfig(CONFIG_BOOL_GRID_UNLOAD, "GridUnload", true);
     setConfig(CONFIG_UINT32_MAX_WHOLIST_RETURNS, "MaxWhoListReturns", 49);
 
+	// SPP settings
+    setConfig(CONFIG_BOOL_CROSSFACTION_PVE, "Crossfaction.PVE", false);
+    setConfig(CONFIG_BOOL_SPP_SOLOMODE, "SPP.Solomode", false);
+
     std::string forceLoadGridOnMaps = sConfig.GetStringDefault("LoadAllGridsOnMaps");
     if (!forceLoadGridOnMaps.empty())
     {

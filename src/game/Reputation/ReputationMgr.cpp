@@ -83,27 +83,30 @@ int32 ReputationMgr::GetBaseReputation(FactionEntry const* factionEntry) const
     uint32 raceMask = m_player->getRaceMask();
     uint32 classMask = m_player->getClassMask();
 
-	uint32 playerFactions[] = {
-		47,  // Ironforge
-		54,  // Gnomeregan Exiles
-		68,  // Undercity
-		69,  // Darnassus
-		72,  // Stormwind
-		76,  // Orgrimmar
-		81,  // Thunder Bluff
-		108, // Theramore
-		509, // The League of Arathor
-		510, // The Defilers
-		530, // Darkspear Trolls
-		589, // Wintersaber Trainers
-		729, // Frostwolf Clan
-		730, // Stormpike Guard
-		889, // Warsong Outriders
-		890  // Silverwing Sentinels
-	};
+	if (sWorld.getConfig(CONFIG_BOOL_CROSSFACTION_PVE))
+	{
+		uint32 playerFactions[] = {
+			47,  // Ironforge
+			54,  // Gnomeregan Exiles
+			68,  // Undercity
+			69,  // Darnassus
+			72,  // Stormwind
+			76,  // Orgrimmar
+			81,  // Thunder Bluff
+			108, // Theramore
+			509, // The League of Arathor
+			510, // The Defilers
+			530, // Darkspear Trolls
+			589, // Wintersaber Trainers
+			729, // Frostwolf Clan
+			730, // Stormpike Guard
+			889, // Warsong Outriders
+			890  // Silverwing Sentinels
+		};
 
-	if (find(std::begin(playerFactions), std::end(playerFactions), factionEntry->ID) != end(playerFactions)) {
-		return 42000;
+		if (find(std::begin(playerFactions), std::end(playerFactions), factionEntry->ID) != end(playerFactions)) {
+			return 42000;
+		}
 	}
 
     int idx = factionEntry->GetIndexFitTo(raceMask, classMask);
@@ -149,7 +152,10 @@ ReputationRank ReputationMgr::GetBaseRank(FactionEntry const* factionEntry) cons
 
 ReputationRank const* ReputationMgr::GetForcedRankIfAny(FactionTemplateEntry const* factionTemplateEntry) const
 {
-    return nullptr;
+	if (sWorld.getConfig(CONFIG_BOOL_CROSSFACTION_PVE))
+	{
+		return nullptr;
+	}
     if (!factionTemplateEntry)
         return nullptr;
 
@@ -159,8 +165,15 @@ ReputationRank const* ReputationMgr::GetForcedRankIfAny(FactionTemplateEntry con
 
 void ReputationMgr::ApplyForceReaction(uint32 faction_id, ReputationRank rank, bool apply)
 {
-    if (apply)
-        return;
+	if (apply)
+	{
+		if (sWorld.getConfig(CONFIG_BOOL_CROSSFACTION_PVE))
+		{
+			return;
+		}
+		else
+			m_forcedReactions[faction_id] = rank;
+	}
     else
         m_forcedReactions.erase(faction_id);
 }
@@ -173,27 +186,30 @@ uint32 ReputationMgr::GetDefaultStateFlags(FactionEntry const* factionEntry) con
     uint32 raceMask = m_player->getRaceMask();
     uint32 classMask = m_player->getClassMask();
 
-	uint32 playerFactions[] = {
-		47,  // Ironforge
-		54,  // Gnomeregan Exiles
-		68,  // Undercity
-		69,  // Darnassus
-		72,  // Stormwind
-		76,  // Orgrimmar
-		81,  // Thunder Bluff
-		108, // Theramore
-		509, // The League of Arathor
-		510, // The Defilers
-		530, // Darkspear Trolls
-		589, // Wintersaber Trainers
-		729, // Frostwolf Clan
-		730, // Stormpike Guard
-		889, // Warsong Outriders
-		890  // Silverwing Sentinels
-	};
+	if (sWorld.getConfig(CONFIG_BOOL_CROSSFACTION_PVE))
+	{
+		uint32 playerFactions[] = {
+			47,  // Ironforge
+			54,  // Gnomeregan Exiles
+			68,  // Undercity
+			69,  // Darnassus
+			72,  // Stormwind
+			76,  // Orgrimmar
+			81,  // Thunder Bluff
+			108, // Theramore
+			509, // The League of Arathor
+			510, // The Defilers
+			530, // Darkspear Trolls
+			589, // Wintersaber Trainers
+			729, // Frostwolf Clan
+			730, // Stormpike Guard
+			889, // Warsong Outriders
+			890  // Silverwing Sentinels
+		};
 
-	if (find(std::begin(playerFactions), std::end(playerFactions), factionEntry->ID) != end(playerFactions)) {
-		return 0;
+		if (find(std::begin(playerFactions), std::end(playerFactions), factionEntry->ID) != end(playerFactions)) {
+			return 0;
+		}
 	}
 
     int idx = factionEntry->GetIndexFitTo(raceMask, classMask);
@@ -208,6 +224,11 @@ void ReputationMgr::SendForceReactions()
     data << uint32(m_forcedReactions.size());
     for (ForcedReactions::const_iterator itr = m_forcedReactions.begin(); itr != m_forcedReactions.end(); ++itr)
     {
+		if (!sWorld.getConfig(CONFIG_BOOL_CROSSFACTION_PVE))
+		{
+			data << uint32(itr->first);                         // faction_id (Faction.dbc)
+			data << uint32(itr->second);                        // reputation rank
+		}
     }
     m_player->SendDirectMessage(data);
 }
@@ -307,58 +328,61 @@ void ReputationMgr::Initialize()
             newFaction.needSend = true;
             newFaction.needSave = true;
 
-			uint32 allianceFactions[] = {
-				47,  // Ironforge
-				54,  // Gnomeregan Exiles
-				69,  // Darnassus
-				72,  // Stormwind
-				108, // Theramore
-				509, // The League of Arathor
-				589, // Wintersaber Trainers
-				730, // Stormpike Guard
-				890  // Silverwing Sentinels
-			};
+			if (sWorld.getConfig(CONFIG_BOOL_CROSSFACTION_PVE))
+			{
+				uint32 allianceFactions[] = {
+					47,  // Ironforge
+					54,  // Gnomeregan Exiles
+					69,  // Darnassus
+					72,  // Stormwind
+					108, // Theramore
+					509, // The League of Arathor
+					589, // Wintersaber Trainers
+					730, // Stormpike Guard
+					890  // Silverwing Sentinels
+				};
 
-			uint32 allianceRaces[] = {
-				1,  // Human
-				4,  // Dwarf
-				8,  // Night Elf
-				64, // Gnome
-			};
+				uint32 allianceRaces[] = {
+					1,  // Human
+					4,  // Dwarf
+					8,  // Night Elf
+					64, // Gnome
+				};
 
-			uint32 hordeFactions[] = {
-				68,  // Undercity
-				76,  // Orgrimmar
-				81,  // Thunder Bluff
-				510, // The Defilers
-				530, // Darkspear Trolls
-				729, // Frostwolf Clan
-				889, // Warsong Outriders
-			};
+				uint32 hordeFactions[] = {
+					68,  // Undercity
+					76,  // Orgrimmar
+					81,  // Thunder Bluff
+					510, // The Defilers
+					530, // Darkspear Trolls
+					729, // Frostwolf Clan
+					889, // Warsong Outriders
+				};
 
-			uint32 hordeRaces[] = {
-				2,   // Orc
-				16,  // Undead
-				32,  // Tauren
-				128, // Troll
-			};
+				uint32 hordeRaces[] = {
+					2,   // Orc
+					16,  // Undead
+					32,  // Tauren
+					128, // Troll
+				};
 
-			vector<int> playerFactions;
-			playerFactions.reserve(size(allianceFactions) + size(hordeFactions));
-			playerFactions.insert(playerFactions.end(), begin(allianceFactions), end(allianceFactions));
-			playerFactions.insert(playerFactions.end(), begin(hordeFactions),    end(hordeFactions));
+				vector<int> playerFactions;
+				playerFactions.reserve(size(allianceFactions) + size(hordeFactions));
+				playerFactions.insert(playerFactions.end(), begin(allianceFactions), end(allianceFactions));
+				playerFactions.insert(playerFactions.end(), begin(hordeFactions), end(hordeFactions));
 
-			if (find(std::begin(playerFactions), std::end(playerFactions), newFaction.ID) != end(playerFactions)) {
-				uint32 race = m_player->getRaceMask();
+				if (find(std::begin(playerFactions), std::end(playerFactions), newFaction.ID) != end(playerFactions)) {
+					uint32 race = m_player->getRaceMask();
 
-				if (
-					find(std::begin(allianceRaces),    std::end(allianceRaces),    race)		  != end(allianceRaces) &&
-					find(std::begin(hordeFactions), std::end(hordeFactions), newFaction.ID) != end(hordeFactions)
-					||
-					find(std::begin(hordeRaces),	std::end(hordeRaces),	 race)			!= end(hordeRaces) &&
-					find(std::begin(allianceFactions), std::end(allianceFactions), newFaction.ID) != end(allianceFactions)
-				) {
-					newFaction.Standing = 42000;
+					if (
+						find(std::begin(allianceRaces), std::end(allianceRaces), race) != end(allianceRaces) &&
+						find(std::begin(hordeFactions), std::end(hordeFactions), newFaction.ID) != end(hordeFactions)
+						||
+						find(std::begin(hordeRaces), std::end(hordeRaces), race) != end(hordeRaces) &&
+						find(std::begin(allianceFactions), std::end(allianceFactions), newFaction.ID) != end(allianceFactions)
+						) {
+						newFaction.Standing = 42000;
+					}
 				}
 			}
 
@@ -410,16 +434,26 @@ bool ReputationMgr::SetOneFactionReputation(FactionEntry const* factionEntry, in
         return false;
 
     FactionStateList::iterator itr = m_factions.find(RepListID(factionEntry->reputationListID));
-    if (itr != m_factions.end())
-    {
-        FactionState& faction = itr->second;
-        int32 BaseRep = GetBaseReputation(factionEntry);
+	if (itr != m_factions.end())
+	{
+		FactionState& faction = itr->second;
+		int32 BaseRep = GetBaseReputation(factionEntry);
 
-        if (incremental)
-            standing += faction.Standing + BaseRep;
+		if (incremental)
+			standing += faction.Standing + BaseRep;
 
-        if (standing < Reputation_Bottom)
-            standing = Reputation_Bottom;
+		if (sWorld.getConfig(CONFIG_BOOL_CROSSFACTION_PVE))
+		{
+			if (standing > Reputation_Cap)
+				standing = Reputation_Cap;
+			else if (standing < Reputation_Bottom)
+				standing = Reputation_Bottom;
+		}
+		else
+		{
+			if (standing < Reputation_Bottom)
+				standing = Reputation_Bottom;
+		}
 
         ReputationRank rankOld = ReputationToRank(faction.Standing + BaseRep);
         ReputationRank rankNew = ReputationToRank(standing);
@@ -596,9 +630,23 @@ void ReputationMgr::LoadFromDB(QueryResult* result)
 
                 // set atWar for hostile
                 ForcedReactions::const_iterator forceItr = m_forcedReactions.find(factionEntry->ID);
-                if (forceItr != m_forcedReactions.end())
-                {
-                }
+
+				if (sWorld.getConfig(CONFIG_BOOL_CROSSFACTION_PVE))
+				{
+					if (forceItr != m_forcedReactions.end())
+					{
+					}
+				}
+				else
+				{
+					if (forceItr != m_forcedReactions.end())
+					{
+						if (forceItr->second <= REP_HOSTILE)
+							SetAtWar(faction, true);
+					}
+					else if (GetRank(factionEntry) <= REP_HOSTILE)
+						SetAtWar(faction, true);
+				}
 
                 // reset changed flag if values similar to saved in DB
                 if (faction->Flags == dbFactionFlags)

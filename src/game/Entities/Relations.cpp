@@ -171,11 +171,22 @@ static ReputationRank GetFactionReaction(FactionTemplateEntry const* thisTemplat
                     if (unitPlayer->HasFlag(PLAYER_FLAGS, PLAYER_FLAGS_CONTESTED_PVP) && thisTemplate->IsContestedGuardFaction())
                         return REP_HOSTILE;
 
+					if (!sWorld.getConfig(CONFIG_BOOL_CROSSFACTION_PVE))
+					{
+						if (const ReputationRank* rank = unitPlayer->GetReputationMgr().GetForcedRankIfAny(thisTemplate))
+							return (*rank);
+					}
+
                     const FactionEntry* thisFactionEntry = sFactionStore.LookupEntry(thisTemplate->faction);
                     if (thisFactionEntry && thisFactionEntry->HasReputation())
                     {
                         const ReputationMgr& reputationMgr = unitPlayer->GetReputationMgr();
-                        return reputationMgr.IsAtWar(thisFactionEntry) ? REP_HOSTILE : reputationMgr.GetRank(thisFactionEntry);
+                        if (!sWorld.getConfig(CONFIG_BOOL_CROSSFACTION_PVE))
+                        {
+                            return reputationMgr.GetRank(thisFactionEntry);
+                        }
+						else
+                            return reputationMgr.IsAtWar(thisFactionEntry) ? REP_HOSTILE : reputationMgr.GetRank(thisFactionEntry);
                     }
                 }
 
@@ -240,6 +251,11 @@ ReputationRank Unit::GetReactionTo(Unit const* unit) const
         {
             if (const FactionTemplateEntry* unitFactionTemplate = unit->GetFactionTemplateEntry())
             {
+				if (!sWorld.getConfig(CONFIG_BOOL_CROSSFACTION_PVE))
+				{
+					if (const ReputationRank* rank = thisPlayer->GetReputationMgr().GetForcedRankIfAny(unitFactionTemplate))
+						return (*rank);
+				}
                 const FactionEntry* unitFactionEntry = sFactionStore.LookupEntry(unitFactionTemplate->faction);
 
                 // If the faction has reputation ranks available, "at war" and contested PVP flags decide outcome
@@ -1238,7 +1254,10 @@ bool Unit::IsInTeam(const Unit *other, bool ignoreCharms) const
 /////////////////////////////////////////////////
 bool Unit::CanAssistInCombatAgainst(Unit const* who, Unit const* enemy) const
 {
-    return true;
+	if (sWorld.getConfig(CONFIG_BOOL_CROSSFACTION_PVE))
+	{
+		return true;
+	}
     if (GetMap()->Instanceable()) // in dungeons nothing else needs to be evaluated
         return true;
 
