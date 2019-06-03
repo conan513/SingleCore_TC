@@ -67,10 +67,12 @@ void WorldSession::HandleGroupInviteOpcode(WorldPacket& recv_data)
 
     Player* initiator = GetPlayer();
 
-	if (initiator->GetMap()->IsDungeon() && !initiator->GetGroup()) {
+	if (initiator->GetMap()->IsDungeon() || (initiator->GetGroup() && initiator->GetGroup()->AnyPlayersInInstance())) {
 		SendPartyResult(PARTY_OP_INVITE, membername, ERR_ALREADY_IN_GROUP_S); // error message is not so appropriated but no other option for classic
+		ChatHandler(initiator).SendSysMessage("You cannot invite another player while party members are in an instance");
 		return;
 	}
+
 
     Player* recipient = sObjectMgr.GetPlayer(membername.c_str());
 
@@ -128,6 +130,7 @@ void WorldSession::HandleGroupInviteOpcode(WorldPacket& recv_data)
 	{
 		if (recipient->GetMap()->IsDungeon()) {
 			SendPartyResult(PARTY_OP_INVITE, membername, ERR_ALREADY_IN_GROUP_S);
+			ChatHandler(initiator).SendSysMessage("You cannot invite a player that is inside an instance");
 			return;
 		}
 	}
@@ -198,10 +201,16 @@ void WorldSession::HandleGroupAcceptOpcode(WorldPacket& /*recv_data*/)
         return;
     }
 
+	if (group->AnyPlayersInInstance()) {
+		ChatHandler(GetPlayer()).SendSysMessage("You cannot accept an invite while party members are in an instance");
+		return;
+	}
+
     // remove in from invites in any case
     group->RemoveInvite(GetPlayer());
 
-	GetPlayer()->ResetInstances(INSTANCE_RESET_GROUP_JOIN);
+	GetPlayer()->ResetInstances(INSTANCE_RESET_ALL);
+	group->ResetInstances(INSTANCE_RESET_ALL, nullptr);
 
     /** error handling **/
     /********************/
@@ -220,7 +229,7 @@ void WorldSession::HandleGroupAcceptOpcode(WorldPacket& /*recv_data*/)
     {
 		if (leader) {
 			group->RemoveInvite(leader);
-			leader->ResetInstances(INSTANCE_RESET_GROUP_JOIN);
+			leader->ResetInstances(INSTANCE_RESET_ALL);
 		}
             
         if (group->Create(group->GetLeaderGuid(), group->GetLeaderName()))
@@ -287,6 +296,8 @@ void WorldSession::HandleGroupUninviteGuidOpcode(WorldPacket& recv_data)
 
     if (grp->IsMember(guid))
     {
+		GetPlayer()->ResetInstances(INSTANCE_RESET_ALL);
+		grp->ResetInstances(INSTANCE_RESET_ALL, nullptr);
         Player::RemoveFromGroup(grp, guid);
         return;
     }
@@ -296,7 +307,7 @@ void WorldSession::HandleGroupUninviteGuidOpcode(WorldPacket& recv_data)
         plr->UninviteFromGroup();
         return;
     }
-
+	
     SendPartyResult(PARTY_OP_LEAVE, "", ERR_TARGET_NOT_IN_GROUP_S);
 }
 
@@ -336,6 +347,8 @@ void WorldSession::HandleGroupUninviteOpcode(WorldPacket& recv_data)
 
     if (ObjectGuid guid = grp->GetMemberGuid(membername))
     {
+		GetPlayer()->ResetInstances(INSTANCE_RESET_ALL);
+		grp->ResetInstances(INSTANCE_RESET_ALL, nullptr);
         Player::RemoveFromGroup(grp, guid);
         return;
     }
@@ -345,6 +358,7 @@ void WorldSession::HandleGroupUninviteOpcode(WorldPacket& recv_data)
         plr->UninviteFromGroup();
         return;
     }
+
 
     SendPartyResult(PARTY_OP_LEAVE, membername, ERR_TARGET_NOT_IN_GROUP_S);
 }

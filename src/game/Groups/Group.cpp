@@ -917,6 +917,15 @@ void Group::_setLeader(ObjectGuid guid)
     _updateLeaderFlag();
 }
 
+bool Group::AnyPlayersInInstance() {
+	for (member_citerator citr = m_memberSlots.begin(); citr != m_memberSlots.end(); ++citr)
+		if (Player * player = sObjectMgr.GetPlayer(citr->guid))
+			if (player->GetMap()->IsDungeon())
+				return true;
+
+	return false;
+}
+
 void Group::_updateLeaderFlag(bool remove /*= false*/) const
 {
     if (Player* player = sObjectMgr.GetPlayer(m_leaderGuid))
