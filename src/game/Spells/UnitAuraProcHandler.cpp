@@ -543,7 +543,7 @@ bool Unit::IsTriggeredAtSpellProcEvent(ProcExecutionData& data, SpellAuraHolder*
                     break;
             }
 
-            if (!CanUseEquippedWeapon(data.attType))
+            if (!CanProcEquippedWeapon(data.attType))
                 return false;
 
             if (!item || item->IsBroken() || item->GetProto()->Class != ITEM_CLASS_WEAPON || !((1 << item->GetProto()->SubClass) & spellProto->EquippedItemSubClassMask))

@@ -137,6 +137,7 @@ class Group
         uint32 RemoveMember(ObjectGuid guid, uint8 method); // method: 0=just remove, 1=kick
         void   ChangeLeader(ObjectGuid guid);
         void   Disband(bool hideDestroy = false);
+		bool   AnyPlayersInInstance();
 
         // properties accessories
         uint32 GetId() const { return m_Id; }

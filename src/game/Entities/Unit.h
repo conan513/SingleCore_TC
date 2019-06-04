@@ -27,6 +27,7 @@
 #define __UNIT_H
 
 #include "Common.h"
+#include "World/World.h"
 #include "Entities/Object.h"
 #include "Server/Opcodes.h"
 #include "Spells/SpellAuraDefines.h"
@@ -1120,7 +1121,7 @@ enum ReactiveType
 #define MAX_CREATURE_ATTACK_RADIUS 45.0f                    // max distance for creature aggro (use with CONFIG_FLOAT_RATE_CREATURE_AGGRO)
 
 // Regeneration defines
-#define REGEN_TIME_FULL     2000                            // For this time difference is computed regen value
+#define REGEN_TIME_FULL     500                            // For this time difference is computed regen value
 
 // Power type values defines
 enum PowerDefaults
@@ -1271,6 +1272,24 @@ class Unit : public WorldObject
                     return true;
             }
         }
+		/** Returns if a given weapon can prog
+		 *
+		 */
+		bool CanProcEquippedWeapon(WeaponAttackType attackType) const
+		{
+			if (IsInFeralForm())
+				return true;
+
+			switch (attackType)
+			{
+				default:
+				case BASE_ATTACK:
+					return !HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_DISARMED);
+				case OFF_ATTACK:
+				case RANGED_ATTACK:
+					return true;
+			}
+		}
         /** Returns if the Unit can reach a victim with Melee Attack
          *
          * @param pVictim Who we want to reach with a melee attack
@@ -2167,7 +2186,7 @@ class Unit : public WorldObject
 
         void SetLastManaUse()
         {
-            m_lastManaUseTimer = 5000;
+            m_lastManaUseTimer = sWorld.getConfig(CONFIG_FLOAT_RATE_MANA_CASTING_DELAY) * 1000;
         }
         bool IsUnderLastManaUseEffect() const { return m_lastManaUseTimer != 0; }
 

@@ -557,6 +557,7 @@ void WorldSession::HandleMoverRelocation(MovementInfo& movementInfo)
                 // NOTE: this is actually called many times while falling
                 // even after the player has been teleported away
                 // TODO: discard movement packets after the player is rooted
+				/*
                 if (plMover->isAlive())
                 {
                     plMover->EnvironmentalDamage(DAMAGE_FALL_TO_VOID, plMover->GetMaxHealth());
@@ -569,9 +570,9 @@ void WorldSession::HandleMoverRelocation(MovementInfo& movementInfo)
                         plMover->BuildPlayerRepop();
                     }
                 }
-
+				*/
                 // cancel the death timer here if started
-                plMover->RepopAtGraveyard();
+				plMover->RepopAtGraveyard();
             }
         }
     }

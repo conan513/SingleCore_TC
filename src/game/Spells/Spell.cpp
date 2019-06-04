@@ -1244,6 +1244,10 @@ void Spell::DoAllEffectOnTarget(TargetInfo* target)
         // Send log damage message to client
         caster->SendSpellNonMeleeDamageLog(&damageInfo);
 
+		if (caster->GetTypeId() == TYPEID_PLAYER) {
+			((Player*)caster)->HandleParagonLeech(damageInfo.damage);
+		}
+
         procEx |= createProcExtendMask(&damageInfo, missInfo);
         procVictim |= PROC_FLAG_TAKEN_ANY_DAMAGE;
 
@@ -4042,7 +4046,12 @@ void Spell::TakePower()
 
     Powers powerType = Powers(m_spellInfo->powerType);
 
-    m_caster->ModifyPower(powerType, -(int32)m_powerCost);
+	if (m_caster->GetTypeId() == TYPEID_PLAYER && POWER_MANA == powerType) {
+		m_caster->ModifyPower(powerType, -((Player*)m_caster)->HandleParagonManaReduction(m_powerCost));
+	}
+	else {
+		m_caster->ModifyPower(powerType, -(int32)m_powerCost);
+	}    
 
     // Set the five second timer
     if (powerType == POWER_MANA && m_powerCost > 0)
@@ -4051,7 +4060,7 @@ void Spell::TakePower()
 
 void Spell::TakeAmmo() const
 {
-    if (m_attackType == RANGED_ATTACK && m_caster->GetTypeId() == TYPEID_PLAYER)
+    if (m_attackType == RANGED_ATTACK && m_caster->GetTypeId() == TYPEID_PLAYER && sWorld.getConfig(CONFIG_BOOL_CONSUME_AMMO))
     {
         Item* pItem = ((Player*)m_caster)->GetWeaponForAttack(RANGED_ATTACK, true, false);
 
@@ -5196,6 +5205,7 @@ SpellCastResult Spell::CheckCast(bool strict)
                     //{
                     PathFinder pathFinder(m_caster);
                     pathFinder.setPathLengthLimit(range * 1.5f);
+
                     bool result = pathFinder.calculate(pos.coord_x, pos.coord_y, pos.coord_z);
 
                     if (pathFinder.getPathType() & PATHFIND_SHORT)

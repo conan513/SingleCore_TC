@@ -3338,6 +3338,9 @@ void Spell::EffectEnchantItemTmp(SpellEffectIndex eff_idx)
     else
         duration = 1800;                                    // 30 mins
 
+	if (duration < sWorld.getConfig(CONFIG_UINT32_MIN_ENCHANT_TIME))
+		duration = sWorld.getConfig(CONFIG_UINT32_MIN_ENCHANT_TIME);
+
     // item can be in trade slot and have owner diff. from caster
     Player* item_owner = itemTarget->GetOwner();
     if (!item_owner)

@@ -18,6 +18,7 @@
 
 #include "Common.h"
 #include "Database/DatabaseEnv.h"
+#include "Globals/ObjectMgr.h"
 #include "World/World.h"
 #include "Entities/Player.h"
 #include "Server/Opcodes.h"
@@ -83,6 +84,51 @@ bool ChatHandler::HandleStartCommand(char* /*args*/)
     // cast spell Stuck
     chr->CastSpell(chr, 7355, TRIGGERED_NONE);
     return true;
+}
+
+bool ChatHandler::HandleParagonCommand(char* /*args*/)
+{
+
+	ObjectGuid guid = m_session->GetPlayer()->GetSelectionGuid();
+
+	if (guid)
+	{
+		Player* chr = sObjectMgr.GetPlayer(guid);
+		if (chr) {
+			PSendSysMessage(1703, chr->GetName(), chr->GetParagonLevel());
+			return true;
+		}
+	}
+	Player* chr = m_session->GetPlayer();
+
+	PSendSysMessage(1700, chr->GetParagonLevel());
+	if (chr->GetParagonLevel() > 0)
+	{
+		int paragonXp = chr->GetParagonLevel() < 10 ? chr->GetParagonLevel() * 10 : 100;
+		int paragonHealthRegen = chr->GetParagonLevel() * sWorld.getConfig(CONFIG_UINT32_PARAGON_COMBAT_REGEN);
+		if (paragonHealthRegen > sWorld.getConfig(CONFIG_UINT32_PARAGON_COMBAT_REGEN_CAP))
+			paragonHealthRegen = sWorld.getConfig(CONFIG_UINT32_PARAGON_COMBAT_REGEN_CAP);
+
+		int paragonArmor = chr->GetParagonLevel() * sWorld.getConfig(CONFIG_UINT32_PARAGON_ARMOR);
+		int paragonResistance = chr->GetParagonLevel() * sWorld.getConfig(CONFIG_UINT32_PARAGON_RESISTANCE);
+
+		PSendSysMessage(1702, chr->GetParagonLevel(), chr->GetParagonLevel(), chr->GetParagonLevel() * 2, paragonArmor, paragonResistance, paragonXp, paragonHealthRegen);
+
+		if (chr->getClass() == CLASS_WARRIOR || chr->getClass() == CLASS_ROGUE)
+		{
+			int paragonLifeSteal = chr->GetParagonLevel() < 10 ? chr->GetParagonLevel() * 1 : 10;
+			PSendSysMessage("Also grants %u%% lifestealing", paragonLifeSteal);
+		}
+		else
+		{
+			int paragonManaCost = chr->GetParagonLevel() < 10 ? chr->GetParagonLevel() * 1 : 10;
+			PSendSysMessage("Also grants %u%% mana cost reduction", paragonManaCost);
+		}
+	}
+	
+	PSendSysMessage(1701, chr->GetParagonXP(), chr->GetXpForNextParagonLevel());
+
+	return true;
 }
 
 bool ChatHandler::HandleServerInfoCommand(char* /*args*/)

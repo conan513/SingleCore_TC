@@ -111,6 +111,7 @@ bool WorldSocket::Open()
 
 bool WorldSocket::ProcessIncomingData()
 {
+
     ClientPktHeader header;
 
     if (m_useExistingHeader)

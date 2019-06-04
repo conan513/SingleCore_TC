@@ -21,6 +21,7 @@
 #include "ProgressBar.h"
 #include "World/World.h"
 #include "Util.h"
+#include "Tools/Formulas.h"
 #include "Globals/SharedDefines.h"
 #include "Globals/ObjectAccessor.h"
 #include "Globals/ObjectMgr.h"
@@ -30,6 +31,7 @@
 #include "Entities/ItemEnchantmentMgr.h"
 #include "Entities/Corpse.h"
 #include "Tools/Language.h"
+
 #include <sstream>
 #include <iomanip>
 
@@ -250,13 +252,17 @@ void LootStore::ReportNotExistedId(uint32 id) const
 
 // Checks if the entry (quest, non-quest, reference) takes it's chance (at loot generation)
 // RATE_DROP_ITEMS is no longer used for all types of entries
-bool LootStoreItem::Roll(bool rate) const
+bool LootStoreItem::Roll(bool rate, Map* map) const
 {
     if (chance >= 100.0f)
         return true;
 
-    if (mincountOrRef < 0)                                  // reference case
-        return roll_chance_f(chance * (rate ? sWorld.getConfig(CONFIG_FLOAT_RATE_DROP_ITEM_REFERENCED) : 1.0f));
+	if (mincountOrRef < 0) {  // reference case
+		if (mincountOrRef <= -65300 && mincountOrRef >= -65311 && map->IsDungeon()) // 5 man scaling for added world drops
+			return roll_chance_f(chance * MaNGOS::XP::PlayerNumScaling(map) * (rate ? sWorld.getConfig(CONFIG_FLOAT_RATE_DROP_ITEM_REFERENCED) : 1.0f));
+
+		return roll_chance_f(chance * (rate ? sWorld.getConfig(CONFIG_FLOAT_RATE_DROP_ITEM_REFERENCED) : 1.0f));
+	}
 
     if (needs_quest)
         return roll_chance_f(chance * (rate ? sWorld.getConfig(CONFIG_FLOAT_RATE_DROP_ITEM_QUEST) : 1.0f));
@@ -2493,7 +2499,7 @@ void LootTemplate::Process(Loot& loot, Player const* lootOwner, LootStore const&
         if (Entrie.conditionId && lootOwner && !PlayerOrGroupFulfilsCondition(loot, lootOwner, Entrie.conditionId))
             continue;
 
-        if (!Entrie.Roll(rate))
+        if (!Entrie.Roll(rate, lootOwner->GetMap()))
             continue;                                       // Bad luck for the entry
 
         if (Entrie.mincountOrRef < 0)                           // References processing

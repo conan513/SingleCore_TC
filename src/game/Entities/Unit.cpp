@@ -830,8 +830,13 @@ uint32 Unit::DealDamage(Unit* pVictim, uint32 damage, CleanDamage const* cleanDa
     if (pVictim->GetTypeId() == TYPEID_UNIT && !((Creature*)pVictim)->IsPet() && !((Creature*)pVictim)->HasLootRecipient())
         ((Creature*)pVictim)->SetLootRecipient(this);
 
-    if (health <= damage)
-        Kill(pVictim, damagetype, spellProto, durabilityLoss, duel_hasEnded);
+	if (health <= damage) {
+		if (pVictim->GetTypeId() == TYPEID_PLAYER) {
+			((Player*)pVictim)->SetLastHitBy(GetName());
+		}
+		Kill(pVictim, damagetype, spellProto, durabilityLoss, duel_hasEnded);
+	}
+        
     else                                                    // if (health <= damage)
         HandleDamageDealt(pVictim, damage, cleanDamage, damagetype, damageSchoolMask, spellProto, duel_hasEnded);
 
@@ -1013,6 +1018,11 @@ void Unit::Kill(Unit* victim, DamageEffectType damagetype, SpellEntry const* spe
 void Unit::HandleDamageDealt(Unit* victim, uint32& damage, CleanDamage const* cleanDamage, DamageEffectType damagetype, SpellSchoolMask damageSchoolMask, SpellEntry const* spellProto, bool duel_hasEnded)
 {
     DEBUG_FILTER_LOG(LOG_FILTER_DAMAGE, "DealDamageAlive");
+
+	if (victim->GetTypeId() == TYPEID_PLAYER) {
+		if (((Player*)victim)->GetSession()->IsOffline()) // players invulnerable while offline
+			return;
+	}
 
     victim->ModifyHealth(-(int32)damage);
 
@@ -1514,6 +1524,12 @@ void Unit::CalculateSpellDamage(SpellNonMeleeDamage* spellDamageInfo, int32 dama
     {
         // Melee and Ranged Spells
         case SPELL_DAMAGE_CLASS_RANGED:
+			if (GetTypeId() == TYPEID_UNIT && !((Creature*)this)->IsPet())
+				damage *= Creature::_GetDamageMod(((Creature*)this)->GetCreatureInfo()->Rank, GetMap());
+
+			damage = MeleeDamageBonusDone(pVictim, damage, attackType, damageSchoolMask, spellInfo, SPELL_DIRECT_DAMAGE);
+			damage = pVictim->MeleeDamageBonusTaken(this, damage, attackType, damageSchoolMask, spellInfo, SPELL_DIRECT_DAMAGE);
+			break;
         case SPELL_DAMAGE_CLASS_MELEE:
         {
             // Calculate damage bonus
@@ -2305,9 +2321,13 @@ void Unit::AttackerStateUpdate(Unit* pVictim, WeaponAttackType attType, bool ext
         meleeDamageInfo.totalDamage += meleeDamageInfo.subDamage[i].damage;
     }
 
-    SendAttackStateUpdate(&meleeDamageInfo);
+	SendAttackStateUpdate(&meleeDamageInfo);
     DealMeleeDamage(&meleeDamageInfo, true);
     ProcDamageAndSpell(ProcSystemArguments(meleeDamageInfo.target, meleeDamageInfo.procAttacker, meleeDamageInfo.procVictim, meleeDamageInfo.procEx, meleeDamageInfo.totalDamage, meleeDamageInfo.attackType));
+
+	if (GetTypeId() == TYPEID_PLAYER) {
+		((Player*)this)->HandleParagonLeech(meleeDamageInfo.totalDamage);
+	}
 
     uint32 totalAbsorb = 0;
     uint32 totalResist = 0;
@@ -4459,7 +4479,8 @@ bool Unit::RemoveNoStackAurasDueToAuraHolder(SpellAuraHolder* holder)
         // Experimental: passive abilities dont stack with itself
         if (IsPassiveSpell(existingSpellProto) && (spellId != existingSpellId || !spellProto->HasAttribute(SPELL_ATTR_ABILITY)))
         {
-            // passive spells aren't stackable from the same caster
+
+// SPP merge            // passive spells aren't stackable from the same caster
             // Experimental: ensure party passive auras and party item buffs are still being processed
             if (own)
             {
@@ -6441,7 +6462,7 @@ uint32 Unit::SpellDamageBonusDone(Unit* pVictim, SpellEntry const* spellProto, u
 
     // Creature damage
     if (GetTypeId() == TYPEID_UNIT && !((Creature*)this)->IsPet())
-        DoneTotalMod *= Creature::_GetSpellDamageMod(((Creature*)this)->GetCreatureInfo()->Rank);
+        DoneTotalMod *= Creature::_GetSpellDamageMod(((Creature*)this)->GetCreatureInfo()->Rank, GetMap());
 
     AuraList const& mModDamagePercentDone = GetAurasByType(SPELL_AURA_MOD_DAMAGE_PERCENT_DONE);
     for (auto i : mModDamagePercentDone)
@@ -6459,7 +6480,7 @@ uint32 Unit::SpellDamageBonusDone(Unit* pVictim, SpellEntry const* spellProto, u
     // Add flat bonus from spell damage versus
     DoneTotal += GetTotalAuraModifierByMiscMask(SPELL_AURA_MOD_FLAT_SPELL_DAMAGE_VERSUS, creatureTypeMask);
 
-    // Add pct bonus from spell damage versus
+	    // Add pct bonus from spell damage versus
     DoneTotalMod *= GetTotalAuraMultiplierByMiscMask(SPELL_AURA_MOD_DAMAGE_DONE_VERSUS, creatureTypeMask);
 
     // Add flat bonus from spell damage creature
@@ -6472,6 +6493,12 @@ uint32 Unit::SpellDamageBonusDone(Unit* pVictim, SpellEntry const* spellProto, u
 
     // Done fixed damage bonus auras
     int32 DoneAdvertisedBenefit = SpellBaseDamageBonusDone(GetSpellSchoolMask(spellProto));
+
+	// Add Paragon level bonus
+	if (GetTypeId() == TYPEID_PLAYER)
+	{
+		DoneAdvertisedBenefit += ((Player*)this)->GetParagonLevel() * 2;
+	}
 
     AuraList const& mOverrideClassScript = owner->GetAurasByType(SPELL_AURA_OVERRIDE_CLASS_SCRIPTS);
     for (auto i : mOverrideClassScript)
@@ -6621,6 +6648,12 @@ uint32 Unit::SpellHealingBonusDone(Unit* pVictim, SpellEntry const* spellProto, 
 
     // Done fixed damage bonus auras
     int32 DoneAdvertisedBenefit = SpellBaseHealingBonusDone(GetSpellSchoolMask(spellProto));
+
+	// Add Paragon level bonus
+	if (GetTypeId() == TYPEID_PLAYER)
+	{
+		DoneAdvertisedBenefit += ((Player*)this)->GetParagonLevel() * 2;
+	}
 
     // done scripted mod (take it from owner)
     Unit* owner = GetOwner();
@@ -7636,7 +7669,7 @@ bool Unit::IsVisibleForOrDetect(Unit const* u, WorldObject const* viewPoint, boo
 float Unit::GetVisibleDistance(Unit const* target, bool alert) const
 {
     // Visible distance based on stealth value (stealth rank 4 300MOD, 10.5 - 3 = 7.5)
-    float visibleDistance = 10.5f - (GetTotalAuraModifier(SPELL_AURA_MOD_STEALTH) / 100.0f);
+    float visibleDistance = (GetTypeId() == TYPEID_PLAYER ? 6.5f : 10.5f) - (GetTotalAuraModifier(SPELL_AURA_MOD_STEALTH) / 100.0f);
 
     // Visible distance is modified by
     //-Level Diff (every level diff = 1.0f in visible distance)
@@ -8563,6 +8596,11 @@ float Unit::GetTotalStatValue(Stats stat) const
 
     // value = ((base_value * base_pct) + total_value) * total_pct
     float value  = m_auraModifiersGroup[unitMod][BASE_VALUE] + GetCreateStat(stat);
+	// Add Paragon level bonus
+	if (GetTypeId() == TYPEID_PLAYER)
+	{
+		value += ((Player*)this)->GetParagonLevel();
+	}
     value *= m_auraModifiersGroup[unitMod][BASE_PCT];
     value += m_auraModifiersGroup[unitMod][TOTAL_VALUE];
     value *= m_auraModifiersGroup[unitMod][TOTAL_PCT];

@@ -222,7 +222,7 @@ bool Group::AddInvite(Player* player)
         group = player->GetOriginalGroup();
     if (group)
         return false;
-
+	
     RemoveInvite(player);
 
     m_invitees.insert(player);
@@ -310,6 +310,8 @@ bool Group::AddMember(ObjectGuid guid, const char* name)
 uint32 Group::RemoveMember(ObjectGuid guid, uint8 method)
 {
     Player* player = sObjectMgr.GetPlayer(guid);
+
+    _updateMembersOnRosterChanged(player);
 
     _updateMembersOnRosterChanged(player);
 
@@ -773,6 +775,8 @@ bool Group::_removeMember(ObjectGuid guid)
                 player->SetOriginalGroup(nullptr);
             else
                 player->SetGroup(nullptr);
+
+			player->ResetInstances(INSTANCE_RESET_GROUP_DISBAND);
         }
     }
 
@@ -902,6 +906,15 @@ void Group::_setLeader(ObjectGuid guid)
     m_leaderName = slot->name;
     m_leaderLastOnline = time(nullptr);
     _updateLeaderFlag();
+}
+
+bool Group::AnyPlayersInInstance() {
+	for (member_citerator citr = m_memberSlots.begin(); citr != m_memberSlots.end(); ++citr)
+		if (Player * player = sObjectMgr.GetPlayer(citr->guid))
+			if (player->GetMap()->IsDungeon())
+				return true;
+
+	return false;
 }
 
 void Group::_updateLeaderFlag(bool remove /*= false*/) const
