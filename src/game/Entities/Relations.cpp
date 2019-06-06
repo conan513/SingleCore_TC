@@ -375,6 +375,9 @@ bool Unit::CanAttack(const Unit* unit) const
             return false;
     }
 
+	if (unit->GetTypeId() == TYPEID_PLAYER && ((Player*)unit)->GetSession()->IsOffline())
+		return false;
+
     // We can't attack unit when at least one of these flags is present on it:
     const uint32 mask = (UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_ATTACKABLE_1 | UNIT_FLAG_NON_ATTACKABLE_2 | UNIT_FLAG_TAXI_FLIGHT | UNIT_FLAG_NOT_SELECTABLE);
     if (unit->HasFlag(UNIT_FIELD_FLAGS, mask))

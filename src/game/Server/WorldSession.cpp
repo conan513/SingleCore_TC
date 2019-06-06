@@ -121,6 +121,7 @@ void WorldSession::SetOffline()
         sSocialMgr.SendFriendStatus(_player, FRIEND_OFFLINE, _player->GetObjectGuid(), true);
         _player->CleanupChannels();
         LogoutRequest(time(nullptr));
+		_player->getHostileRefManager().updateOnlineOfflineState(false);
     }
 
     // be sure its closed (may occur when second session is opened)

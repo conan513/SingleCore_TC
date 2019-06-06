@@ -1018,12 +1018,7 @@ void Unit::Kill(Unit* victim, DamageEffectType damagetype, SpellEntry const* spe
 void Unit::HandleDamageDealt(Unit* victim, uint32& damage, CleanDamage const* cleanDamage, DamageEffectType damagetype, SpellSchoolMask damageSchoolMask, SpellEntry const* spellProto, bool duel_hasEnded)
 {
     DEBUG_FILTER_LOG(LOG_FILTER_DAMAGE, "DealDamageAlive");
-
-	if (victim->GetTypeId() == TYPEID_PLAYER) {
-		if (((Player*)victim)->GetSession()->IsOffline()) // players invulnerable while offline
-			return;
-	}
-
+	
     victim->ModifyHealth(-(int32)damage);
 
     if (CanAttack(victim) && (!spellProto || (!spellProto->HasAttribute(SPELL_ATTR_EX3_NO_INITIAL_AGGRO) &&
