@@ -303,6 +303,8 @@ void PlayerTaxi::LoadTaxiMask(const char* data, uint8 race)
         m_taximask[index] = sTaxiNodesMask[index] & uint32(std::stoul(*iter));
     }
 
+	// SPP all taxi node
+	/*
 	switch (race)
 	{
 	case RACE_DWARF:
@@ -323,7 +325,7 @@ void PlayerTaxi::LoadTaxiMask(const char* data, uint8 race)
 	{
 		// load and set bits only for existing taxi nodes
 		m_taximask[index] = sTaxiNodesMask[index] & uint32(std::stoul(*iter));
-	}
+	}*/
 }
 
 void PlayerTaxi::AppendTaximaskTo(ByteBuffer& data, bool all)
