@@ -533,10 +533,6 @@ LogColors = ""
 #        Change not recommended
 #        Default: 60
 #
-#    TalentPlayerLevel
-#        Level that players start earning talent MaxHonorPoints
-#        Default: 10
-#
 #    StartPlayerLevel
 #        Staring level that have character at creating (in range 1 to MaxPlayerLevel)
 #        Default: 1
@@ -759,7 +755,6 @@ CharactersPerAccount = 50
 CharactersPerRealm = 10
 SkipCinematics = 0
 MaxPlayerLevel = 60
-TalentPlayerLevel = 10
 StartPlayerLevel = 1
 StartPlayerMoney = 10000
 MaxHonorPoints = 75000
@@ -769,10 +764,6 @@ MaintenanceDay = 3
 InstantLogout = 1
 LongFlightPathsPersistence = 0
 AllFlightPaths = 1
-CanResPlayers = 0
-GoldAccountWide = 1
-ParagonLevelXP = 150000
-ParagonXPLevelRequirement = 1
 AlwaysMaxSkillForLevel = 0
 ActivateWeather = 1
 CastUnstuck = 1
@@ -1004,12 +995,6 @@ Rate.Creature.Elite.Elite.HP = 1
 Rate.Creature.Elite.RAREELITE.HP = 1
 Rate.Creature.Elite.WORLDBOSS.HP = 1
 Rate.Creature.Elite.RARE.HP = 1
-Rate.Creature.Dungeon.HP = 0.3
-Rate.Creature.Dungeon.Damage = 0.3
-Rate.Creature.Dungeon.SpellDamage = 0.3
-Rate.Creature.Raid.HP = 1
-Rate.Creature.Raid.Damage = 1
-Rate.Creature.Raid.SpellDamage = 1
 ListenRange.Say = 40
 ListenRange.TextEmote = 40
 ListenRange.Yell = 300
@@ -1217,9 +1202,6 @@ Visibility.AIRelocationNotifyDelay = 1000
 ###################################################################################################################
 # SERVER RATES
 #
-#    Rate.Consume.Ammo
-#       Default: 1 (enabled)
-#                0 (disabled)
 #    Rate.Health
 #    Rate.Mana
 #    Rate.Rage.Income
@@ -1229,13 +1211,6 @@ Visibility.AIRelocationNotifyDelay = 1000
 #    Rate.Energy (Rogue)
 #        Health and power regeneration and rage income from damage.
 #        Default: 1
-#    Rate.Health.In.Combat
-#         Allow health regen in Combat (1 = yes, 0 = no)
-#         Default: 0
-#    Rate.Mana.Casting.Delay
-#         Seconds after casting to begin mana regeneration
-#         Default: 5
-#
 #    Rate.Skill.Discovery
 #         Skill Discovery Rates
 #         Default: 1
@@ -1381,13 +1356,10 @@ Visibility.AIRelocationNotifyDelay = 1000
 #
 ###################################################################################################################
 
-Rate.Consume.Ammo = 0
 Rate.Health = 2
 Rate.Health.Sitting = 3
-Rate.Health.In.Combat = 0
 Rate.Mana = 1
 Rate.Mana.Sitting = 3
-Rate.Mana.Casting.Delay = 0
 Rate.Rage.Income = 1
 Rate.Rage.Loss = 1
 Rate.Focus = 1
@@ -1408,7 +1380,6 @@ Rate.Pet.XP.Kill = 3
 Rate.XP.Kill    = 3
 Rate.XP.Quest   = 3
 Rate.XP.Explore = 3
-Rate.XP.Level.Mod = 0
 Rate.Rest.InGame = 1
 Rate.Rest.Offline.InTavernOrCity = 1
 Rate.Rest.Offline.InWilderness = 1
@@ -1426,10 +1397,6 @@ Rate.Reputation.Gain = 10
 Rate.Reputation.LowLevel.Kill    = 0.8
 Rate.Reputation.LowLevel.Quest   = 0.8
 Rate.InstanceResetTime = 1
-Rate.Flight.Path.Speed = 64
-Rate.Goblin.Spawn.Chance = 0.2
-SkillUse.XP.Reward = 0
-SkillGain.XP.Reward = 200
 SkillGain.Crafting = 10
 SkillGain.Defense = 10
 SkillGain.Gathering = 10
@@ -1638,3 +1605,72 @@ SOAP.Port = 7878
 CharDelete.Method = 1
 CharDelete.MinLevel = 0
 CharDelete.KeepDays = 0
+
+###################################################################################################################
+# CUSTOM SETTINGS #
+###################
+#
+#    Rate.Consume.Ammo
+#       Default: 1 (enabled)
+#                0 (disabled)
+#
+#    AlwaysRemoveCreatureStealth
+#        This option completle disable mobs stealth aura effect
+#
+#    ActionRPGmode
+#        Enable a little bit intensive mod
+#        Faster regen, health regem         
+#
+#    Rate.Creature.Dungeon.Scale.*
+#        Scale creatures damage in dungeon
+#
+#    Rate.Creature.Raid.Scale.*
+#        Scale creatures damage in dungeon
+#
+#    Rate.Health.In.Combat
+#         Allow health regen in Combat (1 = yes, 0 = no)
+#         Default: 0
+#
+#    Rate.Mana.Casting.Delay
+#         Seconds after casting to begin mana regeneration
+#         Default: 5
+#
+#    TalentPlayerLevel
+#        Level that players start earning talent MaxHonorPoints
+#        Default: 10
+#
+#    Rate.XP.Level.Mod
+#        I'm not sure what this do
+#        Source code:
+#        // Used for client inform but rewarded only in case not max level
+#        uint32 xp = uint32(pQuest->XPValue(this) * (sWorld.getConfig(CONFIG_FLOAT_RATE_XP_QUEST) + (getLevel() * sWorld.getConfig(CONFIG_FLOAT_RATE_XP_LEVEL_MOD))));
+#
+#
+###################################################################################################################
+
+Rate.Creature.Dungeon.Scale.BRD = 1
+Rate.Creature.Dungeon.Scale.Strat = 1
+Rate.Creature.Dungeon.Scale.Diremaul = 1
+Rate.Creature.Dungeon.Scale.Scholo = 1
+Rate.Creature.Dungeon.HP = 0.3
+Rate.Creature.Dungeon.Damage = 0.3
+Rate.Creature.Dungeon.SpellDamage = 0.3
+Rate.Creature.Raid.HP = 1
+Rate.Creature.Raid.Damage = 1
+Rate.Creature.Raid.SpellDamage = 1
+Rate.Consume.Ammo = 0
+Rate.Health.In.Combat = 0
+Rate.Mana.Casting.Delay = 0
+Rate.Talent.Max.Reset.Cost.Gold = 1
+Rate.XP.Level.Mod = 0
+Rate.Flight.Path.Speed = 64
+Rate.Goblin.Spawn.Chance = 0.2
+AlwaysRemoveCreatureStealth = 0
+ActionRPGmode = 0
+TalentPlayerLevel = 10
+CanResPlayers = 0
+GoldAccountWide = 1
+ParagonLevelXP = 150000
+ParagonXPLevelRequirement = 1
+SkillUse.XP.Reward = 0
+SkillGain.XP.Reward = 200

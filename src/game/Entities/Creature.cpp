@@ -656,7 +656,10 @@ void Creature::RegeneratePower()
                     float ManaIncreaseRate = sWorld.getConfig(CONFIG_FLOAT_RATE_POWER_MANA);
                     float Spirit = GetStat(STAT_SPIRIT);
 
-                    addValue = (Spirit / 5.0f + 17.0f) * ManaIncreaseRate / 4;
+					if (sWorld.getConfig(CONFIG_BOOL_ACTION_RPG_MODE))
+						addValue = (Spirit / 5.0f + 17.0f) * ManaIncreaseRate / 4;
+					else
+						addValue = (Spirit / 5.0f + 17.0f) * ManaIncreaseRate;
                 }
             }
             else
@@ -664,10 +667,16 @@ void Creature::RegeneratePower()
             break;
         case POWER_ENERGY:
             // ToDo: for vehicle this is different - NEEDS TO BE FIXED!
-            addValue = 20 * sWorld.getConfig(CONFIG_FLOAT_RATE_POWER_ENERGY) / 4;
+			if (sWorld.getConfig(CONFIG_BOOL_ACTION_RPG_MODE))
+				addValue = 20 * sWorld.getConfig(CONFIG_FLOAT_RATE_POWER_ENERGY) / 4;
+			else
+				addValue = 20 * sWorld.getConfig(CONFIG_FLOAT_RATE_POWER_ENERGY);
             break;
         case POWER_FOCUS:
-            addValue = 24 * sWorld.getConfig(CONFIG_FLOAT_RATE_POWER_FOCUS) / 4;
+			if (sWorld.getConfig(CONFIG_BOOL_ACTION_RPG_MODE))
+				addValue = 24 * sWorld.getConfig(CONFIG_FLOAT_RATE_POWER_FOCUS) / 4;
+			else
+				addValue = 24 * sWorld.getConfig(CONFIG_FLOAT_RATE_POWER_FOCUS);
             break;
         default:
             return;

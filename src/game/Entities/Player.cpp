@@ -2167,11 +2167,17 @@ void Player::Regenerate(Powers power)
             if (recentCast)
             {
                 // Mangos Updates Mana in intervals of 2s, which is correct
-                addvalue = m_modManaRegenInterrupt *  ManaIncreaseRate * 0.50f;
+				if (sWorld.getConfig(CONFIG_BOOL_ACTION_RPG_MODE))
+					addvalue = m_modManaRegenInterrupt * ManaIncreaseRate * 0.50f;
+				else
+					addvalue = m_modManaRegenInterrupt * ManaIncreaseRate * 2.0f;
             }
             else
             {
-                addvalue = m_modManaRegen * ManaIncreaseRate * 0.50f;
+				if (sWorld.getConfig(CONFIG_BOOL_ACTION_RPG_MODE))
+					addvalue = m_modManaRegen * ManaIncreaseRate * 0.50f;
+				else
+					addvalue = m_modManaRegen * ManaIncreaseRate * 2.0f;
             }
 			if (!IsStandState())
 				addvalue *= sWorld.getConfig(CONFIG_FLOAT_RATE_MANA_SITTING);
@@ -2179,12 +2185,19 @@ void Player::Regenerate(Powers power)
         case POWER_RAGE:                                    // Regenerate rage
         {
             float RageDecreaseRate = sWorld.getConfig(CONFIG_FLOAT_RATE_POWER_RAGE_LOSS);
-            addvalue = 20 * RageDecreaseRate / 4;               // 2 rage by tick (= 2 seconds => 1 rage/sec)
+			if (sWorld.getConfig(CONFIG_BOOL_ACTION_RPG_MODE))
+				addvalue = 20 * RageDecreaseRate / 4;               // 2 rage by tick (= 2 seconds => 1 rage/sec)
+			else
+				addvalue = 20 * RageDecreaseRate;               // 2 rage by tick (= 2 seconds => 1 rage/sec)
+
         }   break;
         case POWER_ENERGY:                                  // Regenerate energy (rogue)
         {
             float EnergyRate = sWorld.getConfig(CONFIG_FLOAT_RATE_POWER_ENERGY);
-            addvalue = 20 * EnergyRate / 4;
+			if (sWorld.getConfig(CONFIG_BOOL_ACTION_RPG_MODE))
+				addvalue = 20 * EnergyRate / 4;
+			else
+				addvalue = 20 * EnergyRate;
             break;
         }
         case POWER_FOCUS:
@@ -2296,7 +2309,10 @@ void Player::RegenerateHealth()
 		return;
 	}
 	
-    ModifyHealth(RandomRound(addvalue / 4));
+	if (sWorld.getConfig(CONFIG_BOOL_ACTION_RPG_MODE))
+		ModifyHealth(RandomRound(addvalue / 4));
+	else
+		ModifyHealth(int32(addvalue));
 }
 
 Creature* Player::GetNPCIfCanInteractWith(ObjectGuid guid, uint32 npcflagmask)

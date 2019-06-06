@@ -376,8 +376,8 @@ void World::LoadConfigSettings(bool reload)
     setConfigPos(CONFIG_FLOAT_RATE_HEALTH,                               "Rate.Health",                               1.0f);
 	setConfigPos(CONFIG_FLOAT_RATE_HEALTH_SITTING,						 "Rate.Health.Sitting",						  1.5f);
 	setConfigPos(CONFIG_FLOAT_RATE_MANA_SITTING,						 "Rate.Mana.Sitting",						  1.0f);
-	setConfig(	 CONFIG_BOOL_HEALTH_REGEN_IN_COMBAT,					 "Rate.Health.In.Combat",					  false);
-	setConfig(	 CONFIG_BOOL_CONSUME_AMMO,								 "Rate.Consume.Ammo",						  true);
+	setConfig(CONFIG_BOOL_HEALTH_REGEN_IN_COMBAT,   					 "Rate.Health.In.Combat",					  false);
+	setConfig(CONFIG_BOOL_CONSUME_AMMO, 								 "Rate.Consume.Ammo",						  true);
     setConfigPos(CONFIG_FLOAT_RATE_POWER_MANA,                           "Rate.Mana",                                 1.0f);
 	setConfigPos(CONFIG_FLOAT_RATE_MANA_CASTING_DELAY,					 "Rate.Mana.Casting.Delay",					  5.0f);
     setConfigPos(CONFIG_FLOAT_RATE_POWER_RAGE_INCOME,                    "Rate.Rage.Income",                          1.0f);
@@ -570,8 +570,7 @@ void World::LoadConfigSettings(bool reload)
 	setConfig(CONFIG_BOOL_BANK_ACCOUNT_WIDE, "BankAccountWide", false);
 	setConfig(CONFIG_BOOL_ALWAYS_REMOVE_CREATURE_STEALTH, "AlwaysRemoveCreatureStealth", false);
 	setConfig(CONFIG_BOOL_PARAGON_RANK, "ParagonRank", false);
-
-	
+	setConfig(CONFIG_BOOL_ACTION_RPG_MODE, "ActionRPGmode", false);
 
     setConfig(CONFIG_BOOL_INSTANCE_IGNORE_LEVEL, "Instance.IgnoreLevel", false);
     setConfig(CONFIG_BOOL_INSTANCE_IGNORE_RAID,  "Instance.IgnoreRaid", false);
