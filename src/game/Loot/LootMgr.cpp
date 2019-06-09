@@ -252,14 +252,14 @@ void LootStore::ReportNotExistedId(uint32 id) const
 
 // Checks if the entry (quest, non-quest, reference) takes it's chance (at loot generation)
 // RATE_DROP_ITEMS is no longer used for all types of entries
-bool LootStoreItem::Roll(bool rate, Map* map) const
+bool LootStoreItem::Roll(bool rate, Player const* lootOwner) const
 {
     if (chance >= 100.0f)
         return true;
 
 	if (mincountOrRef < 0) {  // reference case
-		if (mincountOrRef <= -65300 && mincountOrRef >= -65311 && map->IsDungeon()) // 5 man scaling for added world drops
-			return roll_chance_f(chance * MaNGOS::XP::PlayerNumScaling(map) * (rate ? sWorld.getConfig(CONFIG_FLOAT_RATE_DROP_ITEM_REFERENCED) : 1.0f));
+		if (mincountOrRef <= -65300 && mincountOrRef >= -65311 && lootOwner && lootOwner->GetMap()->IsDungeon()) // 5 man scaling for added world drops
+			return roll_chance_f(chance * MaNGOS::XP::PlayerLootScaling(lootOwner->GetMap()) * (rate ? sWorld.getConfig(CONFIG_FLOAT_RATE_DROP_ITEM_REFERENCED) : 1.0f));
 
 		return roll_chance_f(chance * (rate ? sWorld.getConfig(CONFIG_FLOAT_RATE_DROP_ITEM_REFERENCED) : 1.0f));
 	}
@@ -2504,7 +2504,7 @@ void LootTemplate::Process(Loot& loot, Player const* lootOwner, LootStore const&
         if (Entrie.conditionId && lootOwner && !PlayerOrGroupFulfilsCondition(loot, lootOwner, Entrie.conditionId))
             continue;
 
-        if (!Entrie.Roll(rate, lootOwner->GetMap()))
+        if (!Entrie.Roll(rate, lootOwner))
             continue;                                       // Bad luck for the entry
 
         if (Entrie.mincountOrRef < 0)                           // References processing

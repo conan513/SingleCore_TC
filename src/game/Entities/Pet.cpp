@@ -1327,6 +1327,9 @@ void Pet::InitStatsForLevel(uint32 petlevel)
                     SetBaseWeaponDamage(BASE_ATTACK, MINDAMAGE, float(mDmg - mDmg / 4));
                     SetBaseWeaponDamage(BASE_ATTACK, MAXDAMAGE, float((mDmg - mDmg / 4) * 1.5));
                 }
+
+				if (!GetOwner() || GetOwner()->GetTypeId() != TYPEID_PLAYER)
+					health *= _GetHealthMod(cInfo->Rank, GetMap());
             }
             else
             {
@@ -1350,7 +1353,7 @@ void Pet::InitStatsForLevel(uint32 petlevel)
         {
             // TODO: Remove cinfo->ArmorMultiplier test workaround to disable classlevelstats when DB is ready
             CreatureClassLvlStats const* cCLS = sObjectMgr.GetCreatureClassLvlStats(petlevel, cInfo->UnitClass);
-            if (cInfo->ArmorMultiplier && cCLS) // Info found in ClassLevelStats
+            if (cInfo->ArmorMultiplier && cCLS && cInfo->Entry != 10697) // Info found in ClassLevelStats
             {
                 health = cCLS->BaseHealth;
                 mana = cCLS->BaseMana;
@@ -1371,7 +1374,7 @@ void Pet::InitStatsForLevel(uint32 petlevel)
 
                 // Get custom setting
                 minDmg *= _GetDamageMod(cInfo->Rank);
-
+				
                 SetBaseWeaponDamage(RANGED_ATTACK, MINDAMAGE, float(minDmg));
                 SetBaseWeaponDamage(RANGED_ATTACK, MAXDAMAGE, float(minDmg * 1.5));
             }
@@ -1397,15 +1400,18 @@ void Pet::InitStatsForLevel(uint32 petlevel)
                     health = (hMaxLevel - ((hMaxLevel - hMinLevel) / 2)) * petlevel;
                     mana = (mMaxLevel - ((mMaxLevel - mMinLevel) / 2)) * petlevel;
                 }
-
+				
                 sLog.outErrorDb("Pet::InitStatsForLevel> Error trying to set stats for creature %s (entry: %u) using ClassLevelStats; not enough data to do it!", GetGuidStr().c_str(), cInfo->Entry);
 
-                SetBaseWeaponDamage(BASE_ATTACK, MINDAMAGE, float(cInfo->MinMeleeDmg));
-                SetBaseWeaponDamage(BASE_ATTACK, MAXDAMAGE, float(cInfo->MaxMeleeDmg));
+                SetBaseWeaponDamage(BASE_ATTACK, MINDAMAGE, float(cInfo->MinMeleeDmg) * _GetDamageMod(cInfo->Rank, GetMap()));
+                SetBaseWeaponDamage(BASE_ATTACK, MAXDAMAGE, float(cInfo->MaxMeleeDmg) * _GetDamageMod(cInfo->Rank, GetMap()));
 
-                SetBaseWeaponDamage(RANGED_ATTACK, MINDAMAGE, float(cInfo->MinRangedDmg));
-                SetBaseWeaponDamage(RANGED_ATTACK, MAXDAMAGE, float(cInfo->MaxRangedDmg));
+                SetBaseWeaponDamage(RANGED_ATTACK, MINDAMAGE, float(cInfo->MinRangedDmg) * _GetDamageMod(cInfo->Rank, GetMap()));
+                SetBaseWeaponDamage(RANGED_ATTACK, MAXDAMAGE, float(cInfo->MaxRangedDmg) * _GetDamageMod(cInfo->Rank, GetMap()));
             }
+
+			if (!GetOwner() || GetOwner()->GetTypeId() != TYPEID_PLAYER)
+				health *= _GetHealthMod(cInfo->Rank, GetMap());
 
             break;
         }
