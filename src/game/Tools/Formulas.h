@@ -339,6 +339,10 @@ namespace MaNGOS
 			return 1.0f - ((5 - map->GetPlayersInGroup()) * 0.15f);
 		}
 
+		inline float PlayerXPScaling(Map* map) {
+			return 1.0f - ((5 - map->GetPlayersInGroup()) * 0.16f);
+		}
+
         inline uint32 Gain(Player* player, Creature* target)
         {
             if (target->IsTotem() || target->IsPet() || target->IsNoXp() || target->IsCritter())
