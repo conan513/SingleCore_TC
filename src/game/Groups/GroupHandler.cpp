@@ -209,7 +209,7 @@ void WorldSession::HandleGroupAcceptOpcode(WorldPacket& /*recv_data*/)
     // remove in from invites in any case
     group->RemoveInvite(GetPlayer());
 
-	GetPlayer()->ResetInstances(INSTANCE_RESET_ALL);
+	//GetPlayer()->ResetInstances(INSTANCE_RESET_ALL);
 	group->ResetInstances(INSTANCE_RESET_ALL, nullptr);
 
     /** error handling **/

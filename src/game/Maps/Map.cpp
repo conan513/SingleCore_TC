@@ -1146,13 +1146,53 @@ void Map::RemoveAllObjectsInRemoveList()
     // DEBUG_LOG("Object remover 2 check.");
 }
 
-bool Map::HasGroupedPlayers()
+int Map::GetPlayersInGroup()
 {
-	for (const auto& itr : m_mapRefManager)
-		if (!itr.getSource()->isGameMaster() && itr.getSource()->GetGroup())
-			return true;
+	if (m_playersInGroup > 0)
+		return m_playersInGroup;
 
-	return false;
+	m_playersInGroup = 1;
+
+	for (const auto& itr : m_mapRefManager)
+	{
+		if (!itr.getSource()->isGameMaster() && itr.getSource()->GetGroup())
+		{
+			m_playersInGroup = itr.getSource()->GetGroup()->GetMembersCount();
+		}
+	}
+
+	return m_playersInGroup;
+}
+
+float Map::GetDungeonScaling() {
+
+	if (m_dungeonscaling > 0)
+		return m_dungeonscaling;
+
+	float specificMapScaling = 1.0f;
+	switch (GetId()) {
+	case 230:
+		specificMapScaling = sWorld.getConfig(CONFIG_FLOAT_RATE_CREATURE_DUNGEON_SCALE_BRD);
+	case 329:
+		specificMapScaling = sWorld.getConfig(CONFIG_FLOAT_RATE_CREATURE_DUNGEON_SCALE_STRAT);
+	case 429:
+		specificMapScaling = sWorld.getConfig(CONFIG_FLOAT_RATE_CREATURE_DUNGEON_SCALE_DIREMAUL);
+	case 289:
+		specificMapScaling = sWorld.getConfig(CONFIG_FLOAT_RATE_CREATURE_DUNGEON_SCALE_SCHOLO);
+	}
+
+	m_dungeonscaling = sWorld.getConfig(CONFIG_FLOAT_RATE_CREATURE_DUNGEON_SCALE_5) * specificMapScaling;
+
+	if (GetPlayersInGroup() == 1)
+		m_dungeonscaling = sWorld.getConfig(CONFIG_FLOAT_RATE_CREATURE_DUNGEON_SCALE_1) * specificMapScaling;
+	if (GetPlayersInGroup() == 2)
+		m_dungeonscaling = sWorld.getConfig(CONFIG_FLOAT_RATE_CREATURE_DUNGEON_SCALE_2) * specificMapScaling;
+	if (GetPlayersInGroup() == 3)
+		m_dungeonscaling = sWorld.getConfig(CONFIG_FLOAT_RATE_CREATURE_DUNGEON_SCALE_3) * specificMapScaling;
+	if (GetPlayersInGroup() == 4)
+		m_dungeonscaling = sWorld.getConfig(CONFIG_FLOAT_RATE_CREATURE_DUNGEON_SCALE_4) * specificMapScaling;
+
+	return m_dungeonscaling;
 }
 
 uint32 Map::GetPlayersCountExceptGMs() const

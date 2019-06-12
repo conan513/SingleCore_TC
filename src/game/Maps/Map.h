@@ -192,6 +192,8 @@ class Map : public GridRefManager<NGridType>
         bool IsContinent() const { return i_mapEntry && i_mapEntry->IsContinent(); }
         bool IsMountAllowed() const;
 
+		float GetDungeonScaling();
+
         // can't be nullptr for loaded map
         MapPersistentState* GetPersistentState() const { return m_persistentState; }
 
@@ -203,9 +205,9 @@ class Map : public GridRefManager<NGridType>
         bool isCellMarked(uint32 pCellId) const { return marked_cells.test(pCellId); }
         void markCell(uint32 pCellId) { marked_cells.set(pCellId); }
 
-		bool HasGroupedPlayers();
         bool HavePlayers() const { return !m_mapRefManager.isEmpty(); }
         uint32 GetPlayersCountExceptGMs() const;
+		int GetPlayersInGroup();
         bool ActiveObjectsNearGrid(uint32 x, uint32 y) const;
 
         /// Send a Packet to all players on a map
@@ -339,6 +341,9 @@ class Map : public GridRefManager<NGridType>
         void SendRemoveTransports(Player* player) const;
 
         bool CreatureCellRelocation(Creature* c, const Cell& new_cell);
+
+		float m_dungeonscaling = -1.0f;
+		int m_playersInGroup = -1;
 
         bool loaded(const GridPair&) const;
         void EnsureGridCreated(const GridPair&);
