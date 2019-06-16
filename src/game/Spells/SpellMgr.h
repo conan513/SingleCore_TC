@@ -341,7 +341,7 @@ inline bool IsPassiveSpellStackableWithRanks(SpellEntry const* spellProto)
     if (!IsPassiveSpell(spellProto))
         return false;
 
-    return !IsSpellHaveEffect(spellProto, SPELL_EFFECT_APPLY_AURA);
+    return !IsSpellHaveEffect(spellProto, SPELL_EFFECT_APPLY_AURA) && !IsSpellHaveEffect(spellProto, SPELL_EFFECT_APPLY_AREA_AURA_PARTY);
 }
 
 inline bool IsAutocastable(SpellEntry const* spellInfo)
@@ -471,10 +471,28 @@ inline bool IsSpellEffectDamage(SpellEntry const& spellInfo, SpellEffectIndex i)
             //   SPELL_AURA_POWER_BURN_MANA: deals damage for power burned, but not really a DoT?
             case SPELL_AURA_PERIODIC_DAMAGE_PERCENT:
                 return true;
+        }
+    }
+    return false;
+}
+
+inline bool IsSpellEffectDummy(SpellEntry const& spellInfo, SpellEffectIndex i)
+{
+    if (!spellInfo.EffectApplyAuraName[i])
+    {
+        switch (spellInfo.Effect[i])
+        {
+            case SPELL_EFFECT_DUMMY:
+                return true;
+        }
+    }
+    else
+    {
+        switch (spellInfo.EffectApplyAuraName[i])
+        {
             case SPELL_AURA_DUMMY:
             case SPELL_AURA_PERIODIC_DUMMY:
-                // Placeholder: insert any possible overrides here...
-                break;
+                return true;
         }
     }
     return false;
@@ -502,7 +520,10 @@ inline bool IsBinarySpell(SpellEntry const& spellInfo, uint8 effectMask = EFFECT
     {
         const uint8 thisMask = uint8(1 << (i - 1));
 
-        if (!spellInfo.Effect[i] || !(effectMask & thisMask) || IsSpellEffectTriggerSpell(&spellInfo, SpellEffectIndex(i)))
+        if (!spellInfo.Effect[i] || !(effectMask & thisMask))
+            continue;
+
+        if (IsSpellEffectDummy(spellInfo, SpellEffectIndex(i)) || IsSpellEffectTriggerSpell(&spellInfo, SpellEffectIndex(i)))
             continue;
 
         validmask |= thisMask;
@@ -1556,6 +1577,10 @@ inline bool IsStackableAuraEffect(SpellEntry const* entry, SpellEntry const* ent
             return true; // No similarities
     }
 
+    // Special case for potions
+    if (entry->SpellFamilyName == SPELLFAMILY_POTION || entry2->SpellFamilyName == SPELLFAMILY_POTION)
+        return true;
+
     // Special rule for food buffs
     if (GetSpellSpecific(entry->Id) == SPELL_WELL_FED && GetSpellSpecific(entry2->Id) != SPELL_WELL_FED)
         return true;
@@ -1629,7 +1654,7 @@ inline bool IsStackableAuraEffect(SpellEntry const* entry, SpellEntry const* ent
         case SPELL_AURA_MOD_ATTACK_POWER:
             // Attack Power debuffs logic: Do not stack Curse of Weakness, Demoralizing Roars/Shouts
             if (!positive && entry->EffectBasePoints[i] < 1 && entry2->EffectBasePoints[similar] < 1)
-                return (!entry->SpellFamilyName && !entry->SpellFamilyName);
+                return (!entry->SpellFamilyName && !entry2->SpellFamilyName);
             break;
         // Armor & Resistance buffs and debuffs logic
         case SPELL_AURA_MOD_RESISTANCE:
@@ -1640,13 +1665,11 @@ inline bool IsStackableAuraEffect(SpellEntry const* entry, SpellEntry const* ent
             {
                 // Used as a non-zero type in this context
                 const bool type = (entry->Dispel && entry->Dispel == entry2->Dispel);
-                const bool family = (entry->SpellFamilyName || entry2->SpellFamilyName);
-                const bool uncategorized = (!entry->SpellFamilyName || !entry2->SpellFamilyName);
-                if (type && family && uncategorized)
-                    return false; // Do not stack player buffs with scrolls
                 const bool attacktable = (entry->DmgClass && entry->DmgClass == entry2->DmgClass);
-                if (attacktable && !entry->SpellFamilyName && !entry2->SpellFamilyName)
-                    return false; // Do not stack scrolls with other some procs (such Hyjal ring)
+                if ((attacktable || type) && !entry->SpellFamilyName && !entry2->SpellFamilyName)
+                    return false; // Do not stack scrolls with other srolls and some procs (such as Hyjal ring)
+                if (player && related && siblings && entry->HasAttribute(SPELL_ATTR_EX3_STACK_FOR_DIFF_CASTERS))
+                    return true;
             }
             else
             {
@@ -1655,7 +1678,7 @@ inline bool IsStackableAuraEffect(SpellEntry const* entry, SpellEntry const* ent
                 if (type && prevention)
                     return false;
             }
-            return true;
+            break;
         }
         case SPELL_AURA_MOD_RESISTANCE_PCT:
         {
@@ -1679,6 +1702,13 @@ inline bool IsStackableAuraEffect(SpellEntry const* entry, SpellEntry const* ent
                 const bool uncategorized = (!entry->SpellFamilyName || !entry2->SpellFamilyName);
                 if (type && family && uncategorized)
                     return false; // Do not stack player buffs with scrolls
+                if (!entry->SpellFamilyName && !entry2->SpellFamilyName)
+                {
+                    if (type)
+                        return false; // Do not stack scrolls and other non-player buffs with each other
+                    if (entry->HasAttribute(SPELL_ATTR_EX2_UNK28) && entry2->HasAttribute(SPELL_ATTR_EX2_UNK28))
+                        return false; // FIXME: Cozy fire hack
+                }
             }
             else
             {
@@ -1773,12 +1803,18 @@ inline bool IsSimilarExistingAuraStronger(const SpellAuraHolder* holder, const S
     if (!entry || !entry2)
         return false;
 
+    // Already compared effects masks to avoid re-entrance
+    uint32 effectmask1 = 0;
+    uint32 effectmask2 = 0;
+
     for (uint32 e = EFFECT_INDEX_0; e < MAX_EFFECT_INDEX; ++e)
     {
         for (uint32 e2 = EFFECT_INDEX_0; e2 < MAX_EFFECT_INDEX; ++e2)
         {
-            if (IsSimilarAuraEffect(entry, e, entry2, e2))
+            if (IsSimilarAuraEffect(entry, e, entry2, e2) && !(effectmask1 & (1 << e)) && !(effectmask2 & (1 << e2)))
             {
+                effectmask1 |= (1 << e);
+                effectmask2 |= (1 << e2);
                 Aura* aura1 = holder->GetAuraByEffectIndex(SpellEffectIndex(e));
                 Aura* aura2 = existing->GetAuraByEffectIndex(SpellEffectIndex(e2));
                 int32 value = aura1 ? (aura1->GetModifier()->m_amount / int32(aura1->GetStackAmount())) : 0;
@@ -1804,12 +1840,18 @@ inline bool IsSimilarExistingAuraStronger(const Unit* caster, const SpellEntry* 
     if (!entry || !entry2)
         return false;
 
+    // Already compared effects masks to avoid re-entrance
+    uint32 effectmask1 = 0;
+    uint32 effectmask2 = 0;
+
     for (uint32 e = EFFECT_INDEX_0; e < MAX_EFFECT_INDEX; ++e)
     {
         for (uint32 e2 = EFFECT_INDEX_0; e2 < MAX_EFFECT_INDEX; ++e2)
         {
-            if (IsSimilarAuraEffect(entry, e, entry2, e2))
+            if (IsSimilarAuraEffect(entry, e, entry2, e2) && !(effectmask1 & (1 << e)) && !(effectmask2 & (1 << e2)))
             {
+                effectmask1 |= (1 << e);
+                effectmask2 |= (1 << e2);
                 Aura* aura = existing->GetAuraByEffectIndex(SpellEffectIndex(e2));
                 int32 value = entry->CalculateSimpleValue(SpellEffectIndex(e));
                 int32 value2 = aura ? (aura->GetModifier()->m_amount / int32(aura->GetStackAmount())) : 0;
@@ -2533,7 +2575,6 @@ class SpellMgr
             return (spellId1 != spellId2 && GetFirstSpellInChain(spellId1) == GetFirstSpellInChain(spellId2));
         }
 
-        bool IsNoStackSpellDueToSpell(SpellEntry const* spellInfo_1, SpellEntry const* spellInfo_2) const;
         bool IsSingleTargetSpell(SpellEntry const* entry) const
         {
             if (entry->HasAttribute(SPELL_ATTR_EX5_SINGLE_TARGET_SPELL))
@@ -2576,6 +2617,44 @@ class SpellMgr
                 }
             }
             return 0;
+        }
+
+        bool IsSpellRankOfSpell(SpellEntry const* spellInfo_1, uint32 spellId_2) const;
+        bool IsSpellStackableWithSpell(const SpellEntry* entry1, const SpellEntry* entry2) const
+        {
+            if (!entry1 || !entry2)
+                return true;
+
+            // Uncancellable spells are expected to be persistent at all times
+            if (entry1->HasAttribute(SPELL_ATTR_CANT_CANCEL) || entry2->HasAttribute(SPELL_ATTR_CANT_CANCEL))
+                return true;
+
+            // Allow stacking passive and active spells
+            if (entry1->HasAttribute(SPELL_ATTR_PASSIVE) != entry2->HasAttribute(SPELL_ATTR_PASSIVE))
+                return true;
+
+            return IsStackableSpell(entry1, entry2);
+        }
+
+        bool IsSpellStackableWithSpellForDifferentCasters(const SpellEntry* entry1, const SpellEntry* entry2) const
+        {
+            if (!entry1 || !entry2)
+                return true;
+
+            // If spells are two instances of the same spell, check attribute first, and formal aura holder stacking rules after
+            if (entry1 == entry2)
+                return (entry1->HasAttribute(SPELL_ATTR_EX3_STACK_FOR_DIFF_CASTERS) || IsSpellStackableWithSpell(entry1, entry2));
+
+            // If spells are in the same spell chain
+            if (IsSpellAnotherRankOfSpell(entry1->Id, entry2->Id))
+            {
+                // Both ranks have attribute, allow stacking
+                if (entry1->HasAttribute(SPELL_ATTR_EX3_STACK_FOR_DIFF_CASTERS) && entry2->HasAttribute(SPELL_ATTR_EX3_STACK_FOR_DIFF_CASTERS))
+                    return true;
+            }
+
+            // By default, check formal aura holder stacking rules
+            return IsSpellStackableWithSpell(entry1, entry2);
         }
 
         // return true if spell1 can affect spell2

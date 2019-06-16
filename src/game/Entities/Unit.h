@@ -288,11 +288,10 @@ typedef std::list<SpellImmune> SpellImmuneList;
 enum UnitModifierType
 {
     BASE_VALUE = 0,
-    BASE_EXCLUSIVE = 1,
-    BASE_PCT = 2,
-    TOTAL_VALUE = 3,
-    TOTAL_PCT = 4,
-    MODIFIER_TYPE_END = 5
+    BASE_PCT = 1,
+    TOTAL_VALUE = 2,
+    TOTAL_PCT = 3,
+    MODIFIER_TYPE_END = 4
 };
 
 enum WeaponDamageRange
@@ -1433,7 +1432,7 @@ class Unit : public WorldObject
 
         Unit* getVictim() const { return m_attacking; }     //< Returns the victim that this unit is currently attacking
         void CombatStop(bool includingCast = false, bool includingCombo = true);        //< Stop this unit from combat, if includingCast==true, also interrupt casting
-        void CombatStopWithPets(bool includingCast = false);
+        void CombatStopWithPets(bool includingCast = false, bool includingCombo = true);
         void StopAttackFaction(uint32 faction_id);
         Unit* SelectRandomUnfriendlyTarget(Unit* except = nullptr, float radius = ATTACK_DISTANCE) const;
         Unit* SelectRandomFriendlyTarget(Unit* except = nullptr, float radius = ATTACK_DISTANCE) const;
@@ -1509,6 +1508,8 @@ class Unit : public WorldObject
             return false;
         }
 
+        Player const* GetControllingPlayer(bool ignoreCharms = false) const;
+
         ReputationRank GetReactionTo(Unit const* unit) const override;
         ReputationRank GetReactionTo(Corpse const* corpse) const override;
 
@@ -1529,8 +1530,15 @@ class Unit : public WorldObject
 
         bool IsCivilianForTarget(Unit const* pov) const;
 
-        bool IsInGroup(Unit const* other, bool party = false, bool UI = false) const;
-        bool IsInParty(Unit const* other, bool UI = false) const { return IsInGroup(other, true, UI); }
+        // Serverside fog of war settings
+        bool IsFogOfWarVisibleStealth(Unit const* other) const;
+        bool IsFogOfWarVisibleHealth(Unit const* other) const;
+        bool IsFogOfWarVisibleStats(Unit const* other) const;
+
+        bool IsInGroup(Unit const* other, bool party = false, bool ignoreCharms = false) const;
+        inline bool IsInParty(Unit const* other, bool ignoreCharms = false) const { return IsInGroup(other, true, ignoreCharms); }
+        bool IsInGuild(Unit const* other, bool ignoreCharms = false) const;
+        bool IsInTeam(Unit const* other, bool ignoreCharms = true) const;
 
         // extensions of CanAttack and CanAssist API needed serverside
         virtual bool CanAttackSpell(Unit const* target, SpellEntry const* spellInfo = nullptr, bool isAOE = false) const override;
@@ -1538,11 +1546,6 @@ class Unit : public WorldObject
 
         bool CanAttackOnSight(Unit const* target) const; // Used in MoveInLineOfSight checks
         bool CanAssistInCombatAgainst(Unit const* who, Unit const* enemy) const;
-
-        // Serverside fog of war settings
-        bool IsFogOfWarVisibleStealth(Unit const* other) const;
-        bool IsFogOfWarVisibleHealth(Unit const* other) const;
-        bool IsFogOfWarVisibleStats(Unit const* other) const;
 
         bool IsImmuneToNPC() const { return HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE_TO_NPC); }
         void SetImmuneToNPC(bool state);
@@ -1568,7 +1571,7 @@ class Unit : public WorldObject
         bool IsSitState() const;
         bool IsStandState() const;
         bool IsSeatedState() const;
-        void SetStandState(uint8 state);
+        void SetStandState(uint8 state, bool acknowledge = false);
 
         void  SetStandFlags(uint8 flags) { SetByteFlag(UNIT_FIELD_BYTES_1, 2, flags); }
         void  RemoveStandFlags(uint8 flags) { RemoveByteFlag(UNIT_FIELD_BYTES_1, 2, flags); }
@@ -1613,6 +1616,9 @@ class Unit : public WorldObject
         SpellMissInfo MagicSpellHitResult(Unit* pVictim, SpellEntry const* spell, SpellSchoolMask schoolMask);
         SpellMissInfo SpellHitResult(Unit* pVictim, SpellEntry const* spell, uint8 effectMask, bool reflectable = false);
 
+        bool CanDualWield() const { return m_canDualWield; }
+        void SetCanDualWield(bool value) { m_canDualWield = value; }
+
         // Unit Combat reactions API: Dodge/Parry/Block
         bool CanDodge() const { return m_canDodge; }
         bool CanParry() const { return m_canParry; }
@@ -1626,7 +1632,7 @@ class Unit : public WorldObject
         void SetCanParry(const bool flag);
         void SetCanBlock(const bool flag);
 
-        bool CanReactInCombat() const { return (isAlive() && !IsIncapacitated()); }
+        bool CanReactInCombat() const { return (isAlive() && !IsIncapacitated() && !IsEvadingHome()); }
         bool CanDodgeInCombat() const;
         bool CanDodgeInCombat(const Unit* attacker) const;
         bool CanParryInCombat() const;
@@ -1918,8 +1924,6 @@ class Unit : public WorldObject
         // Beneficiary: owner of the xp/loot/etc credit, master or self (server-side)
         Unit* GetBeneficiary() const;
         Player* GetBeneficiaryPlayer() const;
-        // Controlling player: official client PoV and term on which player is the "master" of the unit at the moment, limited recursive master/beneficiary logic (client-side)
-        Player const* GetControllingPlayer() const;
 
         // Client controlled: check if unit currently is under client control (has active "mover"), optionally check for specific client (server-side)
         bool IsClientControlled(Player const* exactClient = nullptr) const;
@@ -2025,6 +2029,8 @@ class Unit : public WorldObject
         float GetPosStat(Stats stat) const { return GetFloatValue(UNIT_FIELD_POSSTAT0 + stat); }
         float GetNegStat(Stats stat) const { return GetFloatValue(UNIT_FIELD_NEGSTAT0 + stat); }
         float GetCreateStat(Stats stat) const { return m_createStats[stat]; }
+        void SetCreateResistance(SpellSchools school, int32 val) { m_createResistances[school] = val; }
+        int32 GetCreateResistance(SpellSchools school) const { return m_createResistances[school]; }
 
         void SetCurrentCastedSpell(Spell* pSpell);
         void InterruptSpell(CurrentSpellTypes spellType, bool withDelayed = true);
@@ -2086,6 +2092,7 @@ class Unit : public WorldObject
         void SetModifierValue(UnitMods unitMod, UnitModifierType modifierType, float value) { m_auraModifiersGroup[unitMod][modifierType] = value; }
         float GetModifierValue(UnitMods unitMod, UnitModifierType modifierType) const;
         float GetTotalStatValue(Stats stat) const;
+        int32 GetTotalResistanceValue(SpellSchools school) const;
         float GetTotalAuraModValue(UnitMods unitMod) const;
         SpellSchools GetSpellSchoolByAuraGroup(UnitMods unitMod) const;
         Stats GetStatByAuraGroup(UnitMods unitMod) const;
@@ -2381,6 +2388,7 @@ class Unit : public WorldObject
         void TriggerEvadeEvents();
         void EvadeTimerExpired();
         bool IsInEvadeMode() const { return m_evadeTimer > 0 || m_evadeMode; }
+        bool IsEvadingHome() const { return m_evadeMode == EVADE_HOME; }
         bool IsEvadeRegen() const { return (m_evadeTimer > 0 && m_evadeTimer <= 5000) || m_evadeMode; } // Only regen after 5 seconds, or when in permanent evade
         void StartEvadeTimer() { m_evadeTimer = 10000; } // 10 seconds after which action is taken
         void StopEvade(); // Stops either timer or evade state
@@ -2408,7 +2416,7 @@ class Unit : public WorldObject
         void Uncharm(Unit* charmed, uint32 spellId = 0);
 
         // Combat prevention
-        bool CanEnterCombat() { return m_canEnterCombat && m_evadeMode != EVADE_HOME; }
+        bool CanEnterCombat() { return m_canEnterCombat && !IsEvadingHome(); }
         void SetCanEnterCombat(bool can) { m_canEnterCombat = can; }
 
         void SetTurningOff(bool apply);
@@ -2465,6 +2473,7 @@ class Unit : public WorldObject
         uint32 m_attackTimer[MAX_ATTACK];
 
         float m_createStats[MAX_STATS];
+        int32 m_createResistances[MAX_SPELL_SCHOOL];
 
         Unit* m_attacking;
 
@@ -2507,6 +2516,8 @@ class Unit : public WorldObject
         bool m_canDodge;
         bool m_canParry;
         bool m_canBlock;
+
+        bool m_canDualWield = false;
 
         void DisableSpline();
         bool m_isCreatureLinkingTrigger;

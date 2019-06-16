@@ -525,7 +525,7 @@ void Spell::EffectSchoolDMG(SpellEffectIndex eff_idx)
                 if (m_spellInfo->SpellFamilyFlags & uint64(0x100000000))
                 {
                     int32 base = irand((int32)m_caster->GetBaseWeaponDamage(RANGED_ATTACK, MINDAMAGE), (int32)m_caster->GetBaseWeaponDamage(RANGED_ATTACK, MAXDAMAGE));
-                    damage += int32(float(base) / m_caster->GetAttackTime(RANGED_ATTACK) * 2800 + m_caster->GetTotalAttackPowerValue(RANGED_ATTACK) * 0.2f);
+                    damage += int32(float(base) / m_caster->GetAttackTime(RANGED_ATTACK) * 2800);
                 }
                 break;
             }
@@ -899,6 +899,28 @@ void Spell::EffectDummy(SpellEffectIndex eff_idx)
                                 unitTarget->RemoveAurasDueToSpell(28820);
                                 break;
                             }
+                            case 28820:                             // Lightning Shield (The Earthshatterer set trigger after cast Lighting Shield)
+                            {
+                                // Need remove self if Lightning Shield not active
+                                Unit::SpellAuraHolderMap const& auras = unitTarget->GetSpellAuraHolderMap();
+                                for (const auto& aura : auras)
+                                {
+                                    SpellEntry const* spell = aura.second->GetSpellProto();
+                                    if (spell->SpellFamilyName == SPELLFAMILY_SHAMAN &&
+                                        (spell->SpellFamilyFlags & uint64(0x0000000000000400)))
+                                        return;
+                                }
+                                unitTarget->RemoveAurasDueToSpell(28820);
+                                return;
+                            }
+                            case 38443:                             // Totemic Mastery (Skyshatter Regalia (Shaman Tier 6) - bonus)
+                            {
+                                if (unitTarget->IsAllTotemSlotsUsed())
+                                    unitTarget->CastSpell(nullptr, 38437, TRIGGERED_OLD_TRIGGERED, nullptr);
+                                else
+                                    unitTarget->RemoveAurasDueToSpell(38437);
+                                return;
+                            }
                             case 37594: // Greater Heal Refund
                             {
                                 // If your Greater Heal brings the target to full health, you gain $37595s1 mana.
@@ -909,7 +931,7 @@ void Spell::EffectDummy(SpellEffectIndex eff_idx)
                             case 37705: // Healing Discount
                             {
                                 uint32 spellId = 0;
-                                switch (unitTarget->getClass())
+                                switch (m_caster->getClass())
                                 {
                                     case CLASS_PALADIN:
                                         spellId = 37723;
@@ -924,7 +946,7 @@ void Spell::EffectDummy(SpellEffectIndex eff_idx)
                                         spellId = 37721;
                                         break;
                                 }
-                                unitTarget->CastSpell(nullptr, spellId, TRIGGERED_OLD_TRIGGERED);
+                                m_caster->CastSpell(nullptr, spellId, TRIGGERED_OLD_TRIGGERED);
                                 break;
                             }
                         }
@@ -1271,6 +1293,29 @@ void Spell::EffectDummy(SpellEffectIndex eff_idx)
                     if (unitTarget && unitTarget->GetTypeId() == TYPEID_PLAYER)
                         m_caster->CastSpell(unitTarget, 24795, TRIGGERED_OLD_TRIGGERED);
 
+                    return;
+                }
+                case 25145:                                 // Merithra's Wake
+                {
+                    unitTarget->CastSpell(unitTarget, 25172, TRIGGERED_OLD_TRIGGERED);
+                    return;
+                }
+                case 25149:                                 // Arygos's Vengeance
+                {
+                    unitTarget->CastSpell(unitTarget, 25168, TRIGGERED_OLD_TRIGGERED);
+                    return;
+                }
+                case 25150:                                 // Molten Rain
+                {
+                    unitTarget->CastSpell(unitTarget, 25169, TRIGGERED_OLD_TRIGGERED);
+                    unitTarget->CastSpell(unitTarget, 25170, TRIGGERED_OLD_TRIGGERED);
+                    return;
+                }
+                case 25158:                                 // Time Stop
+                {
+                    unitTarget->SetImmuneToNPC(true);
+                    unitTarget->RemoveAllAuras();
+                    unitTarget->CastSpell(unitTarget, 25171, TRIGGERED_OLD_TRIGGERED);
                     return;
                 }
                 case 26080:                                 // Stinger Charge Primer
@@ -1726,36 +1771,6 @@ void Spell::EffectDummy(SpellEffectIndex eff_idx)
                 case 36327:                                 // Shoot Arcane Explosion Arrow
                 {
                     m_caster->SummonCreature(21290, unitTarget->GetPositionX(), unitTarget->GetPositionY(), unitTarget->GetPositionZ(), unitTarget->GetOrientation(), TEMPSPAWN_TIMED_OOC_OR_DEAD_DESPAWN, 5000);
-                    return;
-                }
-                case 37573:                                 // Temporal Phase Modulator
-                {
-                    if (!unitTarget)
-                        return;
-
-                    TemporarySpawn* tempSummon = dynamic_cast<TemporarySpawn*>(unitTarget);
-                    if (!tempSummon)
-                        return;
-
-                    uint32 health = tempSummon->GetHealth();
-                    const uint32 entry_list[6] = {21821, 21820, 21817};
-
-                    float x = tempSummon->GetPositionX();
-                    float y = tempSummon->GetPositionY();
-                    float z = tempSummon->GetPositionZ();
-                    float o = tempSummon->GetOrientation();
-
-                    tempSummon->UnSummon();
-
-                    Creature* pCreature = m_caster->SummonCreature(entry_list[urand(0, 2)], x, y, z, o, TEMPSPAWN_TIMED_OR_DEAD_DESPAWN, 180000);
-                    if (!pCreature)
-                        return;
-
-                    pCreature->SetHealth(health);
-
-                    if (pCreature->AI())
-                        pCreature->AI()->AttackStart(m_caster);
-
                     return;
                 }
                 case 37674:                                 // Chaos Blast
@@ -2980,11 +2995,13 @@ void Spell::EffectDummy(SpellEffectIndex eff_idx)
             {
                 if (m_CastItem)
                 {
+                    // found spelldamage coefficients of 0.381% per 0.1 speed and 15.244 per 4.0 speed
+                    // but own calculation say 0.385 gives at most one point difference to published values
                     int32 bonusDamage = m_caster->SpellBaseDamageBonusDone(GetSpellSchoolMask(m_spellInfo))
                                         + unitTarget->SpellBaseDamageBonusTaken(GetSpellSchoolMask(m_spellInfo));
                     // Does Amplify Magic/Dampen Magic influence flametongue? If not, the above addition must be removed.
                     float weaponSpeed = float(m_CastItem->GetProto()->Delay) / IN_MILLISECONDS;
-                    bonusDamage = m_caster->SpellBonusWithCoeffs(m_spellInfo, bonusDamage, 0, 0, SPELL_DIRECT_DAMAGE, false); // apply spell coeff
+                    bonusDamage = m_caster->SpellBonusWithCoeffs(m_spellInfo, 0, bonusDamage, 0, SPELL_DIRECT_DAMAGE, false); // apply spell coeff
                     int32 totalDamage = (damage * 0.01 * weaponSpeed) + bonusDamage;
 
                     m_caster->CastCustomSpell(unitTarget, 10444, &totalDamage, nullptr, nullptr, TRIGGERED_OLD_TRIGGERED, m_CastItem);
@@ -3801,12 +3818,20 @@ bool Spell::DoCreateItem(SpellEffectIndex eff_idx, uint32 itemtype)
         // convert to possible store amount
         if (msg == EQUIP_ERR_INVENTORY_FULL || msg == EQUIP_ERR_CANT_CARRY_MORE_OF_THIS)
             num_to_add -= no_space;
-        else
+
+        // for battleground marks send by mail if not add all expected
+        if (no_space > 0 && bgType)
         {
-            // if not created by another reason from full inventory or unique items amount limitation
-            player->SendEquipError(msg, nullptr, nullptr, newitemid);
-            return false;
+            if (BattleGround * bg = sBattleGroundMgr.GetBattleGroundTemplate(BattleGroundTypeId(bgType)))
+            {
+                bg->SendRewardMarkByMail(player, newitemid, no_space);
+                return true;
+            }
         }
+
+        // if not created by another reason from full inventory or unique items amount limitation
+        player->SendEquipError(msg, nullptr, nullptr, newitemid);
+        return false;
     }
 
     if (num_to_add)
@@ -3832,14 +3857,6 @@ bool Spell::DoCreateItem(SpellEffectIndex eff_idx, uint32 itemtype)
         if (!bgType)
             player->UpdateCraftSkill(m_spellInfo->Id);
     }
-
-    // for battleground marks send by mail if not add all expected
-    if (no_space > 0 && bgType)
-    {
-        if (BattleGround* bg = sBattleGroundMgr.GetBattleGroundTemplate(BattleGroundTypeId(bgType)))
-            bg->SendRewardMarkByMail(player, newitemid, no_space);
-    }
-
     return true;
 }
 
@@ -4515,11 +4532,15 @@ bool Spell::DoSummonPet(SpellEffectIndex eff_idx)
 
     Pet* spawnCreature = new Pet();
 
+    Player* _player = nullptr;
+
     if (m_caster->GetTypeId() == TYPEID_PLAYER)
     {
+        _player = static_cast<Player*>(m_caster);
+
         // Load pet from db; if any to load
         if (m_caster->getClass() != CLASS_PRIEST
-                && spawnCreature->LoadPetFromDB((Player*)m_caster, pet_entry))
+                && spawnCreature->LoadPetFromDB(_player, pet_entry))
         {
             spawnCreature->SetHealth(spawnCreature->GetMaxHealth());
             spawnCreature->SetPower(POWER_MANA, spawnCreature->GetMaxPower(POWER_MANA));
@@ -4528,7 +4549,7 @@ bool Spell::DoSummonPet(SpellEffectIndex eff_idx)
             if (m_duration > 0)
                 spawnCreature->SetDuration(m_duration);
 
-            spawnCreature->SavePetToDB(PET_SAVE_AS_CURRENT);
+            spawnCreature->SavePetToDB(PET_SAVE_AS_CURRENT, _player);
             m_spellLog.AddLog(uint32(SPELL_EFFECT_SUMMON), spawnCreature->GetPackGUID());
             return true;
         }
@@ -4617,11 +4638,11 @@ bool Spell::DoSummonPet(SpellEffectIndex eff_idx)
     spawnCreature->AI()->SetReactState(REACT_DEFENSIVE);
     spawnCreature->InitPetCreateSpells();
 
-    if (m_caster->GetTypeId() == TYPEID_PLAYER)
+    if (_player)
     {
-        ((Player*)m_caster)->PetSpellInitialize();
+        _player->PetSpellInitialize();
         if (m_caster->getClass() != CLASS_PRIEST)
-            spawnCreature->SavePetToDB(PET_SAVE_AS_CURRENT);
+            spawnCreature->SavePetToDB(PET_SAVE_AS_CURRENT, _player);
     }
     spawnCreature->SetLoading(false);
 
@@ -4789,8 +4810,8 @@ void Spell::EffectDispel(SpellEffectIndex eff_idx)
 
 void Spell::EffectDualWield(SpellEffectIndex /*eff_idx*/)
 {
-    if (unitTarget && unitTarget->GetTypeId() == TYPEID_PLAYER)
-        ((Player*)unitTarget)->SetCanDualWield(true);
+    if (unitTarget)
+        unitTarget->SetCanDualWield(true);
 }
 
 void Spell::EffectPull(SpellEffectIndex /*eff_idx*/)
@@ -5077,7 +5098,7 @@ void Spell::EffectLearnSkill(SpellEffectIndex eff_idx)
     target->SetSkillStep(skillid, step);
 
     if (WorldObject const* caster = GetCastingObject())
-        DEBUG_LOG("Spell: %s has learned skill %u (to step %u) from %s", target->GetGuidStr().c_str(), skillid, step, caster->GetGuidStr().c_str());
+        DEBUG_LOG("Spell: %s teaches %s skill %u (to step %u)", caster->GetGuidStr().c_str(), target->GetGuidStr().c_str(), skillid, step);
 }
 
 void Spell::EffectAddHonor(SpellEffectIndex /*eff_idx*/)
@@ -5286,9 +5307,9 @@ void Spell::EffectTameCreature(SpellEffectIndex /*eff_idx*/)
 {
     // Caster must be player, checked in Spell::CheckCast
     // Spell can be triggered, we need to check original caster prior to caster
-    Player* plr = (Player*)GetAffectiveCaster();
+    Player* plr = static_cast<Player*>(GetAffectiveCaster());
 
-    Creature* creatureTarget = (Creature*)unitTarget;
+    Creature* creatureTarget = static_cast<Creature*>(unitTarget);
 
     // cast finish successfully
     // SendChannelUpdate(0);
@@ -5324,7 +5345,7 @@ void Spell::EffectTameCreature(SpellEffectIndex /*eff_idx*/)
     if (plr->IsPvP())
         pet->SetPvP(true);
 
-    pet->GetCharmInfo()->SetPetNumber(sObjectMgr.GeneratePetNumber(), (m_caster->GetTypeId() == TYPEID_PLAYER));
+    pet->GetCharmInfo()->SetPetNumber(sObjectMgr.GeneratePetNumber(), true);
 
     uint32 level = creatureTarget->getLevel();
     pet->InitStatsForLevel(level);
@@ -5366,7 +5387,7 @@ void Spell::EffectTameCreature(SpellEffectIndex /*eff_idx*/)
     plr->PetSpellInitialize();
     pet->SetLoading(false);
 
-    pet->SavePetToDB(PET_SAVE_AS_CURRENT);
+    pet->SavePetToDB(PET_SAVE_AS_CURRENT, plr);
 }
 
 void Spell::EffectSummonPet(SpellEffectIndex eff_idx)
@@ -5375,13 +5396,17 @@ void Spell::EffectSummonPet(SpellEffectIndex eff_idx)
 
     Pet* NewSummon = new Pet;
 
+    Player* _player = nullptr;
+
     if (m_caster->GetTypeId() == TYPEID_PLAYER)
     {
+        _player = static_cast<Player*>(m_caster);
+
         switch (m_caster->getClass())
         {
             case CLASS_HUNTER:
             {
-                if (NewSummon->LoadPetFromDB((Player*)m_caster))
+                if (NewSummon->LoadPetFromDB(_player))
                     m_spellLog.AddLog(uint32(SPELL_EFFECT_SUMMON_PET), NewSummon->GetPackGUID());
                 return;
             }
@@ -5456,7 +5481,6 @@ void Spell::EffectSummonPet(SpellEffectIndex eff_idx)
         m_caster->AddGuardian(NewSummon);
     else
         m_caster->SetPet(NewSummon);
-    DEBUG_LOG("New Pet has guid %u", NewSummon->GetGUIDLow());
 
     if (m_caster->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PLAYER_CONTROLLED))
     {
@@ -5484,9 +5508,9 @@ void Spell::EffectSummonPet(SpellEffectIndex eff_idx)
     NewSummon->AIM_Initialize();
     NewSummon->AI()->SetReactState(REACT_DEFENSIVE);
 
-    if (m_caster->GetTypeId() == TYPEID_PLAYER)
+    if (_player)
     {
-        NewSummon->GetCharmInfo()->SetPetNumber(pet_number, (m_caster->GetTypeId() == TYPEID_PLAYER));
+        NewSummon->GetCharmInfo()->SetPetNumber(pet_number, true);
 
         // generate new name for summon pet
         NewSummon->SetName(sObjectMgr.GeneratePetName(petentry));
@@ -5496,8 +5520,8 @@ void Spell::EffectSummonPet(SpellEffectIndex eff_idx)
         NewSummon->CastOwnerTalentAuras();
         NewSummon->UpdateAllStats();
 
-        NewSummon->SavePetToDB(PET_SAVE_AS_CURRENT);
-        ((Player*)m_caster)->PetSpellInitialize();
+        NewSummon->SavePetToDB(PET_SAVE_AS_CURRENT, _player);
+        _player->PetSpellInitialize();
     }
     else
     {
@@ -5516,7 +5540,7 @@ void Spell::EffectLearnPetSpell(SpellEffectIndex eff_idx)
     if (m_caster->GetTypeId() != TYPEID_PLAYER)
         return;
 
-    Player* _player = (Player*)m_caster;
+    Player* _player = static_cast<Player*>(m_caster);
 
     Pet* pet = _player->GetPet();
     if (!pet)
@@ -5531,7 +5555,7 @@ void Spell::EffectLearnPetSpell(SpellEffectIndex eff_idx)
     pet->SetTP(pet->m_TrainingPoints - pet->GetTPForSpell(learn_spellproto->Id));
     pet->learnSpell(learn_spellproto->Id);
 
-    pet->SavePetToDB(PET_SAVE_AS_CURRENT);
+    pet->SavePetToDB(PET_SAVE_AS_CURRENT, _player);
     _player->PetSpellInitialize();
 
     if (WorldObject const* caster = GetCastingObject())
@@ -7124,51 +7148,9 @@ void Spell::EffectScriptEffect(SpellEffectIndex eff_idx)
                     if (!unitTarget)
                         return;
 
-                    uint32 itemtype;
-                    uint32 rank = 0;
-                    Unit::AuraList const& mDummyAuras = unitTarget->GetAurasByType(SPELL_AURA_DUMMY);
-                    for (auto mDummyAura : mDummyAuras)
-                    {
-                        if (mDummyAura->GetId() == 18692)
-                        {
-                            rank = 1;
-                            break;
-                        }
-                        if (mDummyAura->GetId() == 18693)
-                        {
-                            rank = 2;
-                            break;
-                        }
-                    }
-
-                    static uint32 const itypes[6][3] =
-                    {
-                        { 5512, 19004, 19005},              // Minor Healthstone
-                        { 5511, 19006, 19007},              // Lesser Healthstone
-                        { 5509, 19008, 19009},              // Healthstone
-                        { 5510, 19010, 19011},              // Greater Healthstone
-                        { 9421, 19012, 19013},              // Major Healthstone
-                        {22103, 22104, 22105}               // Master Healthstone
-                    };
-
-                    switch (m_spellInfo->Id)
-                    {
-                        case  6201:
-                            itemtype = itypes[0][rank]; break; // Minor Healthstone
-                        case  6202:
-                            itemtype = itypes[1][rank]; break; // Lesser Healthstone
-                        case  5699:
-                            itemtype = itypes[2][rank]; break; // Healthstone
-                        case 11729:
-                            itemtype = itypes[3][rank]; break; // Greater Healthstone
-                        case 11730:
-                            itemtype = itypes[4][rank]; break; // Major Healthstone
-                        case 27230:
-                            itemtype = itypes[5][rank]; break; // Master Healthstone
-                        default:
-                            return;
-                    }
-                    DoCreateItem(eff_idx, itemtype);
+                    uint32 itemType = GetUsableHealthStoneItemType(unitTarget);
+                    if (itemType)
+                        DoCreateItem(eff_idx, itemType);
                     return;
                 }
             }
@@ -8365,7 +8347,7 @@ void Spell::EffectSummonDeadPet(SpellEffectIndex /*eff_idx*/)
 {
     if (m_caster->GetTypeId() != TYPEID_PLAYER)
         return;
-    Player* _player = (Player*)m_caster;
+    Player* _player = static_cast<Player*>(m_caster);
     Pet* pet = _player->GetPet();
     if (!pet)
     {
@@ -8392,7 +8374,7 @@ void Spell::EffectSummonDeadPet(SpellEffectIndex /*eff_idx*/)
     pet->SetHealth(uint32(pet->GetMaxHealth() * (float(damage) / 100)));
 
     // _player->PetSpellInitialize(); // action bar not removed at death and not required send at revive
-    pet->SavePetToDB(PET_SAVE_AS_CURRENT);
+    pet->SavePetToDB(PET_SAVE_AS_CURRENT, _player);
 }
 
 void Spell::EffectDestroyAllTotems(SpellEffectIndex /*eff_idx*/)
@@ -8871,4 +8853,54 @@ void Spell::EffectKnockBackFromPosition(SpellEffectIndex eff_idx)
     float horizontalSpeed = m_spellInfo->EffectMiscValue[eff_idx] * 0.1f;
     float verticalSpeed = damage * 0.1f;
     ((Player*)unitTarget)->GetSession()->SendKnockBack(angle, horizontalSpeed, verticalSpeed);
+}
+
+uint32 Spell::GetUsableHealthStoneItemType(Unit* target)
+{
+    if (!target || target->GetTypeId() != TYPEID_PLAYER)
+        return 0;
+
+    uint32 itemtype;
+    uint32 rank = 0;
+    Unit::AuraList const& mDummyAuras = target->GetAurasByType(SPELL_AURA_DUMMY);
+    for (auto mDummyAura : mDummyAuras)
+    {
+        if (mDummyAura->GetId() == 18692)
+        {
+            rank = 1;
+            break;
+        }
+        if (mDummyAura->GetId() == 18693)
+        {
+            rank = 2;
+            break;
+        }
+    }
+
+    static uint32 const itypes[6][3] =
+    {
+        { 5512, 19004, 19005},              // Minor Healthstone
+        { 5511, 19006, 19007},              // Lesser Healthstone
+        { 5509, 19008, 19009},              // Healthstone
+        { 5510, 19010, 19011},              // Greater Healthstone
+        { 9421, 19012, 19013},              // Major Healthstone
+        {22103, 22104, 22105}               // Master Healthstone
+    };
+
+    switch (m_spellInfo->Id)
+    {
+    case  6201:
+        itemtype = itypes[0][rank]; break; // Minor Healthstone
+    case  6202:
+        itemtype = itypes[1][rank]; break; // Lesser Healthstone
+    case  5699:
+        itemtype = itypes[2][rank]; break; // Healthstone
+    case 11729:
+        itemtype = itypes[3][rank]; break; // Greater Healthstone
+    case 11730:
+        itemtype = itypes[4][rank]; break; // Major Healthstone
+    case 27230:
+        itemtype = itypes[5][rank]; break; // Master Healthstone
+    }
+    return itemtype;
 }

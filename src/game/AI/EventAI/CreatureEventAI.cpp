@@ -414,7 +414,7 @@ bool CreatureEventAI::CheckEvent(CreatureEventAIHolder& holder, Unit* actionInvo
                 return false;
 
             CreatureEventAI_EventComputedData const& data = (*sEventAIMgr.GetEAIComputedDataMap().find(event.event_id)).second; // always found
-            Unit* pUnit = DoSelectLowestHpFriendly(float(event.friendly_hp.radius), float(event.friendly_hp.hpDeficit), data.friendlyHp.targetSelf);
+            Unit* pUnit = DoSelectLowestHpFriendly(float(event.friendly_hp.radius), float(event.friendly_hp.hpDeficit), false, data.friendlyHp.targetSelf);
             if (!pUnit)
                 return false;
 
@@ -1450,6 +1450,10 @@ void CreatureEventAI::Reset()
     m_LastSpellMaxRange = 0;
     m_currentRangedMode = m_rangedMode;
     m_attackDistance = m_chaseDistance;
+
+    // reset AI state
+    SetAIOrder(ORDER_NONE);
+    SetCombatScriptStatus(false);
 
     // Reset all events to enabled
     for (auto& i : m_CreatureEventAIList)
