@@ -148,11 +148,6 @@ namespace MaNGOS
                     xp_gain *= 2.0f;
             }
 
-			if (sRandomPlayerbotMgr.IsRandomBot(player) && !player->GetGroup())
-			{
-				xp_gain *= sPlayerbotAIConfig.playerbotsXPrate;
-			}
-
             xp_gain *= target->GetCreatureInfo()->ExperienceMultiplier;
 
             return (uint32)(std::nearbyint(xp_gain * sWorld.getConfig(CONFIG_FLOAT_RATE_XP_KILL)));
