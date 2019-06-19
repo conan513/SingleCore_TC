@@ -1170,17 +1170,19 @@ float Map::GetDungeonScaling() {
 		return m_dungeonscaling;
 
 	float specificMapScaling = 1.0f;
-	switch (GetId()) {
-	case 230:
-		specificMapScaling = sWorld.getConfig(CONFIG_FLOAT_RATE_CREATURE_DUNGEON_SCALE_BRD);
-	case 329:
-		specificMapScaling = sWorld.getConfig(CONFIG_FLOAT_RATE_CREATURE_DUNGEON_SCALE_STRAT);
-	case 429:
-		specificMapScaling = sWorld.getConfig(CONFIG_FLOAT_RATE_CREATURE_DUNGEON_SCALE_DIREMAUL);
-	case 289:
-		specificMapScaling = sWorld.getConfig(CONFIG_FLOAT_RATE_CREATURE_DUNGEON_SCALE_SCHOLO);
-	}
 
+	if (GetId() == 230)
+		specificMapScaling = sWorld.getConfig(CONFIG_FLOAT_RATE_CREATURE_DUNGEON_SCALE_BRD);
+
+	if (GetId() == 329)
+		specificMapScaling = sWorld.getConfig(CONFIG_FLOAT_RATE_CREATURE_DUNGEON_SCALE_STRAT);
+
+	if (GetId() == 429)
+		specificMapScaling = sWorld.getConfig(CONFIG_FLOAT_RATE_CREATURE_DUNGEON_SCALE_DIREMAUL);
+
+	if (GetId() == 289)
+		specificMapScaling = sWorld.getConfig(CONFIG_FLOAT_RATE_CREATURE_DUNGEON_SCALE_SCHOLO);
+	
 	m_dungeonscaling = sWorld.getConfig(CONFIG_FLOAT_RATE_CREATURE_DUNGEON_SCALE_5) * specificMapScaling;
 
 	if (GetPlayersInGroup() == 1)
