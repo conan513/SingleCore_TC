@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+ * Copyright (C) 2008-2019 TrinityCore <https://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -32,7 +32,6 @@ enum CharacterDatabaseStatements : uint32
     CHAR_INS_QUEST_POOL_SAVE,
     CHAR_DEL_NONEXISTENT_GUILD_BANK_ITEM,
     CHAR_DEL_EXPIRED_BANS,
-    CHAR_SEL_GUID_BY_NAME,
     CHAR_SEL_CHECK_NAME,
     CHAR_SEL_CHECK_GUID,
     CHAR_SEL_SUM_CHARS,
@@ -52,8 +51,6 @@ enum CharacterDatabaseStatements : uint32
     CHAR_SEL_UNDELETE_ENUM,
     CHAR_SEL_UNDELETE_ENUM_DECLINED_NAME,
     CHAR_SEL_FREE_NAME,
-    CHAR_SEL_GUID_RACE_ACC_BY_NAME,
-    CHAR_SEL_CHAR_LEVEL,
     CHAR_SEL_CHAR_ZONE,
     CHAR_SEL_CHAR_POSITION_XYZ,
     CHAR_SEL_CHAR_POSITION,
@@ -168,6 +165,7 @@ enum CharacterDatabaseStatements : uint32
     CHAR_DEL_GIFT,
     CHAR_SEL_CHARACTER_GIFT_BY_ITEM,
     CHAR_SEL_ACCOUNT_BY_NAME,
+    CHAR_UPD_ACCOUNT_BY_GUID,
     CHAR_DEL_ACCOUNT_INSTANCE_LOCK_TIMES,
     CHAR_INS_ACCOUNT_INSTANCE_LOCK_TIMES,
     CHAR_SEL_CHARACTER_COUNT,
@@ -256,7 +254,6 @@ enum CharacterDatabaseStatements : uint32
     CHAR_DEL_PLAYER_ACCOUNT_DATA,
 
     CHAR_SEL_TUTORIALS,
-    CHAR_SEL_HAS_TUTORIALS,
     CHAR_INS_TUTORIALS,
     CHAR_UPD_TUTORIALS,
     CHAR_DEL_TUTORIALS,
@@ -404,7 +401,6 @@ enum CharacterDatabaseStatements : uint32
     CHAR_SEL_CHAR_COD_ITEM_MAIL,
     CHAR_SEL_CHAR_SOCIAL,
     CHAR_SEL_CHAR_OLD_CHARS,
-    CHAR_SEL_ARENA_TEAM_ID_BY_PLAYER_GUID,
     CHAR_SEL_MAIL,
     CHAR_DEL_CHAR_AURA_FROZEN,
     CHAR_SEL_CHAR_INVENTORY_COUNT_ITEM,
@@ -652,6 +648,13 @@ enum CharacterDatabaseStatements : uint32
 
     CHAR_SEL_RECOVERY,
     CHAR_UPD_RECOVERY_DELIVERED,
+
+    CHAR_SEL_AZERITE_ITEM_XP,
+    CHAR_REP_AZERITE_ITEM_XP,
+
+    CHAR_SEL_AZERITE_EMPOWERED_ITEM,
+    CHAR_REP_AZERITE_EMPOWERED_ITEM,
+    CHAR_DEL_AZERITE_EMPOWERED_ITEM,
 
     MAX_CHARACTERDATABASE_STATEMENTS
 };

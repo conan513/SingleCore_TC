@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
  * Copyright (C) 2008-2013 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
@@ -141,7 +141,7 @@ class boss_echo_of_sylvanas : public CreatureScript
                 DoZoneInCombat();
 
                 events.Reset();
-                me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE_TO_PC);
+                me->RemoveUnitFlag(UNIT_FLAG_IMMUNE_TO_PC);
 
                 me->RemoveAurasDueToSpell(SPELL_CALLING_IMMUNITY);
                 events.ScheduleEvent(EVENT_SHRIEK_HIGHBORNE, urand(6000,10000));
@@ -305,7 +305,7 @@ class mob_ghoul_summoner : public CreatureScript
             {
                 size = 2.5f;
                 me->GetMotionMaster()->Clear();
-                me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE);
+                me->AddUnitFlag(UnitFlags(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE));
                 me->SetReactState(REACT_PASSIVE);
                 if (Creature* sylvanas = instance->GetCreature(NPC_ECHO_OF_SYLVANAS))
                     me->SetTarget(sylvanas->GetGUID());
@@ -619,7 +619,7 @@ class mob_blighted_arrows : public CreatureScript
                 DoStopAttack();
                 me->setActive(false);
                 events.Reset();
-                me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE);
+                me->AddUnitFlag(UnitFlags(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE));
                 me->SetReactState(REACT_PASSIVE);
                 DoCastAOE(SPELL_BLIGHTED_ARROWS_VISUAL);
                 events.ScheduleEvent(EVENT_EXPLODE, 5000);

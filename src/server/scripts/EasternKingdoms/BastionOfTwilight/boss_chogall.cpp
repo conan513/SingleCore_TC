@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
  * Copyright (C) 2008-2014 Forgotten Lands <http://www.forgottenlands.eu/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -198,7 +198,7 @@ public:
                 case NPC_BLAZE:
                     summon->AddAura(SPELL_BLAZE_AURA, summon);
                     summon->SetReactState(REACT_PASSIVE);
-                    summon->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
+                    summon->AddUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
                     summon->Attack(me->GetVictim(), true);
                     summon->AttackStop();
                     summon->StopMoving();
@@ -207,7 +207,7 @@ public:
                     summon->AddAura(SPELL_SPILLED_BLOOD_OF_THE_OLD_GOD, summon);
                     summon->AI()->DoAction(100);
                     summon->SetReactState(REACT_PASSIVE);
-                    summon->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
+                    summon->AddUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
                     summon->Attack(me->GetVictim(), true);
                     summon->AttackStop();
                     summon->StopMoving();

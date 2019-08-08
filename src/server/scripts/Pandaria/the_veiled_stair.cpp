@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
  * Copyright (C) 2016 Firestorm Servers <https://firestorm-servers.com>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -97,7 +97,7 @@ class npc_wrathion_mason : public CreatureScript
                     {
                         SetDespawnAtFar(false);
                         SetDespawnAtEnd(false);
-                        me->RemoveFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_QUESTGIVER);
+                        me->RemoveNpcFlag(UNIT_NPC_FLAG_QUESTGIVER);
                         events.ScheduleEvent(EVENT_FIRST_MOVE, 2000);
                         playerGUID = player->GetGUID();
                     }
@@ -176,7 +176,7 @@ class npc_wrathion_mason : public CreatureScript
                                 break;
                             case EVENT_FINAL:
                                 player->KilledMonsterCredit(64664);
-                                me->SetFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_QUESTGIVER);
+                                me->AddNpcFlag(UNIT_NPC_FLAG_QUESTGIVER);
                                 break;
                             default:
                                 break;

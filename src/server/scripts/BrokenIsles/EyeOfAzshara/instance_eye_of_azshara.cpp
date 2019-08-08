@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -228,7 +228,7 @@ private:
             {
                 if (Creature* naga = instance->GetCreature(guid))
                 {
-                    naga->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE_TO_PC);
+                    naga->RemoveUnitFlag(UNIT_FLAG_IMMUNE_TO_PC);
                     naga->RemoveAurasDueToSpell(SPELL_TEMPEST_ATTUNEMENT);
 
                     if (naga->IsAlive())
@@ -246,7 +246,7 @@ private:
     void removeNonAttackableFromWrath()
     {
         if (Creature* wrath = instance->GetCreature(_wrathGUID))
-            wrath->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE_TO_PC);
+            wrath->RemoveUnitFlag(UNIT_FLAG_IMMUNE_TO_PC);
     }
 
     void tryEnableViolentWinds()

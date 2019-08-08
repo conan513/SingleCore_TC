@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+ * Copyright (C) 2008-2019 TrinityCore <https://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -122,7 +122,7 @@ void WorldSession::HandleAutoBankReagentOpcode(WorldPackets::Bank::AutoBankReage
 
 void WorldSession::HandleBankerActivateOpcode(WorldPackets::NPC::Hello& packet)
 {
-    Creature* unit = GetPlayer()->GetNPCIfCanInteractWith(packet.Unit, UNIT_NPC_FLAG_BANKER);
+    Creature* unit = GetPlayer()->GetNPCIfCanInteractWith(packet.Unit, UNIT_NPC_FLAG_BANKER, UNIT_NPC_FLAG_2_NONE);
     if (!unit)
     {
         TC_LOG_ERROR("network", "WORLD: HandleBankerActivateOpcode - %s not found or you can not interact with him.", packet.Unit.ToString().c_str());
@@ -287,7 +287,7 @@ void WorldSession::SendShowBank(ObjectGuid guid)
 
 void WorldSession::HandleBuyReagentBankOpcode(WorldPackets::NPC::Hello& packet)
 {
-    Creature* unit = GetPlayer()->GetNPCIfCanInteractWith(packet.Unit, UNIT_NPC_FLAG_BANKER);
+    Creature* unit = GetPlayer()->GetNPCIfCanInteractWith(packet.Unit, UNIT_NPC_FLAG_BANKER, UNIT_NPC_FLAG_2_NONE);
     if (!unit)
     {
         TC_LOG_ERROR("network", "WORLD: HandleBuyReagentBankOpcode - %s not found or you can not interact with him.", packet.Unit.ToString().c_str());
@@ -311,7 +311,7 @@ void WorldSession::HandleBuyReagentBankOpcode(WorldPackets::NPC::Hello& packet)
 
 void WorldSession::HandleDepositReagentBankOpcode(WorldPackets::Bank::DepositReagentBank& packet)
 {
-    Creature* unit = _player->GetNPCIfCanInteractWith(packet.Guid, UNIT_NPC_FLAG_BANKER);
+    Creature* unit = _player->GetNPCIfCanInteractWith(packet.Guid, UNIT_NPC_FLAG_BANKER, UNIT_NPC_FLAG_2_NONE);
     if (!unit)
     {
         TC_LOG_ERROR("network", "WORLD: HandleDepositReagentBankOpcode - %s not found or you can not interact with him.", packet.Guid.ToString().c_str());

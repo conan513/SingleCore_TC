@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+ * Copyright (C) 2008-2019 TrinityCore <https://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -123,11 +123,14 @@ void WorldSession::HandleAutostoreLootItemOpcode(WorldPackets::Loot::LootItem& p
             loot = &creature->loot;
         }
 
-        player->StoreLootItem(req.LootListID - 1, loot, aeResultPtr);
+        if (loot)
+        {
+            player->StoreLootItem(req.LootListID - 1, loot, aeResultPtr);
 
-        // If player is removing the last LootItem, delete the empty container.
-        if (loot->isLooted() && lguid.IsItem())
-            player->GetSession()->DoLootRelease(lguid);
+            // If player is removing the last LootItem, delete the empty container.
+            if (loot->isLooted() && lguid.IsItem())
+                player->GetSession()->DoLootRelease(lguid);
+        }
     }
 
     if (aeResultPtr)
@@ -145,7 +148,7 @@ void WorldSession::HandleAutostoreLootItemOpcode(WorldPackets::Loot::LootItem& p
 void WorldSession::HandleLootMoneyOpcode(WorldPackets::Loot::LootMoney& /*packet*/)
 {
     Player* player = GetPlayer();
-    for (std::pair<ObjectGuid, ObjectGuid> const& lootView : player->GetAELootView())
+    for (std::pair<ObjectGuid const, ObjectGuid> const& lootView : player->GetAELootView())
     {
         ObjectGuid guid = lootView.second;
         Loot* loot = nullptr;
@@ -222,34 +225,32 @@ void WorldSession::HandleLootMoneyOpcode(WorldPackets::Loot::LootMoney& /*packet
                     playersNear.push_back(member);
             }
 
-            uint32 goldPerPlayer = uint32((loot->gold) / (playersNear.size()));
+            uint64 goldPerPlayer = uint64(loot->gold / playersNear.size());
 
             for (std::vector<Player*>::const_iterator i = playersNear.begin(); i != playersNear.end(); ++i)
             {
-                (*i)->ModifyMoney(goldPerPlayer);
-                (*i)->UpdateCriteria(CRITERIA_TYPE_LOOT_MONEY, goldPerPlayer);
+                uint64 goldMod = CalculatePct(goldPerPlayer, (*i)->GetTotalAuraModifierByMiscValue(SPELL_AURA_MOD_MONEY_GAIN, 1));
 
-                if (Guild* guild = sGuildMgr->GetGuildById((*i)->GetGuildId()))
-                    if (uint32 guildGold = CalculatePct(goldPerPlayer, (*i)->GetTotalAuraModifier(SPELL_AURA_DEPOSIT_BONUS_MONEY_IN_GUILD_BANK_ON_LOOT)))
-                        guild->HandleMemberDepositMoney(this, guildGold, true);
+                (*i)->ModifyMoney(goldPerPlayer + goldMod);
+                (*i)->UpdateCriteria(CRITERIA_TYPE_LOOT_MONEY, goldPerPlayer);
 
                 WorldPackets::Loot::LootMoneyNotify packet;
                 packet.Money = goldPerPlayer;
+                packet.MoneyMod = goldMod;
                 packet.SoleLooter = playersNear.size() <= 1 ? true : false;
                 (*i)->SendDirectMessage(packet.Write());
             }
         }
         else
         {
-            player->ModifyMoney(loot->gold);
-            player->UpdateCriteria(CRITERIA_TYPE_LOOT_MONEY, loot->gold);
+            uint64 goldMod = CalculatePct(loot->gold, player->GetTotalAuraModifierByMiscValue(SPELL_AURA_MOD_MONEY_GAIN, 1));
 
-            if (Guild* guild = sGuildMgr->GetGuildById(player->GetGuildId()))
-                if (uint32 guildGold = CalculatePct(loot->gold, player->GetTotalAuraModifier(SPELL_AURA_DEPOSIT_BONUS_MONEY_IN_GUILD_BANK_ON_LOOT)))
-                    guild->HandleMemberDepositMoney(this, guildGold, true);
+            player->ModifyMoney(loot->gold + goldMod);
+            player->UpdateCriteria(CRITERIA_TYPE_LOOT_MONEY, loot->gold);
 
             WorldPackets::Loot::LootMoneyNotify packet;
             packet.Money = loot->gold;
+            packet.MoneyMod = goldMod;
             packet.SoleLooter = true; // "You loot..."
             SendPacket(packet.Write());
         }
@@ -316,7 +317,7 @@ void WorldSession::DoLootRelease(ObjectGuid lguid)
         player->SetLootGUID(ObjectGuid::Empty);
     player->SendLootRelease(lguid);
 
-    player->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_LOOTING);
+    player->RemoveUnitFlag(UNIT_FLAG_LOOTING);
 
     if (!player->IsInWorld())
         return;
@@ -355,10 +356,6 @@ void WorldSession::DoLootRelease(ObjectGuid lguid)
         {
             // not fully looted object
             go->SetLootState(GO_ACTIVATED, player);
-
-            // if the round robin player release, reset it.
-            if (player->GetGUID() == loot->roundRobinPlayer)
-                loot->roundRobinPlayer.Clear();
         }
     }
     else if (lguid.IsCorpse())        // ONLY remove insignia at BG
@@ -372,7 +369,7 @@ void WorldSession::DoLootRelease(ObjectGuid lguid)
         if (loot->isLooted())
         {
             loot->clear();
-            corpse->RemoveFlag(CORPSE_FIELD_DYNAMIC_FLAGS, CORPSE_DYNFLAG_LOOTABLE);
+            corpse->RemoveCorpseDynamicFlag(CORPSE_DYNFLAG_LOOTABLE);
         }
     }
     else if (lguid.IsItem())
@@ -416,7 +413,7 @@ void WorldSession::DoLootRelease(ObjectGuid lguid)
         loot = &creature->loot;
         if (loot->isLooted())
         {
-            creature->RemoveFlag(OBJECT_DYNAMIC_FLAGS, UNIT_DYNFLAG_LOOTABLE);
+            creature->RemoveDynamicFlag(UNIT_DYNFLAG_LOOTABLE);
 
             // skip pickpocketing loot for speed, skinning timer reduction is no-op in fact
             if (!creature->IsAlive())
@@ -426,16 +423,8 @@ void WorldSession::DoLootRelease(ObjectGuid lguid)
         }
         else
         {
-            // if the round robin player release, reset it.
-            if (player->GetGUID() == loot->roundRobinPlayer)
-            {
-                loot->roundRobinPlayer.Clear();
-
-                if (Group* group = player->GetGroup())
-                    group->SendLooter(creature, NULL);
-            }
             // force dynflag update to update looter and lootable info
-            creature->ForceValuesUpdateAtIndex(OBJECT_DYNAMIC_FLAGS);
+            creature->ForceUpdateFieldChange(creature->m_values.ModifyValue(&Object::m_objectData).ModifyValue(&UF::ObjectData::DynamicFlags));
         }
     }
 
@@ -447,7 +436,7 @@ void WorldSession::DoLootRelease(ObjectGuid lguid)
 void WorldSession::DoLootReleaseAll()
 {
     std::unordered_map<ObjectGuid, ObjectGuid> lootView = _player->GetAELootView();
-    for (std::pair<ObjectGuid, ObjectGuid> lootPair : lootView)
+    for (std::pair<ObjectGuid const, ObjectGuid> const& lootPair : lootView)
         DoLootRelease(lootPair.second);
 }
 
@@ -464,7 +453,8 @@ void WorldSession::HandleLootMasterGiveOpcode(WorldPacket& recvData)
         return;
     }
 
-    Player* target = ObjectAccessor::FindPlayer(target_playerguid);
+    // player on other map
+    Player* target = ObjectAccessor::GetPlayer(*_player, target_playerguid);
     if (!target)
     {
         _player->SendLootError(lootguid, ObjectGuid::Empty, LOOT_ERROR_PLAYER_NOT_FOUND);
@@ -508,14 +498,15 @@ void WorldSession::HandleLootMasterGiveOpcode(WorldPacket& recvData)
     if (!loot)
         return;
 
-    if (slotid >= loot->items.size() + loot->quest_items.size())
+    if (slotid >= loot->items[GetPlayer()->GetGUID()].size())
     {
         TC_LOG_DEBUG("loot", "MasterLootItem: Player %s might be using a hack! (slot %d, size %lu)",
             GetPlayer()->GetName().c_str(), slotid, (unsigned long)loot->items.size());
         return;
     }
 
-    LootItem& item = slotid >= loot->items.size() ? loot->quest_items[slotid - loot->items.size()] : loot->items[slotid];
+    LootItemList& itemList = loot->items[GetPlayer()->GetGUID()];
+    LootItem& item = itemList[slotid];
 
     ItemPosCountVec dest;
     InventoryResult msg = target->CanStoreNewItem(NULL_BAG, NULL_SLOT, dest, item.itemid, item.count);
@@ -535,7 +526,7 @@ void WorldSession::HandleLootMasterGiveOpcode(WorldPacket& recvData)
     }
 
     // now move item from loot to target inventory
-    Item* newitem = target->StoreNewItem(dest, item.itemid, true, item.randomPropertyId, item.GetAllowedLooters(), item.context, item.BonusListIDs);
+    Item* newitem = target->StoreNewItem(dest, item.itemid, true, item.randomBonusListId, item.GetAllowedLooters(), item.context, item.BonusListIDs);
     target->SendNewItem(newitem, uint32(item.count), false, false, true);
     target->UpdateCriteria(CRITERIA_TYPE_LOOT_ITEM, item.itemid, item.count);
     target->UpdateCriteria(CRITERIA_TYPE_LOOT_TYPE, item.itemid, item.count, loot->loot_type);

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
  * Copyright (C) 2016 Firestorm Servers <https://firestorm-servers.com>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -322,7 +322,7 @@ class boss_feng : public CreatureScript
 
                 /*if (me->GetMap()->IsLFR())
                 {
-                    me->SetLootRecipient(NULL);
+                    me->ResetLootRecipients();
                     Player* l_Player = me->GetMap()->GetPlayers().begin()->GetSource();
                     if (l_Player && l_Player->GetGroup())
                         sLFGMgr->AutomaticLootAssignation(me, l_Player->GetGroup());
@@ -837,7 +837,7 @@ class mob_siphon_shield : public CreatureScript
                 me->CastSpell(me, SPELL_FIST_BARRIER, false);
                 events.ScheduleEvent(EVENT_SHIELD_BARRIER,   6000);
                 events.ScheduleEvent(EVENT_SHIELD_CASTSOULS, 2000);
-                // me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_IMMUNE_TO_NPC);
+                // me->AddUnitFlag(UnitFlags(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_IMMUNE_TO_NPC));
             }
 
             void DoAction(const int32 action) override

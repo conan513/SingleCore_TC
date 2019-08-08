@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+ * Copyright (C) 2008-2019 TrinityCore <https://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -31,15 +31,15 @@ SceneMgr::SceneMgr(Player* player) : _player(player)
     _isDebuggingScenes = false;
 }
 
-uint32 SceneMgr::PlayScene(uint32 sceneId, Position const* position /*= nullptr*/)
+uint32 SceneMgr::PlayScene(uint32 sceneId, Position const* position /*= nullptr*/, ObjectGuid const* transportGuid /*= nullptr*/)
 {
     if (SceneTemplate const* sceneTemplate = sObjectMgr->GetSceneTemplate(sceneId))
-        return PlaySceneByTemplate(*sceneTemplate, position);
+        return PlaySceneByTemplate(*sceneTemplate, position, transportGuid);
 
     return 0;
 }
 
-uint32 SceneMgr::PlaySceneByTemplate(SceneTemplate const sceneTemplate, Position const* position /*= nullptr*/)
+uint32 SceneMgr::PlaySceneByTemplate(SceneTemplate const sceneTemplate, Position const* position /*= nullptr*/, ObjectGuid const* transportGuid /*= nullptr*/)
 {
     SceneScriptPackageEntry const* entry = sSceneScriptPackageStore.LookupEntry(sceneTemplate.ScenePackageId);
     if (!entry)
@@ -48,6 +48,11 @@ uint32 SceneMgr::PlaySceneByTemplate(SceneTemplate const sceneTemplate, Position
     // By default, take player position
     if (!position)
         position = GetPlayer();
+
+    ObjectGuid plrTransGuid = GetPlayer()->GetTransGUID();
+    // By default, take player transport guid
+    if (!transportGuid)
+        transportGuid = &plrTransGuid;
 
     uint32 sceneInstanceID = GetNewStandaloneSceneInstanceID();
 
@@ -60,7 +65,7 @@ uint32 SceneMgr::PlaySceneByTemplate(SceneTemplate const sceneTemplate, Position
     playScene.SceneInstanceID      = sceneInstanceID;
     playScene.SceneScriptPackageID = sceneTemplate.ScenePackageId;
     playScene.Location             = *position;
-    playScene.TransportGUID        = GetPlayer()->GetTransGUID();
+    playScene.TransportGUID        = *transportGuid;
 
     GetPlayer()->SendDirectMessage(playScene.Write());
 

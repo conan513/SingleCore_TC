@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
  * Copyright (C) 2008-2014 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2011-2016 ArkCORE <http://www.arkania.net/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
@@ -3075,7 +3075,7 @@ public:
                         {
                             cannon->GetMotionMaster()->Clear();
                             cannon->SetFacingTo(3.24f);
-                            cannon->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
+                            cannon->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
                         }
                     for (std::list<ObjectGuid>::const_iterator itr = my_followerList.begin(); itr != my_followerList.end(); ++itr)
                         if (Creature* follower = ObjectAccessor::GetCreature(*me, (*itr)))

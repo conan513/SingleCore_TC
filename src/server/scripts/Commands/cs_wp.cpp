@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+ * Copyright (C) 2008-2019 TrinityCore <https://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -53,9 +53,14 @@ public:
             { "reload", rbac::RBAC_PERM_COMMAND_WP_RELOAD, false, &HandleWpReloadCommand, "" },
             { "show",   rbac::RBAC_PERM_COMMAND_WP_SHOW,   false, &HandleWpShowCommand,   "" },
         };
+        static std::vector<ChatCommand> scriptWpCommandTable =
+        {
+            { "add",    rbac::RBAC_PERM_COMMAND_WP_ADD,    false, &HandleScriptWpAddCommand,    "" },
+        };
         static std::vector<ChatCommand> commandTable =
         {
-            { "wp", rbac::RBAC_PERM_COMMAND_WP, false, NULL, "", wpCommandTable },
+            { "wp",         rbac::RBAC_PERM_COMMAND_WP, false, NULL, "", wpCommandTable },
+            { "script_wp",  rbac::RBAC_PERM_COMMAND_WP, false, NULL, "", scriptWpCommandTable },
         };
         return commandTable;
     }
@@ -98,7 +103,7 @@ public:
                 pathid = target->GetWaypointPath();
             else
             {
-                PreparedStatement* stmt = WorldDatabase.GetPreparedStatement(WORLD_SEL_WAYPOINT_DATA_MAX_ID);
+                WorldDatabasePreparedStatement* stmt = WorldDatabase.GetPreparedStatement(WORLD_SEL_WAYPOINT_DATA_MAX_ID);
 
                 PreparedQueryResult result = WorldDatabase.Query(stmt);
 
@@ -119,7 +124,7 @@ public:
             return true;
         }
 
-        PreparedStatement* stmt = WorldDatabase.GetPreparedStatement(WORLD_SEL_WAYPOINT_DATA_MAX_POINT);
+        WorldDatabasePreparedStatement* stmt = WorldDatabase.GetPreparedStatement(WORLD_SEL_WAYPOINT_DATA_MAX_POINT);
         stmt->setUInt32(0, pathid);
         PreparedQueryResult result = WorldDatabase.Query(stmt);
 
@@ -186,7 +191,7 @@ public:
 
         guidLow = target->GetSpawnId();
 
-        PreparedStatement* stmt = WorldDatabase.GetPreparedStatement(WORLD_SEL_CREATURE_ADDON_BY_GUID);
+        WorldDatabasePreparedStatement* stmt = WorldDatabase.GetPreparedStatement(WORLD_SEL_CREATURE_ADDON_BY_GUID);
 
         stmt->setUInt64(0, guidLow);
 
@@ -243,7 +248,7 @@ public:
     {
 
         Creature* target = handler->getSelectedCreature();
-        PreparedStatement* stmt = NULL;
+        WorldDatabasePreparedStatement* stmt = NULL;
 
         if (!target)
         {
@@ -291,7 +296,7 @@ public:
 
         char* show_str = strtok((char*)args, " ");
         std::string show = show_str;
-        PreparedStatement* stmt = NULL;
+        WorldDatabasePreparedStatement* stmt = NULL;
 
         // Check
         if ((show != "add") && (show != "mod") && (show != "del") && (show != "listid"))
@@ -572,7 +577,7 @@ public:
         uint32 pathid = 0;
         uint32 point = 0;
         Creature* target = handler->getSelectedCreature();
-        PreparedStatement* stmt = NULL;
+        WorldDatabasePreparedStatement* stmt = NULL;
 
         // User did select a visual waypoint?
         if (!target || target->GetEntry() != VISUAL_WAYPOINT)
@@ -736,7 +741,7 @@ public:
 
         uint32 pathid = 0;
         Creature* target = handler->getSelectedCreature();
-        PreparedStatement* stmt = NULL;
+        WorldDatabasePreparedStatement* stmt = NULL;
 
         // Did player provide a PathID?
 
@@ -1096,6 +1101,30 @@ public:
         }
 
         handler->PSendSysMessage("|cffff33ffDEBUG: wpshow - no valid command found|r");
+        return true;
+    }
+
+    static bool HandleScriptWpAddCommand(ChatHandler* handler, const char* args)
+    {
+        CommandArgs cmdArgs = CommandArgs(handler, args, { CommandArgs::ARG_UINT, CommandArgs::ARG_UINT_OPTIONAL });
+        if (!cmdArgs.ValidArgs())
+            return false;
+
+        uint32 entry = cmdArgs.GetNextArg<uint32>();
+        QueryResult maxResult = WorldDatabase.PQuery("SELECT IFNULL(MAX(pointid), 0) FROM `script_waypoint` WHERE entry = %u", entry);
+
+        // Internal error ?
+        if (!maxResult)
+            return false;
+
+        Player* player = handler->GetSession()->GetPlayer();
+        uint32 maxPointId = maxResult->Fetch()[0].GetUInt32();
+        uint32 waitTime = cmdArgs.Count() > 1 ? cmdArgs.GetNextArg<uint32>() : 0;
+
+        WorldDatabase.PExecute("INSERT INTO `script_waypoint` (`entry`, `pointid`, `location_x`, `location_y`, `location_z`, `waittime`, `point_comment`) VALUES (%u, %u, %f, %f, %f, %u, '')",
+                                entry, maxPointId + 1, player->GetPositionX(), player->GetPositionY(), player->GetPositionZ(), waitTime);
+
+        handler->PSendSysMessage("Script waypoint for entry %u add with pointId %u", entry, maxPointId + 1);
         return true;
     }
 };

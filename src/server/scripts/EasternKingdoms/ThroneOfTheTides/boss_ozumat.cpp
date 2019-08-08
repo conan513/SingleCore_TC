@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -112,7 +112,7 @@ public:
             speakIntro = true;
             _wipeCheckTimer = 5000;
             Summons.DespawnAll();
-            me->SetFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_GOSSIP);
+            me->AddNpcFlag(UNIT_NPC_FLAG_GOSSIP);
             me->RemoveAura(SPELL_AURA_PURIFIED);
         }
 
@@ -367,7 +367,7 @@ public:
             CAST_AI(npc_neptulon::npc_neptulonAI, creature->AI())->InProgress = true;
             CAST_AI(npc_neptulon::npc_neptulonAI, creature->AI())->DoZoneInCombat();
             CAST_AI(npc_neptulon::npc_neptulonAI, creature->AI())->Talk(1);
-            creature->RemoveFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_GOSSIP);
+            creature->RemoveNpcFlag(UNIT_NPC_FLAG_GOSSIP);
         }
         player->PlayerTalkClass->SendCloseGossip();
         return true;
@@ -410,14 +410,14 @@ public:
             Finished = false;
             _phase = 0;
             mui_timer_little_chancre = 10000;
-            me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
+            me->AddUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
         }
 
         void DoAction(const int32 action) override
         {
             if (action == ACTION_CHANGE_PHASE)
             {
-                me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
+                me->RemoveUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
                 _phase = PHASE_TWO;
                 me->CastSpell(me, SPELL_OZUMAT_BIG_CHANCRE, false);
             }

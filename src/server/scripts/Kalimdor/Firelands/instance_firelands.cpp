@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -86,8 +86,8 @@ class instance_firelands : public InstanceMapScript
                         creaturePortals.push_back(pCreature);
                         if (uiEvent == DONE)
                         {
-                            pCreature->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
-                            pCreature->SetFlag(UNIT_FIELD_FLAGS, UNIT_NPC_FLAG_GOSSIP | UNIT_NPC_FLAG_SPELLCLICK);
+                            pCreature->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
+                            pCreature->AddUnitFlag(UnitFlags(UNIT_NPC_FLAG_GOSSIP | UNIT_NPC_FLAG_SPELLCLICK));
                         }
                         break;
                     case NPC_SMOULDERING_HATCHLING:
@@ -161,8 +161,8 @@ class instance_firelands : public InstanceMapScript
                             for (std::list<Creature*>::const_iterator itr = creaturePortals.begin(); itr != creaturePortals.end(); ++itr)
                                 if (Creature* pCreature = (*itr)->ToCreature())
                                 {
-                                    pCreature->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
-                                    pCreature->SetFlag(UNIT_FIELD_FLAGS, UNIT_NPC_FLAG_GOSSIP | UNIT_NPC_FLAG_SPELLCLICK);
+                                    pCreature->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
+                                    pCreature->AddUnitFlag(UnitFlags(UNIT_NPC_FLAG_GOSSIP | UNIT_NPC_FLAG_SPELLCLICK));
                                 }
                         }
 

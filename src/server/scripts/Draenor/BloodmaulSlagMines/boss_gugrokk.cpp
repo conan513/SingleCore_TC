@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
  * Copyright (C) 2016 Firestorm Servers <https://firestorm-servers.com>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -276,7 +276,7 @@ namespace Instances { namespace Bloodmaul
                     m_Events.ScheduleEvent(eEvents::EventDespawn, 2 * TimeConstants::MINUTE * TimeConstants::IN_MILLISECONDS);
 
                     me->SetReactState(ReactStates::REACT_PASSIVE);
-                    me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_NON_ATTACKABLE);
+                    me->AddUnitFlag(UnitFlags(UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_NON_ATTACKABLE));
                 }
 
                 void UpdateAI(uint32 const diff) override

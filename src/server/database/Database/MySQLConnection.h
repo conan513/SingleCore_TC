@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+ * Copyright (C) 2008-2019 TrinityCore <https://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -70,16 +70,16 @@ class TC_DATABASE_API MySQLConnection
 
     public:
         bool Execute(const char* sql);
-        bool Execute(PreparedStatement* stmt);
+        bool Execute(PreparedStatementBase* stmt);
         ResultSet* Query(const char* sql);
-        PreparedResultSet* Query(PreparedStatement* stmt);
+        PreparedResultSet* Query(PreparedStatementBase* stmt);
         bool _Query(const char *sql, MYSQL_RES **pResult, MYSQL_FIELD **pFields, uint64* pRowCount, uint32* pFieldCount);
-        bool _Query(PreparedStatement* stmt, MYSQL_RES **pResult, uint64* pRowCount, uint32* pFieldCount);
+        bool _Query(PreparedStatementBase* stmt, MYSQL_RES **pResult, uint64* pRowCount, uint32* pFieldCount);
 
         void BeginTransaction();
         void RollbackTransaction();
         void CommitTransaction();
-        int ExecuteTransaction(SQLTransaction& transaction);
+        int ExecuteTransaction(std::shared_ptr<TransactionBase> transaction);
 
         void Ping();
 

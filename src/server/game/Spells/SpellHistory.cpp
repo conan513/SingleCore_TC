@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+ * Copyright (C) 2008-2019 TrinityCore <https://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -40,7 +40,7 @@ struct SpellHistory::PersistenceHelper<Player>
     static CharacterDatabaseStatements const ChargesDeleteStatement = CHAR_DEL_CHAR_SPELL_CHARGES;
     static CharacterDatabaseStatements const ChargesInsertStatement = CHAR_INS_CHAR_SPELL_CHARGES;
 
-    static void SetIdentifier(PreparedStatement* stmt, uint8 index, Unit* owner) { stmt->setUInt64(index, owner->GetGUID().GetCounter()); }
+    static void SetIdentifier(PreparedStatementBase* stmt, uint8 index, Unit* owner) { stmt->setUInt64(index, owner->GetGUID().GetCounter()); }
 
     static bool ReadCooldown(Field* fields, uint32* spellId, CooldownEntry* cooldownEntry)
     {
@@ -67,7 +67,7 @@ struct SpellHistory::PersistenceHelper<Player>
         return true;
     }
 
-    static void WriteCooldown(PreparedStatement* stmt, uint8& index, CooldownStorageType::value_type const& cooldown)
+    static void WriteCooldown(PreparedStatementBase* stmt, uint8& index, CooldownStorageType::value_type const& cooldown)
     {
         stmt->setUInt32(index++, cooldown.first);
         stmt->setUInt32(index++, cooldown.second.ItemId);
@@ -76,7 +76,7 @@ struct SpellHistory::PersistenceHelper<Player>
         stmt->setUInt32(index++, uint32(Clock::to_time_t(cooldown.second.CategoryEnd)));
     }
 
-    static void WriteCharge(PreparedStatement* stmt, uint8& index, uint32 chargeCategory, ChargeEntry const& charge)
+    static void WriteCharge(PreparedStatementBase* stmt, uint8& index, uint32 chargeCategory, ChargeEntry const& charge)
     {
         stmt->setUInt32(index++, chargeCategory);
         stmt->setUInt32(index++, uint32(Clock::to_time_t(charge.RechargeStart)));
@@ -92,7 +92,7 @@ struct SpellHistory::PersistenceHelper<Pet>
     static CharacterDatabaseStatements const ChargesDeleteStatement = CHAR_DEL_PET_SPELL_CHARGES;
     static CharacterDatabaseStatements const ChargesInsertStatement = CHAR_INS_PET_SPELL_CHARGES;
 
-    static void SetIdentifier(PreparedStatement* stmt, uint8 index, Unit* owner) { stmt->setUInt32(index, owner->GetCharmInfo()->GetPetNumber()); }
+    static void SetIdentifier(PreparedStatementBase* stmt, uint8 index, Unit* owner) { stmt->setUInt32(index, owner->GetCharmInfo()->GetPetNumber()); }
 
     static bool ReadCooldown(Field* fields, uint32* spellId, CooldownEntry* cooldownEntry)
     {
@@ -119,7 +119,7 @@ struct SpellHistory::PersistenceHelper<Pet>
         return true;
     }
 
-    static void WriteCooldown(PreparedStatement* stmt, uint8& index, CooldownStorageType::value_type const& cooldown)
+    static void WriteCooldown(PreparedStatementBase* stmt, uint8& index, CooldownStorageType::value_type const& cooldown)
     {
         stmt->setUInt32(index++, cooldown.first);
         stmt->setUInt32(index++, uint32(Clock::to_time_t(cooldown.second.CooldownEnd)));
@@ -127,7 +127,7 @@ struct SpellHistory::PersistenceHelper<Pet>
         stmt->setUInt32(index++, uint32(Clock::to_time_t(cooldown.second.CategoryEnd)));
     }
 
-    static void WriteCharge(PreparedStatement* stmt, uint8& index, uint32 chargeCategory, ChargeEntry const& charge)
+    static void WriteCharge(PreparedStatementBase* stmt, uint8& index, uint32 chargeCategory, ChargeEntry const& charge)
     {
         stmt->setUInt32(index++, chargeCategory);
         stmt->setUInt32(index++, uint32(Clock::to_time_t(charge.RechargeStart)));
@@ -171,12 +171,12 @@ void SpellHistory::LoadFromDB(PreparedQueryResult cooldownsResult, PreparedQuery
 }
 
 template<class OwnerType>
-void SpellHistory::SaveToDB(SQLTransaction& trans)
+void SpellHistory::SaveToDB(CharacterDatabaseTransaction& trans)
 {
     typedef PersistenceHelper<OwnerType> StatementInfo;
 
     uint8 index = 0;
-    PreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(StatementInfo::CooldownsDeleteStatement);
+    CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(StatementInfo::CooldownsDeleteStatement);
     StatementInfo::SetIdentifier(stmt, index++, _owner);
     trans->Append(stmt);
 
@@ -243,6 +243,9 @@ void SpellHistory::HandleCooldowns(SpellInfo const* spellInfo, Item const* item,
 
 void SpellHistory::HandleCooldowns(SpellInfo const* spellInfo, uint32 itemID, Spell* spell /*= nullptr*/)
 {
+    if (spell && spell->IsIgnoringCooldowns())
+        return;
+
     if (ConsumeCharge(spellInfo->ChargeCategoryId))
         return;
 
@@ -259,7 +262,7 @@ void SpellHistory::HandleCooldowns(SpellInfo const* spellInfo, uint32 itemID, Sp
         }
     }
 
-    if (spellInfo->IsCooldownStartedOnEvent() || spellInfo->IsPassive() || (spell && spell->IsIgnoringCooldowns()))
+    if (spellInfo->IsCooldownStartedOnEvent() || spellInfo->IsPassive())
         return;
 
     StartCooldown(spellInfo, itemID, spell);
@@ -420,28 +423,28 @@ void SpellHistory::StartCooldown(SpellInfo const* spellInfo, uint32 itemId, Spel
         // shoot spells used equipped item cooldown values already assigned in SetBaseAttackTime(RANGED_ATTACK)
         // prevent 0 cooldowns set by another way
         if (cooldown <= 0 && categoryCooldown <= 0 && (categoryId == 76 || (spellInfo->IsAutoRepeatRangedSpell() && spellInfo->Id != 75)))
-            cooldown = _owner->GetUInt32Value(UNIT_FIELD_RANGEDATTACKTIME);
+            cooldown = _owner->m_unitData->RangedAttackRoundBaseTime;
 
         // Now we have cooldown data (if found any), time to apply mods
         if (Player* modOwner = _owner->GetSpellModOwner())
         {
-            if (cooldown > 0)
+            if (cooldown >= 0)
                 modOwner->ApplySpellMod(spellInfo->Id, SPELLMOD_COOLDOWN, cooldown, spell);
 
-            if (categoryCooldown > 0 && !spellInfo->HasAttribute(SPELL_ATTR6_IGNORE_CATEGORY_COOLDOWN_MODS))
+            if (categoryCooldown >= 0 && !spellInfo->HasAttribute(SPELL_ATTR6_IGNORE_CATEGORY_COOLDOWN_MODS))
                 modOwner->ApplySpellMod(spellInfo->Id, SPELLMOD_COOLDOWN, categoryCooldown, spell);
         }
 
         if (_owner->HasAuraTypeWithAffectMask(SPELL_AURA_MOD_SPELL_COOLDOWN_BY_HASTE, spellInfo))
         {
-            cooldown = int32(cooldown * _owner->GetFloatValue(UNIT_MOD_CAST_HASTE));
-            categoryCooldown = int32(categoryCooldown * _owner->GetFloatValue(UNIT_MOD_CAST_HASTE));
+            cooldown = int32(cooldown * _owner->m_unitData->ModSpellHaste);
+            categoryCooldown = int32(categoryCooldown * _owner->m_unitData->ModSpellHaste);
         }
 
         if (_owner->HasAuraTypeWithAffectMask(SPELL_AURA_MOD_COOLDOWN_BY_HASTE_REGEN, spellInfo))
         {
-            cooldown = int32(cooldown * _owner->GetFloatValue(UNIT_FIELD_MOD_HASTE_REGEN));
-            categoryCooldown = int32(categoryCooldown * _owner->GetFloatValue(UNIT_FIELD_MOD_HASTE_REGEN));
+            cooldown = int32(cooldown * _owner->m_unitData->ModHasteRegen);
+            categoryCooldown = int32(categoryCooldown * _owner->m_unitData->ModHasteRegen);
         }
 
         if (int32 cooldownMod = _owner->GetTotalAuraModifier(SPELL_AURA_MOD_COOLDOWN))
@@ -658,6 +661,14 @@ uint32 SpellHistory::GetRemainingCooldown(SpellInfo const* spellInfo) const
 
     Clock::duration remaining = end - now;
     return uint32(std::chrono::duration_cast<std::chrono::milliseconds>(remaining).count());
+}
+
+uint32 SpellHistory::GetRemainingCooldown(uint32 spellId) const
+{
+    if (SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(spellId))
+        return GetRemainingCooldown(spellInfo);
+
+    return 0;
 }
 
 void SpellHistory::LockSpellSchool(SpellSchoolMask schoolMask, uint32 lockoutTime)
@@ -969,10 +980,10 @@ int32 SpellHistory::GetChargeRecoveryTime(uint32 chargeCategoryId) const
     recoveryTimeF *= _owner->GetTotalAuraMultiplierByMiscValue(SPELL_AURA_CHARGE_RECOVERY_MULTIPLIER, chargeCategoryId);
 
     if (_owner->HasAuraType(SPELL_AURA_CHARGE_RECOVERY_AFFECTED_BY_HASTE))
-        recoveryTimeF *= _owner->GetFloatValue(UNIT_MOD_CAST_HASTE);
+        recoveryTimeF *= _owner->m_unitData->ModSpellHaste;
 
     if (_owner->HasAuraType(SPELL_AURA_CHARGE_RECOVERY_AFFECTED_BY_HASTE_REGEN))
-        recoveryTimeF *= _owner->GetFloatValue(UNIT_FIELD_MOD_HASTE_REGEN);
+        recoveryTimeF *= _owner->m_unitData->ModHasteRegen;
 
     return int32(std::floor(recoveryTimeF));
 }
@@ -1101,5 +1112,5 @@ void SpellHistory::RestoreCooldownStateAfterDuel()
 
 template void SpellHistory::LoadFromDB<Player>(PreparedQueryResult cooldownsResult, PreparedQueryResult chargesResult);
 template void SpellHistory::LoadFromDB<Pet>(PreparedQueryResult cooldownsResult, PreparedQueryResult chargesResult);
-template void SpellHistory::SaveToDB<Player>(SQLTransaction& trans);
-template void SpellHistory::SaveToDB<Pet>(SQLTransaction& trans);
+template void SpellHistory::SaveToDB<Player>(CharacterDatabaseTransaction& trans);
+template void SpellHistory::SaveToDB<Pet>(CharacterDatabaseTransaction& trans);

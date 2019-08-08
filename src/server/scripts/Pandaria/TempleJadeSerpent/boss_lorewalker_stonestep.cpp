@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
  * Copyright (C) 2016 Firestorm Servers <https://firestorm-servers.com>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -262,7 +262,7 @@ class boss_lorewalker_stonestep : public CreatureScript
                                     break;
                                 temp->setFaction(14);
                                 temp->Attack(SelectTarget(SELECT_TARGET_RANDOM), true);
-                                temp->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
+                                temp->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
                                 temp->SetFacingTo(1.239f);
                                 sCreatureTextMgr->SendChat(temp, 0, 0);
                             }
@@ -366,7 +366,7 @@ class mob_zao : public CreatureScript
                     attacker->ToCreature()->ForcedDespawn();
                     isCorrupted = true;
                     me->setFaction(14);
-                    me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
+                    me->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
                     me->CastSpell(me, SPELL_SHA_CORRUPTION_2, false);
                 }
             }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+ * Copyright (C) 2008-2019 TrinityCore <https://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -280,7 +280,8 @@ public:
     void RemoveCriteriaTimer(CriteriaTimedTypes type, uint32 entry);   // used for quest and scripted timed s
 
     bool IsCompletedCriteria(Criteria const* criteria, uint64 requiredAmount);
-    bool IsCompletedCriteriaTree(CriteriaTree const* tree);
+    bool CheckCompletedCriteriaTree(CriteriaTree const* tree, Player* referencePlayer);
+    bool CheckCompletedCriteriaTree(uint32 criteriaTreeId, Player* referencePlayer);
 
 protected:
     virtual void SendCriteriaUpdate(Criteria const* criteria, CriteriaProgress const* progress, uint32 timeElapsed, bool timedCompleted) const = 0;
@@ -292,7 +293,7 @@ protected:
 
     virtual bool CanUpdateCriteriaTree(Criteria const* criteria, CriteriaTree const* tree, Player* referencePlayer) const;
     virtual bool CanCompleteCriteriaTree(CriteriaTree const* tree);
-    virtual void CompletedCriteriaTree(CriteriaTree const* tree, Player* referencePlayer) = 0;
+    virtual void CompletedCriteriaTree(CriteriaTree const* tree, Player* referencePlayer);
     virtual void AfterCriteriaTreeUpdate(CriteriaTree const* /*tree*/, Player* /*referencePlayer*/) { }
 
     bool CanUpdateCriteria(Criteria const* criteria, CriteriaTreeList const* trees, uint64 miscValue1, uint64 miscValue2, uint64 miscValue3, Unit const* unit, Player* referencePlayer);
@@ -303,11 +304,13 @@ protected:
     bool RequirementsSatisfied(Criteria const* criteria, uint64 miscValue1, uint64 miscValue2, uint64 miscValue3, Unit const* unit, Player* referencePlayer) const;
     virtual bool RequiredAchievementSatisfied(uint32 /*achievementId*/) const { return false; }
     bool AdditionalRequirementsSatisfied(ModifierTreeNode const* parent, uint64 miscValue1, uint64 miscValue2, Unit const* unit, Player* referencePlayer) const;
+    bool AdditionalRequirementsConditionSatisfied(ModifierTreeNode const* parent, uint64 miscValue1, uint64 miscValue2, Unit const* unit, Player* referencePlayer) const;
 
     virtual std::string GetOwnerInfo() const = 0;
     virtual CriteriaList const& GetCriteriaByType(CriteriaTypes type) const = 0;
 
     CriteriaProgressMap _criteriaProgress;
+    std::set<uint32> _completedCriteriaTree;
     std::map<uint32, uint32 /*ms time left*/> _timeCriteriaTrees;
 };
 

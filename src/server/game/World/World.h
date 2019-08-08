@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+ * Copyright (C) 2008-2019 TrinityCore <https://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -95,6 +95,7 @@ enum WorldTimers
     WUPDATE_BLACKMARKET,
     WUPDATE_CHECK_FILECHANGES,
     WUPDATE_WORLD_QUEST,
+    WUPDATE_WHO_LIST,
     WUPDATE_COUNT
 };
 
@@ -124,6 +125,7 @@ enum WorldBoolConfigs
     CONFIG_SAVE_RESPAWN_TIME_IMMEDIATELY,
     CONFIG_WEATHER,
     CONFIG_QUEST_IGNORE_RAID,
+    CONFIG_CHAT_PARTY_RAID_WARNINGS,
     CONFIG_DETECT_POS_COLLISION,
     CONFIG_RESTRICTED_LFG_CHANNEL,
     CONFIG_CHAT_FAKE_MESSAGE_PREVENTING,
@@ -251,7 +253,6 @@ enum WorldIntConfigs
     CONFIG_MIN_CHARTER_NAME,
     CONFIG_MIN_PET_NAME,
     CONFIG_CHARACTER_CREATING_DISABLED,
-    CONFIG_CHARACTER_CREATING_DISABLED_RACEMASK,
     CONFIG_CHARACTER_CREATING_DISABLED_CLASSMASK,
     CONFIG_CHARACTERS_PER_ACCOUNT,
     CONFIG_CHARACTERS_PER_REALM,
@@ -267,7 +268,6 @@ enum WorldIntConfigs
     CONFIG_CURRENCY_START_APEXIS_CRYSTALS,
     CONFIG_CURRENCY_MAX_APEXIS_CRYSTALS,
     CONFIG_CURRENCY_START_JUSTICE_POINTS,
-    CONFIG_CURRENCY_START_ARTIFACT_KNOWLEDGE,
     CONFIG_CURRENCY_MAX_JUSTICE_POINTS,
     CONFIG_CURRENCY_RESET_HOUR,
     CONFIG_CURRENCY_RESET_DAY,
@@ -425,7 +425,14 @@ enum WorldIntConfigs
     CONFIG_TALENTS_INSPECTING,
     CONFIG_BLACKMARKET_MAXAUCTIONS,
     CONFIG_BLACKMARKET_UPDATE_PERIOD,
+    CONFIG_AZERITE_KNOWLEGE,
     INT_CONFIG_VALUE_COUNT
+};
+
+enum WorldInt64Configs
+{
+    CONFIG_CHARACTER_CREATING_DISABLED_RACEMASK,
+    INT64_CONFIT_VALUE_COUNT
 };
 
 /// Server rates
@@ -608,17 +615,6 @@ private:
 
 typedef std::unordered_map<uint32, WorldSession*> SessionMap;
 
-struct CharacterInfo
-{
-    std::string Name;
-    uint32 AccountId;
-    uint8 Class;
-    uint8 Race;
-    uint8 Sex;
-    uint8 Level;
-    bool IsDeleted;
-};
-
 /// The World
 class TC_GAME_API World
 {
@@ -800,12 +796,15 @@ class TC_GAME_API World
             return index < INT_CONFIG_VALUE_COUNT ? m_int_configs[index] : 0;
         }
 
+        uint64 GetUInt64Config(WorldInt64Configs index) const
+        {
+            return index < INT64_CONFIT_VALUE_COUNT ? m_int64_configs[index] : 0;
+        }
+
         void setWorldState(uint32 index, uint32 value);
         uint32 getWorldState(uint32 index) const;
         void LoadWorldStates();
 
-        /// Are we on a "Player versus Player" server?
-        bool IsPvPRealm() const;
         bool IsFFAPvPRealm() const;
 
         void KickAll();
@@ -844,14 +843,6 @@ class TC_GAME_API World
         void LoadAutobroadcasts();
 
         void UpdateAreaDependentAuras();
-
-        CharacterInfo const* GetCharacterInfo(ObjectGuid const& guid) const;
-        void AddCharacterInfo(ObjectGuid const& guid, uint32 accountId, std::string const& name, uint8 gender, uint8 race, uint8 playerClass, uint8 level, bool isDeleted);
-        void DeleteCharacterInfo(ObjectGuid const& guid) { _characterInfoStore.erase(guid); }
-        bool HasCharacterInfo(ObjectGuid const& guid) { return _characterInfoStore.find(guid) != _characterInfoStore.end(); }
-        void UpdateCharacterInfo(ObjectGuid const& guid, std::string const& name, uint8 gender = GENDER_NONE, uint8 race = RACE_NONE);
-        void UpdateCharacterInfoLevel(ObjectGuid const& guid, uint8 level);
-        void UpdateCharacterInfoDeleted(ObjectGuid const& guid, bool deleted, std::string const* name = nullptr);
 
         uint32 GetCleaningFlags() const { return m_CleaningFlags; }
         void   SetCleaningFlags(uint32 flags) { m_CleaningFlags = flags; }
@@ -921,6 +912,7 @@ class TC_GAME_API World
 
         float rate_values[MAX_RATES];
         uint32 m_int_configs[INT_CONFIG_VALUE_COUNT];
+        uint64 m_int64_configs[INT64_CONFIT_VALUE_COUNT];
         bool m_bool_configs[BOOL_CONFIG_VALUE_COUNT];
         float m_float_configs[FLOAT_CONFIG_VALUE_COUNT];
         typedef std::map<uint32, uint32> WorldStatesMap;
@@ -973,10 +965,6 @@ class TC_GAME_API World
         };
         typedef std::unordered_map<uint8, Autobroadcast> AutobroadcastContainer;
         AutobroadcastContainer m_Autobroadcasts;
-
-        typedef std::map<ObjectGuid, CharacterInfo> CharacterInfoContainer;
-        CharacterInfoContainer _characterInfoStore;
-        void LoadCharacterInfoStore();
 
         void ProcessQueryCallbacks();
         QueryCallbackProcessor _queryProcessor;

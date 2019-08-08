@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+ * Copyright (C) 2008-2019 TrinityCore <https://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -17,6 +17,7 @@
 
 // This is where scripts' loading functions should be declared:
 void AddSC_custom_npcs();
+void AddSC_custom_player_script();
 void AddSC_solocraft();
 void AddSC_FireWorksOnLevelUp();
 void AddSC_Player_Boa();
@@ -57,6 +58,7 @@ void AddSC_custom_starting();
 void AddCustomScripts()
 {
     AddSC_custom_npcs();
+    AddSC_custom_player_script();
     AddSC_solocraft();
     AddSC_FireWorksOnLevelUp();
     AddSC_Player_Boa();

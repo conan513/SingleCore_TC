@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+ * Copyright (C) 2008-2019 TrinityCore <https://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -18,6 +18,7 @@
 #include "WorldSession.h"
 #include "WodGarrison.h"
 #include "ClassHall.h"
+#include "WarCampaign.h"
 #include "GarrisonAI.h"
 #include "GarrisonMgr.h"
 #include "GarrisonPackets.h"
@@ -31,7 +32,7 @@ void WorldSession::HandleGetGarrisonInfo(WorldPackets::Garrison::GetGarrisonInfo
 
 void WorldSession::HandleGarrisonPurchaseBuilding(WorldPackets::Garrison::GarrisonPurchaseBuilding& garrisonPurchaseBuilding)
 {
-    if (!_player->GetNPCIfCanInteractWith(garrisonPurchaseBuilding.NpcGUID, UNIT_NPC_FLAG_GARRISON_ARCHITECT))
+    if (!_player->GetNPCIfCanInteractWith(garrisonPurchaseBuilding.NpcGUID, UNIT_NPC_FLAG_NONE, UNIT_NPC_FLAG_2_GARRISON_ARCHITECT))
         return;
 
     if (Garrison* garrison = _player->GetGarrison(GARRISON_TYPE_GARRISON))
@@ -40,7 +41,7 @@ void WorldSession::HandleGarrisonPurchaseBuilding(WorldPackets::Garrison::Garris
 
 void WorldSession::HandleGarrisonCancelConstruction(WorldPackets::Garrison::GarrisonCancelConstruction& garrisonCancelConstruction)
 {
-    if (!_player->GetNPCIfCanInteractWith(garrisonCancelConstruction.NpcGUID, UNIT_NPC_FLAG_GARRISON_ARCHITECT))
+    if (!_player->GetNPCIfCanInteractWith(garrisonCancelConstruction.NpcGUID, UNIT_NPC_FLAG_NONE, UNIT_NPC_FLAG_2_GARRISON_ARCHITECT))
         return;
 
     if (Garrison* garrison = _player->GetGarrison(GARRISON_TYPE_GARRISON))
@@ -58,7 +59,7 @@ void WorldSession::HandleGarrisonCheckUpgradeable(WorldPackets::Garrison::Garris
 
 void WorldSession::HandleGarrisonUpgrade(WorldPackets::Garrison::GarrisonUpgrade& garrisonUpgrade)
 {
-    if (!_player->GetNPCIfCanInteractWith(garrisonUpgrade.NpcGUID, UNIT_NPC_FLAG_GARRISON_ARCHITECT))
+    if (!_player->GetNPCIfCanInteractWith(garrisonUpgrade.NpcGUID, UNIT_NPC_FLAG_NONE, UNIT_NPC_FLAG_2_GARRISON_ARCHITECT))
         return;
 
     if (Garrison* garrison = _player->GetGarrison(GARRISON_TYPE_GARRISON))
@@ -81,42 +82,79 @@ void WorldSession::HandleGarrisonGetBuildingLandmarks(WorldPackets::Garrison::Ga
 
 void WorldSession::HandleGarrisonOpenMissionNpc(WorldPackets::Garrison::GarrisonOpenMissionNpcClient& garrisonOpenMissionNpcClient)
 {
-    if (!_player->GetNPCIfCanInteractWith(garrisonOpenMissionNpcClient.NpcGUID, UNIT_NPC_FLAG_GARRISON_MISSION_NPC))
+    Creature* adventureMap = _player->GetNPCIfCanInteractWith(garrisonOpenMissionNpcClient.NpcGUID, UNIT_NPC_FLAG_NONE, UNIT_NPC_FLAG_2_GARRISON_MISSION_NPC);
+    if (!adventureMap)
         return;
 
-    GarrisonType garType = GARRISON_TYPE_CLASS_HALL; // Todo : differenciate depending of NPC
+    uint32 uiMapId = sObjectMgr->GetAdventureMapUIByCreature(adventureMap->GetEntry());
 
-    Garrison const* garrison = _player->GetGarrison(garType);
-
-    if (!garrison)
-        return;
-
-    if (garType == GARRISON_TYPE_CLASS_HALL)
+    if (uiMapId)
     {
-        SendPacket(WorldPackets::Garrison::ShowAdventureMap(garrisonOpenMissionNpcClient.NpcGUID).Write());
+        SendPacket(WorldPackets::Garrison::ShowAdventureMap(garrisonOpenMissionNpcClient.NpcGUID, uiMapId).Write());
     }
     else
     {
-        WorldPackets::Garrison::GarrisonOpenMissionNpc garrisonOpenMissionNpc;
-        for (auto const& p : garrison->GetMissions())
+        if (Garrison const* garrison = _player->GetGarrison(GARRISON_TYPE_GARRISON))
         {
-            garrisonOpenMissionNpc.Missions.push_back(p.first);
+            WorldPackets::Garrison::GarrisonOpenMissionNpc garrisonOpenMissionNpc;
+            for (auto const& p : garrison->GetMissions())
+            {
+                garrisonOpenMissionNpc.Missions.push_back(p.first);
+            }
+            SendPacket(garrisonOpenMissionNpc.Write());
         }
-        SendPacket(garrisonOpenMissionNpc.Write());
     }
 }
 
 void WorldSession::HandleGarrisonRequestScoutingMap(WorldPackets::Garrison::GarrisonRequestScoutingMap& scoutingMap)
 {
+    AdventureMapPOIEntry const* poiEntry = sAdventureMapPOIStore.LookupEntry(scoutingMap.ID);
+    if (!poiEntry)
+        return;
+
+    bool active = true;
+    if (poiEntry->PlayerConditionID)
+        active = active && _player->MeetPlayerCondition(poiEntry->PlayerConditionID);
+
+    switch (scoutingMap.ID)
+    {
+        case 40: // Zuldazar
+            active = true;
+            break;
+        case 41:
+        case 42:
+        case 148:
+        case 149:
+        case 150:
+            active = false;// _player->GetTeam() == HORDE;
+            break;
+        case 43: // Tiragarde Sound
+            active = true;
+            break;
+        case 44:
+        case 45:
+        case 151:
+        case 152:
+        case 153:
+            active = false;// _player->GetTeam() == ALLIANCE;
+            break;
+        default:
+            break;
+    }
+
+    if (poiEntry->QuestID)
+        if (Quest const* quest = sObjectMgr->GetQuestTemplate(poiEntry->QuestID))
+            active = active && _player->CanTakeQuest(quest, false);
+
     WorldPackets::Garrison::GarrisonScoutingMapResult result;
     result.ID = scoutingMap.ID;
-    result.Active = true;
+    result.Active = active;
     SendPacket(result.Write());
 }
 
 void WorldSession::HandleGarrisonStartMission(WorldPackets::Garrison::GarrisonStartMission& startMission)
 {
-    if (!_player->GetNPCIfCanInteractWith(startMission.NpcGUID, UNIT_NPC_FLAG_GARRISON_MISSION_NPC))
+    if (!_player->GetNPCIfCanInteractWith(startMission.NpcGUID, UNIT_NPC_FLAG_NONE, UNIT_NPC_FLAG_2_GARRISON_MISSION_NPC))
         return;
 
     GarrMissionEntry const* missionEntry = sGarrMissionStore.LookupEntry(startMission.MissionID);
@@ -132,7 +170,7 @@ void WorldSession::HandleGarrisonStartMission(WorldPackets::Garrison::GarrisonSt
 
 void WorldSession::HandleGarrisonCompleteMission(WorldPackets::Garrison::GarrisonCompleteMission& completeMission)
 {
-    if (!_player->GetNPCIfCanInteractWith(completeMission.NpcGUID, UNIT_NPC_FLAG_GARRISON_MISSION_NPC))
+    if (!_player->GetNPCIfCanInteractWith(completeMission.NpcGUID, UNIT_NPC_FLAG_NONE, UNIT_NPC_FLAG_2_GARRISON_MISSION_NPC))
         return;
 
     GarrMissionEntry const* missionEntry = sGarrMissionStore.LookupEntry(completeMission.MissionID);
@@ -148,7 +186,7 @@ void WorldSession::HandleGarrisonCompleteMission(WorldPackets::Garrison::Garriso
 
 void WorldSession::HandleGarrisonMissionBonusRoll(WorldPackets::Garrison::GarrisonMissionBonusRoll& missionBonusRoll)
 {
-    if (!_player->GetNPCIfCanInteractWith(missionBonusRoll.NpcGUID, UNIT_NPC_FLAG_GARRISON_MISSION_NPC))
+    if (!_player->GetNPCIfCanInteractWith(missionBonusRoll.NpcGUID, UNIT_NPC_FLAG_NONE, UNIT_NPC_FLAG_2_GARRISON_MISSION_NPC))
         return;
 
     GarrMissionEntry const* missionEntry = sGarrMissionStore.LookupEntry(missionBonusRoll.MissionID);

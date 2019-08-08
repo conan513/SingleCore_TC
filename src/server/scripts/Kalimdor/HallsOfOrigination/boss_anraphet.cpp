@@ -1,5 +1,5 @@
  /*
-  * Copyright (C) 2017-2018 AshamaneProject <https://github.com/AshamaneProject>
+  * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
   * Copyright (C) 2010-2018 Trinity <http://www.projecttrinity.org/>
   *
   * This program is free software; you can redistribute it and/or modify it
@@ -728,7 +728,7 @@ class npc_brann_bronzebeard_hoo : public CreatureScript
             if(!EventInProgress && uiType == DATA_BRANN_EVENT)
             {
                 me->AddUnitMovementFlag(MOVEMENTFLAG_WALKING);
-                me->RemoveFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_GOSSIP);
+                me->RemoveNpcFlag(UNIT_NPC_FLAG_GOSSIP);
                 EventInProgress = true;
                 Talk(SAY_BRANN_INTRO_1);
                 events.ScheduleEvent(EVENT_OPEN_DOOR, 3000);

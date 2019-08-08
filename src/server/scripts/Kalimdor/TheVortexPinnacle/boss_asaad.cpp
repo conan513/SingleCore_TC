@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
  * Copyright (C) 2010 - 2012 ProjectSkyfire <http://www.projectskyfire.org/>
  *
  * Copyright (C) 2011 - 2012 ArkCORE <http://www.arkania.net/>
@@ -196,7 +196,7 @@ class boss_asaad : public CreatureScript
                         break;
                     case NPC_SKYFALL:
                         summoned->SetInCombatWithZone();
-                        summoned->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_REMOVE_CLIENT_CONTROL);
+                        summoned->AddUnitFlag(UNIT_FLAG_REMOVE_CLIENT_CONTROL);
                         break;
                     default:
                         break;

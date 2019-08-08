@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+ * Copyright (C) 2008-2019 TrinityCore <https://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -85,6 +85,7 @@ enum SpellTargetSelectionCategories
     TARGET_SELECT_CATEGORY_NEARBY,
     TARGET_SELECT_CATEGORY_CONE,
     TARGET_SELECT_CATEGORY_AREA,
+    TARGET_SELECT_CATEGORY_TRAJ,
     TARGET_SELECT_CATEGORY_LINE
 };
 
@@ -187,7 +188,7 @@ enum SpellCustomAttributes
     SPELL_ATTR0_CU_CONE_LINE                     = 0x00000004,
     SPELL_ATTR0_CU_SHARE_DAMAGE                  = 0x00000008,
     SPELL_ATTR0_CU_NO_INITIAL_THREAT             = 0x00000010,
-    SPELL_ATTR0_CU_IS_TALENT                     = 0x00000020,
+    SPELL_ATTR0_CU_AURA_CC                       = 0x00000020,
     SPELL_ATTR0_CU_DONT_BREAK_STEALTH            = 0x00000040,
     SPELL_ATTR0_CU_DIRECT_DAMAGE                 = 0x00000100,
     SPELL_ATTR0_CU_CHARGE                        = 0x00000200,
@@ -200,7 +201,11 @@ enum SpellCustomAttributes
     SPELL_ATTR0_CU_REQ_CASTER_BEHIND_TARGET      = 0x00020000,
     SPELL_ATTR0_CU_ALLOW_INFLIGHT_TARGET         = 0x00040000,
     SPELL_ATTR0_CU_NEEDS_AMMO_DATA               = 0x00080000,
-    SPELL_ATTR0_CU_DONT_TURN_DURING_CAST         = 0x00100000,
+    SPELL_ATTR0_CU_BINARY_SPELL                  = 0x00100000,
+    SPELL_ATTR0_CU_SCHOOLMASK_NORMAL_WITH_MAGIC  = 0x00200000,
+    SPELL_ATTR0_CU_LIQUID_AURA                   = 0x00400000,
+    SPELL_ATTR0_CU_IS_TALENT                     = 0x00800000,
+    SPELL_ATTR0_CU_DONT_TURN_DURING_CAST         = 0x01000000,
 
     SPELL_ATTR0_CU_NEGATIVE                      = SPELL_ATTR0_CU_NEGATIVE_EFF0 | SPELL_ATTR0_CU_NEGATIVE_EFF1 | SPELL_ATTR0_CU_NEGATIVE_EFF2
 };
@@ -329,7 +334,6 @@ public:
     uint32    Effect;
     uint32    ApplyAuraName;
     uint32    ApplyAuraPeriod;
-    int32     DieSides;
     float     RealPointsPerLevel;
     int32     BasePoints;
     float     PointsPerResource;
@@ -358,7 +362,7 @@ public:
         float ResourceCoefficient;
     } Scaling;
 
-    SpellEffectInfo() : _spellInfo(NULL), EffectIndex(0), Effect(0), ApplyAuraName(0), ApplyAuraPeriod(0), DieSides(0),
+    SpellEffectInfo() : _spellInfo(NULL), EffectIndex(0), Effect(0), ApplyAuraName(0), ApplyAuraPeriod(0),
                         RealPointsPerLevel(0), BasePoints(0), PointsPerResource(0), Amplitude(0), ChainAmplitude(0),
                         BonusCoefficient(0), MiscValue(0), MiscValueB(0), Mechanic(MECHANIC_NONE), PositionFacing(0),
                         RadiusEntry(NULL), ChainTargets(0), ItemType(0), TriggerSpell(0), BonusCoefficientFromAP(0.0f), ImplicitTargetConditions(NULL) { }
@@ -375,7 +379,7 @@ public:
     bool IsUnitOwnedAuraEffect() const;
 
     int32 CalcValue(Unit const* caster = nullptr, int32 const* basePoints = nullptr, Unit const* target = nullptr, float* variance = nullptr, int32 itemLevel = -1) const;
-    int32 CalcBaseValue(int32 value) const;
+    int32 CalcBaseValue(Unit const* caster, Unit const* target, int32 itemLevel) const;
     float CalcValueMultiplier(Unit* caster, Spell* spell = NULL) const;
     float CalcDamageMultiplier(Unit* caster, Spell* spell = NULL) const;
 
@@ -388,6 +392,8 @@ public:
 
     SpellEffectImplicitTargetTypes GetImplicitTargetType() const;
     SpellTargetObjectTypes GetUsedTargetObjectType() const;
+    ExpectedStatType GetScalingExpectedStat() const;
+    bool IsStatCompatible(Unit const* caster, ExpectedStatType type) const;
 
     ImmunityInfo const* GetImmunityInfo() const { return &_immunityInfo; }
 
@@ -505,6 +511,7 @@ class TC_GAME_API SpellInfo
         uint32 TotemCategory[MAX_SPELL_TOTEMS];
         uint32 IconFileDataId;
         uint32 ActiveIconFileDataId;
+        uint32 ContentTuningId;
         LocalizedString const* SpellName;
         float ConeAngle;
         float Width;
@@ -639,7 +646,7 @@ class TC_GAME_API SpellInfo
         SpellSpecificType GetSpellSpecific() const;
 
         float GetMinRange(bool positive = false) const;
-        float GetMaxRange(bool positive = false, Unit* caster = NULL, Spell* spell = NULL) const;
+        float GetMaxRange(bool positive = false, Unit* caster = nullptr, Spell* spell = nullptr) const;
 
         int32 CalcDuration(Unit* caster = nullptr) const;
         int32 GetDuration() const;
@@ -647,10 +654,10 @@ class TC_GAME_API SpellInfo
 
         uint32 GetMaxTicks(uint32 difficulty) const;
 
-        uint32 CalcCastTime(uint8 level = 0, Spell* spell = NULL) const;
+        uint32 CalcCastTime(uint8 level = 0, Spell* spell = nullptr) const;
         uint32 GetRecoveryTime() const;
 
-        std::vector<SpellPowerCost> CalcPowerCost(Unit const* caster, SpellSchoolMask schoolMask) const;
+        std::vector<SpellPowerCost> CalcPowerCost(Unit const* caster, SpellSchoolMask schoolMask, Spell* spell = nullptr) const;
 
         float CalcProcPPM(Unit* caster, int32 itemLevel) const;
         bool IsTargetingLine() const;
@@ -684,6 +691,8 @@ class TC_GAME_API SpellInfo
         bool CanSpellProvideImmunityAgainstAura(SpellInfo const* auraSpellInfo) const;
         bool SpellCancelsAuraEffect(AuraEffect const* aurEff) const;
 
+        uint32 GetAllowedMechanicMask() const;
+
     private:
         // loading helpers
         void _InitializeExplicitTargetMask();
@@ -707,6 +716,7 @@ class TC_GAME_API SpellInfo
         AuraStateType _auraState;
 
         SpellDiminishInfo _diminishInfo;
+        uint32 _allowedMechanicMask;
 };
 
 #endif // _SPELLINFO_H

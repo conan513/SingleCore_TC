@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
  * Copyright (C) 2016 Firestorm Servers <https://firestorm-servers.com>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -258,7 +258,7 @@ public:
     {
         npc_dreadpetalAI(Creature* creature) : ScriptedAI(creature)
         {
-            me->SetUInt32Value(UNIT_NPC_EMOTESTATE, 373);
+            me->SetEmoteState(EMOTE_STATE_SUBMERGED);
         }
 
         void Reset() override
@@ -272,12 +272,12 @@ public:
 
         void JustReachedHome() override
         {
-            me->SetUInt32Value(UNIT_NPC_EMOTESTATE, 373);
+            me->SetEmoteState(EMOTE_STATE_SUBMERGED);
         }
 
         void EnterCombat(Unit* /*who*/) override
         {
-            me->SetUInt32Value(UNIT_NPC_EMOTESTATE, 0);
+            me->SetEmoteState(EMOTE_ONESHOT_NONE);
             me->HandleEmoteCommand(449);
         }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+ * Copyright (C) 2008-2019 TrinityCore <https://www.trinitycore.org/>
  * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -31,6 +31,7 @@ EndScriptData */
 #include "MotionMaster.h"
 #include "ObjectAccessor.h"
 #include "Player.h"
+#include "TemporarySummon.h"
 
 const float MAX_PLAYER_DISTANCE = 100.0f;
 
@@ -152,7 +153,8 @@ void FollowerAI::JustDied(Unit* /*killer*/)
         {
             for (GroupReference* groupRef = group->GetFirstMember(); groupRef != NULL; groupRef = groupRef->next())
                 if (Player* member = groupRef->GetSource())
-                    member->FailQuest(m_pQuestForFollow->GetQuestId());
+                    if (member->IsInMap(player))
+                        member->FailQuest(m_pQuestForFollow->GetQuestId());
         }
         else
             player->FailQuest(m_pQuestForFollow->GetQuestId());
@@ -177,7 +179,7 @@ void FollowerAI::EnterEvadeMode(EvadeReason /*why*/)
     me->RemoveAllAuras();
     me->DeleteThreatList();
     me->CombatStop(true);
-    me->SetLootRecipient(NULL);
+    me->ResetLootRecipients();
 
     if (HasFollowState(STATE_FOLLOW_INPROGRESS))
     {
@@ -185,9 +187,15 @@ void FollowerAI::EnterEvadeMode(EvadeReason /*why*/)
 
         if (me->GetMotionMaster()->GetCurrentMovementGeneratorType() == CHASE_MOTION_TYPE)
         {
-            float fPosX, fPosY, fPosZ;
-            me->GetPosition(fPosX, fPosY, fPosZ);
-            me->GetMotionMaster()->MovePoint(POINT_COMBAT_START, fPosX, fPosY, fPosZ);
+            me->GetMotionMaster()->Clear();
+
+            if (GetLeaderForFollower())
+            {
+                if (!HasFollowState(STATE_FOLLOW_PAUSED))
+                    AddFollowState(STATE_FOLLOW_RETURNING);
+            }
+            else
+                me->DespawnOrUnsummon();
         }
     }
     else
@@ -230,7 +238,6 @@ void FollowerAI::UpdateAI(uint32 uiDiff)
                     for (GroupReference* groupRef = group->GetFirstMember(); groupRef != NULL; groupRef = groupRef->next())
                     {
                         Player* member = groupRef->GetSource();
-
                         if (member && me->IsWithinDistInMap(member, MAX_PLAYER_DISTANCE))
                         {
                             bIsMaxRangeExceeded = false;
@@ -263,6 +270,12 @@ void FollowerAI::UpdateAI(uint32 uiDiff)
 
 void FollowerAI::UpdateFollowerAI(uint32 /*uiDiff*/)
 {
+    if (HasFollowState(STATE_FOLLOW_NONE))
+        if (TempSummon* meTemp = me->ToTempSummon())
+            if (Unit* summoner = meTemp->GetSummoner())
+                if (Player* player = summoner->ToPlayer())
+                    StartFollow(player);
+
     if (!UpdateVictim())
         return;
 
@@ -315,7 +328,8 @@ void FollowerAI::StartFollow(Player* player, uint32 factionForFollower, const Qu
         TC_LOG_DEBUG("scripts", "FollowerAI start with WAYPOINT_MOTION_TYPE, set to MoveIdle.");
     }
 
-    me->SetUInt64Value(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_NONE);
+    me->SetNpcFlags(UNIT_NPC_FLAG_NONE);
+    me->SetNpcFlags2(UNIT_NPC_FLAG_2_NONE);
 
     AddFollowState(STATE_FOLLOW_INPROGRESS);
 
@@ -337,8 +351,7 @@ Player* FollowerAI::GetLeaderForFollower()
                 for (GroupReference* groupRef = group->GetFirstMember(); groupRef != NULL; groupRef = groupRef->next())
                 {
                     Player* member = groupRef->GetSource();
-
-                    if (member && member->IsAlive() && me->IsWithinDistInMap(member, MAX_PLAYER_DISTANCE))
+                    if (member && me->IsWithinDistInMap(member, MAX_PLAYER_DISTANCE) && member->IsAlive())
                     {
                         TC_LOG_DEBUG("scripts", "FollowerAI GetLeader changed and returned new leader.");
                         m_uiLeaderGUID = member->GetGUID();

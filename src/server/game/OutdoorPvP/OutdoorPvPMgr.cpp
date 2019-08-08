@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+ * Copyright (C) 2008-2019 TrinityCore <https://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -86,7 +86,7 @@ void OutdoorPvPMgr::InitOutdoorPvP()
         OutdoorPvPData* data = new OutdoorPvPData();
         OutdoorPvPTypes realTypeId = OutdoorPvPTypes(typeId);
         data->TypeId = realTypeId;
-        data->ScriptId = sObjectMgr->GetScriptId(fields[1].GetString());
+        data->ScriptId = sObjectMgr->GetScriptIdOrAdd(fields[1].GetString());
         m_OutdoorPvPDatas[realTypeId] = data;
 
         ++count;
@@ -236,6 +236,9 @@ void OutdoorPvPMgr::HandleDropFlag(Player* player, uint32 spellId)
 
 void OutdoorPvPMgr::HandlePlayerResurrects(Player* player, Area* zone)
 {
+    if (!zone)
+        return;
+
     OutdoorPvPMap::iterator itr = m_OutdoorPvPMap.find(zone->GetId());
     if (itr == m_OutdoorPvPMap.end())
         return;

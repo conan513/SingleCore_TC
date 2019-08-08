@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+ * Copyright (C) 2008-2019 TrinityCore <https://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -49,6 +49,7 @@ void PlayerTaxi::InitTaxiNodesForLevel(uint32 race, uint32 chrClass, uint8 level
         case RACE_PANDAREN_ALLIANCE:
         case RACE_VOID_ELF:
         case RACE_LIGHTFORGED_DRAENEI:
+        case RACE_DARK_IRON_DWARF:
             SetTaximaskNode(2);     // Stormwind, Elwynn
             SetTaximaskNode(6);     // Ironforge, Dun Morogh
             SetTaximaskNode(26);    // Lor'danel, Darkshore
@@ -72,6 +73,7 @@ void PlayerTaxi::InitTaxiNodesForLevel(uint32 race, uint32 chrClass, uint8 level
         case RACE_PANDAREN_HORDE:
         case RACE_NIGHTBORNE:
         case RACE_HIGHMOUNTAIN_TAUREN:
+        case RACE_MAGHAR_ORC:
             SetTaximaskNode(11);    // Undercity, Tirisfal
             SetTaximaskNode(22);    // Thunder Bluff, Mulgore
             SetTaximaskNode(23);    // Orgrimmar, Durotar
@@ -128,13 +130,13 @@ void PlayerTaxi::AppendTaximaskTo(WorldPackets::Taxi::ShowTaxiNodes& data, bool 
 {
     if (all)
     {
-        data.CanLandNodes = &sTaxiNodesMask;              // all existed nodes
-        data.CanUseNodes = &sTaxiNodesMask;
+        data.CanLandNodes = sTaxiNodesMask;              // all existed nodes
+        data.CanUseNodes = sTaxiNodesMask;
     }
     else
     {
-        data.CanLandNodes = &m_taximask;                  // known nodes
-        data.CanUseNodes = &m_taximask;
+        data.CanLandNodes = m_taximask;                  // known nodes
+        data.CanUseNodes = m_taximask;
     }
 }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -30,10 +30,8 @@ SceneObject::SceneObject() : WorldObject(false), _duration(0)
     m_objectType |= TYPEMASK_SCENEOBJECT;
     m_objectTypeId = TYPEID_SCENEOBJECT;
 
-    m_updateFlag = UPDATEFLAG_STATIONARY_POSITION;
-
-    m_valuesCount = SCENEOBJECT_END;
-    _dynamicValuesCount = SCENEOBJECT_DYNAMIC_END;
+    m_updateFlag.Stationary = true;
+    m_updateFlag.SceneObject = true;
 }
 
 SceneObject::~SceneObject()
@@ -84,6 +82,39 @@ void SceneObject::Remove()
     {
         AddObjectToRemoveList(); // calls RemoveFromWorld
     }
+}
+
+void SceneObject::BuildValuesCreate(ByteBuffer* data, Player const* target) const
+{
+    UF::UpdateFieldFlag flags = GetUpdateFieldFlagsFor(target);
+    std::size_t sizePos = data->wpos();
+    *data << uint32(0);
+    *data << uint8(flags);
+    m_objectData->WriteCreate(*data, flags, this, target);
+    m_sceneObjectData->WriteCreate(*data, flags, this, target);
+    data->put<uint32>(sizePos, data->wpos() - sizePos - 4);
+}
+
+void SceneObject::BuildValuesUpdate(ByteBuffer* data, Player const* target) const
+{
+    UF::UpdateFieldFlag flags = GetUpdateFieldFlagsFor(target);
+    std::size_t sizePos = data->wpos();
+    *data << uint32(0);
+    *data << uint32(m_values.GetChangedObjectTypeMask());
+
+    if (m_values.HasChanged(TYPEID_OBJECT))
+        m_objectData->WriteUpdate(*data, flags, this, target);
+
+    if (m_values.HasChanged(TYPEID_CORPSE))
+        m_sceneObjectData->WriteUpdate(*data, flags, this, target);
+
+    data->put<uint32>(sizePos, data->wpos() - sizePos - 4);
+}
+
+void SceneObject::ClearUpdateMask(bool remove)
+{
+    m_values.ClearChangesMask(&SceneObject::m_sceneObjectData);
+    Object::ClearUpdateMask(remove);
 }
 
 SceneObject* SceneObject::CreateScene(uint32 SceneId, Unit* creator, Position const& pos, GuidUnorderedSet&& participants, SpellInfo const* spellInfo /*= nullptr*/)

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
  * Copyright (C) 2011-2016 ArkCORE <http://www.arkania.net/>
  * Copyright (C) 2008-2014 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
@@ -547,7 +547,7 @@ public:
             m_doorGUID = ObjectGuid::Empty;
             m_liamGUID = ObjectGuid::Empty;
             m_citizenGUID = ObjectGuid::Empty;
-            me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE_TO_NPC);
+            me->AddUnitFlag(UNIT_FLAG_IMMUNE_TO_NPC);
         }
 
         void JustDied(Unit* /*killer*/) override
@@ -725,7 +725,7 @@ public:
         void Reset() override
         {
             m_events.ScheduleEvent(EVENT_START_NEXT_SHOWFIGHT, 60000);
-            me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_REMOVE_CLIENT_CONTROL);
+            me->AddUnitFlag(UNIT_FLAG_REMOVE_CLIENT_CONTROL);
         }
 
         void DamageTaken(Unit* /*who*/, uint32 &damage) override
@@ -812,7 +812,7 @@ public:
         {
             m_events.Reset();
             m_events.ScheduleEvent(EVENT_CHECK_SHOWFIGHT, urand(900, 1200));
-            me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE_TO_NPC);
+            me->AddUnitFlag(UNIT_FLAG_IMMUNE_TO_NPC);
         }
 
         void DamageTaken(Unit* who, uint32 &Damage) override
@@ -914,7 +914,7 @@ public:
         void Reset() override
         {
             m_enrage = false;
-            me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE_TO_NPC);
+            me->AddUnitFlag(UNIT_FLAG_IMMUNE_TO_NPC);
         }
 
         void DamageTaken(Unit* /*who*/, uint32& /*damage*/) override
@@ -987,7 +987,7 @@ public:
         {
             m_playerGUID = ObjectGuid::Empty;
             m_doorGUID = ObjectGuid::Empty;
-            me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE_TO_NPC);
+            me->AddUnitFlag(UNIT_FLAG_IMMUNE_TO_NPC);
         }
 
         void MovementInform(uint32 type, uint32 point) override
@@ -1121,7 +1121,7 @@ public:
         {
             m_playerGUID = ObjectGuid::Empty;
             m_doorGUID = ObjectGuid::Empty;
-            me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE_TO_NPC);
+            me->AddUnitFlag(UNIT_FLAG_IMMUNE_TO_NPC);
         }
 
         void MovementInform(uint32 type, uint32 point) override
@@ -2428,8 +2428,8 @@ public:
 
         void Reset() override
         {
-            me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_REMOVE_CLIENT_CONTROL);
-            me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
+            me->AddUnitFlag(UNIT_FLAG_REMOVE_CLIENT_CONTROL);
+            me->AddUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
         }
     };
 
@@ -2451,8 +2451,8 @@ public:
 
         void Reset() override
         {
-            me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_REMOVE_CLIENT_CONTROL);
-            me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
+            me->AddUnitFlag(UNIT_FLAG_REMOVE_CLIENT_CONTROL);
+            me->AddUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
         }
     };
 
@@ -3433,7 +3433,7 @@ public:
 
         void JustSummoned(Creature* summon) override
         {
-            summon->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_REMOVE_CLIENT_CONTROL);
+            summon->AddUnitFlag(UNIT_FLAG_REMOVE_CLIENT_CONTROL);
         }
 
         void DoAction(int32 param) override
@@ -3700,7 +3700,7 @@ public:
             m_playerGUID = ObjectGuid::Empty;
             m_dariusGUID = ObjectGuid::Empty;
             m_movePart = 0;
-            me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE_TO_NPC);
+            me->AddUnitFlag(UNIT_FLAG_IMMUNE_TO_NPC);
         }
 
         void IsSummonedBy(Unit* summoner) override
@@ -3733,7 +3733,7 @@ public:
                 if (npc->GetEntry() == NPC_DARIUS_CROWLEY)
                 {
                     m_dariusGUID = npc->GetGUID();
-                    npc->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE_TO_NPC);
+                    npc->AddUnitFlag(UNIT_FLAG_IMMUNE_TO_NPC);
                 }
             }
         }
@@ -3957,7 +3957,7 @@ public:
 
         void Reset() override
         {
-            me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE_TO_NPC);
+            me->AddUnitFlag(UNIT_FLAG_IMMUNE_TO_NPC);
             m_enrage = false;
             m_isFollowing = false;
             m_isTalking = false;
@@ -4418,7 +4418,7 @@ public:
 
         void Reset() override
         {
-            me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE_TO_NPC);
+            me->AddUnitFlag(UNIT_FLAG_IMMUNE_TO_NPC);
             m_enrage = false;
             m_events.Reset();
             m_events.ScheduleEvent(EVENT_CHECK_SHOWFIGHT, 1000);
@@ -4498,7 +4498,7 @@ public:
 
         void Reset() override
         {
-            me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE_TO_NPC);
+            me->AddUnitFlag(UNIT_FLAG_IMMUNE_TO_NPC);
             m_isShowFight = true;
             m_events.Reset();
             m_events.ScheduleEvent(EVENT_CHECK_SHOWFIGHT, 1000);

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
  * Copyright (C) 2008-2017 TrinityCore <http://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -38,7 +38,7 @@ bool ClassHall::LoadFromDB()
     return true;
 }
 
-void ClassHall::SaveToDB(SQLTransaction& trans)
+void ClassHall::SaveToDB(CharacterDatabaseTransaction& trans)
 {
     Garrison::SaveToDB(trans);
 }
@@ -53,7 +53,7 @@ bool ClassHall::Create(uint32 garrSiteId)
 
 void ClassHall::Delete()
 {
-    SQLTransaction trans = CharacterDatabase.BeginTransaction();
+    CharacterDatabaseTransaction trans = CharacterDatabase.BeginTransaction();
     DeleteFromDB(trans);
     CharacterDatabase.CommitTransaction(trans);
 

@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2017-2018 AshamaneProject <https://github.com/AshamaneProject>
+* Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
 *
 * This program is free software; you can redistribute it and/or modify it
 * under the terms of the GNU General Public License as published by the
@@ -73,7 +73,7 @@ public:
                 me->SetCanFly(true);
                 me->setActive(true);
                 me->SetReactState(REACT_PASSIVE);
-                me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
+                me->AddUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
 
                 for (int i = 0; i < 4; ++i)
                     if (Creature* beam = me->SummonCreature(37231, RopeBeamPos[i]))
@@ -88,7 +88,7 @@ public:
                 me->SetCanFly(true);
                 me->setActive(true);
                 me->SetReactState(REACT_PASSIVE);
-                me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
+                me->AddUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
 
                 for (int i = 4; i < 8; ++i)
                     if (Creature* beam = me->SummonCreature(37231, RopeBeamPos[i]))

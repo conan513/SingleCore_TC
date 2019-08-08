@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2017-2018 AshamaneProject <https://github.com/AshamaneProject>
+* Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
 *
 * This program is free software; you can redistribute it and/or modify it
 * under the terms of the GNU General Public License as published by the
@@ -141,7 +141,7 @@ public:
             events.Reset();
             lSummons.DespawnAll();
             uiStaticShockId = 0;
-            me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_REMOVE_CLIENT_CONTROL);
+            me->AddUnitFlag(UNIT_FLAG_REMOVE_CLIENT_CONTROL);
         }
 
         void EnterCombat(Unit* /*who*/) override
@@ -254,7 +254,7 @@ public:
                             else
                             {
                                 events.SetPhase(PHASE_SIAMAT);
-                                me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_REMOVE_CLIENT_CONTROL);
+                                me->RemoveUnitFlag(UNIT_FLAG_REMOVE_CLIENT_CONTROL);
                                 me->GetMotionMaster()->MoveChase(me->GetVictim());
                                 events.ScheduleEvent(EVENT_ABSORB_STORMS, 15000, 0, PHASE_SIAMAT);
                                 events.ScheduleEvent(EVENT_STORM_BOLT_S, urand(10000, 25000), 0, PHASE_SIAMAT);
@@ -455,7 +455,7 @@ public:
                     me->SetReactState(REACT_PASSIVE);
                     me->AttackStop();
                     me->StopMoving();
-                    me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE);
+                    me->AddUnitFlag(UnitFlags(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE));
                     me->CastSpell(me, SPELL_TEMPEST_STORM_TRANSFORM, false);
                 }
             }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
  * Copyright (C) 2008-2017 TrinityCore <http://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -107,7 +107,7 @@ struct questnpc_soul_gem : public ScriptedAI
         for (Creature* target : targets)
         {
             if(!target->IsAlive())
-            { 
+            {
                 switch (target->GetEntry())
                 {
                     case 90230:
@@ -143,8 +143,8 @@ struct questnpc_mana_drained_whelpling : public ScriptedAI
         {
             Creature* crea = GetContextCreature();
             crea->UpdateEntry(NPC_AZUREWING_WHELPLING);
-            crea->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
-            crea->SetByteValue(UNIT_FIELD_BYTES_1, UNIT_BYTES_1_OFFSET_STAND_STATE, 0);
+            crea->AddUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
+            crea->SetStandState(UNIT_STAND_STATE_STAND);
         });
 
         me->GetScheduler().Schedule(3s, [](TaskContext context)

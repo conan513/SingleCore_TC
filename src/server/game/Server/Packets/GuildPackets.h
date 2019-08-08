@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+ * Copyright (C) 2008-2019 TrinityCore <https://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -78,6 +78,7 @@ namespace WorldPackets
             WorldPacket const* Write() override;
 
             ObjectGuid GuildGuid;
+            ObjectGuid PlayerGuid;
             Optional<GuildInfo> Info;
         };
 
@@ -432,11 +433,11 @@ namespace WorldPackets
 
             int32 RankID = 0;
             int32 RankOrder = 0;
-            int32 WithdrawGoldLimit = 0;
+            uint32 WithdrawGoldLimit = 0;
             uint32 Flags = 0;
             uint32 OldFlags = 0;
-            int32 TabFlags[GUILD_BANK_MAX_TABS];
-            int32 TabWithdrawItemLimit[GUILD_BANK_MAX_TABS];
+            uint32 TabFlags[GUILD_BANK_MAX_TABS];
+            uint32 TabWithdrawItemLimit[GUILD_BANK_MAX_TABS];
             std::string RankName;
         };
 
@@ -687,7 +688,7 @@ namespace WorldPackets
             WorldPacket const* Write() override;
 
             std::vector<GuildRewardItem> RewardItems;
-            uint32 Version = 0;
+            int32 Version = 0;
         };
 
         class GuildBankActivate final : public ClientPacket
@@ -813,29 +814,6 @@ namespace WorldPackets
             bool FullUpdate = false;
         };
 
-        class GuildBankSwapItemsLegacy final : public ClientPacket
-        {
-        public:
-            GuildBankSwapItemsLegacy(WorldPacket&& packet) : ClientPacket(CMSG_GUILD_BANK_SWAP_ITEMS_LEGACY, std::move(packet)) { }
-
-            void Read() override;
-
-            ObjectGuid Banker;
-            int32 StackCount = 0;
-            int32 BankItemCount = 0;
-            uint32 ItemID = 0;
-            uint32 ItemID1 = 0;
-            uint8 ToSlot = 0;
-            uint8 BankSlot = 0;
-            uint8 BankSlot1 = 0;
-            uint8 BankTab = 0;
-            uint8 BankTab1 = 0;
-            uint8 ContainerSlot = 0;
-            uint8 ContainerItemSlot = 0;
-            bool AutoStore = false;
-            bool BankOnly = false;
-        };
-
         class GuildBankSwapItems final : public ClientPacket
         {
         public:
@@ -952,7 +930,7 @@ namespace WorldPackets
         class GuildBankTextQueryResult : public ServerPacket
         {
         public:
-            GuildBankTextQueryResult() : ServerPacket(SMSG_GUILD_BANK_TEXT_QUERY_RESULT, 5) { }
+            GuildBankTextQueryResult() : ServerPacket(SMSG_GUILD_BANK_TEXT_QUERY_RESULT, 4 + 2) { }
 
             WorldPacket const* Write() override;
 
@@ -987,9 +965,9 @@ namespace WorldPackets
             uint32 CompletedDate = 0;
             int32 Type = 0;
             int32 Flags = 0;
-            int32 Data[2];
+            std::array<int32, 2> Data;
             ObjectGuid MemberGuid;
-            GuidList MemberList;
+            std::vector<ObjectGuid> MemberList;
             Optional<Item::ItemInstance> Item;
         };
 
@@ -1086,7 +1064,7 @@ namespace WorldPackets
 
             void Read() override;
 
-            std::set<uint32> AchievementIDs;
+            Array<uint32, 10> AchievementIDs;
         };
 
         class GuildNameChanged final : ServerPacket

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
  * Copyright (C) 2010 - 2012 ProjectSkyfire <http://www.projectskyfire.org/>
  *
  * Copyright (C) 2011 - 2012 ArkCORE <http://www.arkania.net/>
@@ -183,7 +183,7 @@ public:
                         if (Creature* thrall = instance->GetCreature(uiThrall))
                         {
                             thrall->AI()->DoAction(ACTION_MOVE);
-                            thrall->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_REMOVE_CLIENT_CONTROL);
+                            thrall->RemoveUnitFlag(UNIT_FLAG_REMOVE_CLIENT_CONTROL);
                         }
                     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+ * Copyright (C) 2008-2019 TrinityCore <https://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -16,10 +16,12 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "CombatAI.h"
 #include "CreatureGroups.h"
 #include "Creature.h"
 #include "CreatureAI.h"
 #include "DatabaseEnv.h"
+#include "InstanceScript.h"
 #include "Log.h"
 #include "Map.h"
 #include "MotionMaster.h"
@@ -39,7 +41,7 @@ FormationMgr* FormationMgr::instance()
     return &instance;
 }
 
-void FormationMgr::AddCreatureToGroup(ObjectGuid::LowType leaderGuid, Creature* creature)
+void FormationMgr::AddCreatureToGroup(ObjectGuid::LowType leaderGuid, Creature* creature, uint32 groupId /*= 0*/)
 {
     Map* map = creature->FindMap();
     if (!map)
@@ -57,15 +59,16 @@ void FormationMgr::AddCreatureToGroup(ObjectGuid::LowType leaderGuid, Creature* 
     else
     {
         TC_LOG_DEBUG("entities.unit", "Group not found: " UI64FMTD ". Creating new group.", leaderGuid);
-        CreatureGroup* group = new CreatureGroup(leaderGuid);
+        CreatureGroup* group = new CreatureGroup(leaderGuid, groupId);
         map->CreatureGroupHolder[leaderGuid] = group;
+        group->SetLeader(creature);
         group->AddMember(creature);
     }
 }
 
 void FormationMgr::RemoveCreatureFromGroup(CreatureGroup* group, Creature* member)
 {
-    TC_LOG_DEBUG("entities.unit", "Deleting member pointer to GUID: " UI64FMTD " from group " UI64FMTD, group->GetId(), member->GetSpawnId());
+    TC_LOG_DEBUG("entities.unit", "Deleting member pointer to GUID: " UI64FMTD " from group " UI64FMTD, group->GetLeaderSpawnId(), member->GetSpawnId());
     group->RemoveMember(member);
 
     if (group->isEmpty())
@@ -75,7 +78,7 @@ void FormationMgr::RemoveCreatureFromGroup(CreatureGroup* group, Creature* membe
             return;
 
         TC_LOG_DEBUG("entities.unit", "Deleting group with InstanceID %u", member->GetInstanceId());
-        map->CreatureGroupHolder.erase(group->GetId());
+        map->CreatureGroupHolder.erase(group->GetLeaderSpawnId());
         delete group;
     }
 }
@@ -154,13 +157,18 @@ void CreatureGroup::AddMember(Creature* member)
     TC_LOG_DEBUG("entities.unit", "CreatureGroup::AddMember: Adding %s.", member->GetGUID().ToString().c_str());
 
     //Check if it is a leader
-    if (member->GetSpawnId() == m_groupID)
+    if (member->GetSpawnId() == m_leaderSpawnId)
     {
         TC_LOG_DEBUG("entities.unit", "%s is formation leader. Adding group.", member->GetGUID().ToString().c_str());
         m_leader = member;
     }
 
-    m_members[member] = sFormationMgr->CreatureGroupMap.find(member->GetSpawnId())->second;
+    auto groupMapItr = sFormationMgr->CreatureGroupMap.find(member->GetSpawnId());
+    if (groupMapItr != sFormationMgr->CreatureGroupMap.end())
+        m_members[member] = groupMapItr->second;
+    else
+        m_members[member] = nullptr;
+
     member->SetFormation(this);
 }
 
@@ -175,7 +183,11 @@ void CreatureGroup::RemoveMember(Creature* member)
 
 void CreatureGroup::MemberAttackStart(Creature* member, Unit* target)
 {
-    uint8 groupAI = sFormationMgr->CreatureGroupMap[member->GetSpawnId()]->groupAI;
+    FormationInfo* formationInfo = sFormationMgr->CreatureGroupMap[member->GetSpawnId()];
+    if (!formationInfo)
+        return;
+
+    uint8 groupAI = formationInfo->groupAI;
     if (!groupAI)
         return;
 
@@ -225,6 +237,34 @@ void CreatureGroup::FormationReset(bool dismiss)
     m_Formed = !dismiss;
 }
 
+void CreatureGroup::MoveGroupTo(float x, float y, float z, bool fightMove /*= false*/)
+{
+    if (!m_leader)
+        return;
+
+    float centerX = 0.f, centerY = 0.f;
+    for (auto itr : m_members)
+    {
+        centerX += itr.first->GetPositionX();
+        centerY += itr.first->GetPositionY();
+    }
+
+    centerX /= m_members.size();
+    centerY /= m_members.size();
+
+    for (auto itr : m_members)
+    {
+        float destX = itr.first->GetPositionX() + (x - centerX);
+        float destY = itr.first->GetPositionY() + (y - centerY);
+        float destZ = m_leader->GetMap()->GetHeight(m_leader->GetPhaseShift(), destX, destY, z + 1.f, true);
+
+        if (fightMove)
+            static_cast<CombatAI*>(itr.first->AI())->MoveCombat(Position(destX, destY, destZ));
+        else
+            itr.first->GetMotionMaster()->MovePoint(1, destX, destY, destZ);
+    }
+}
+
 void CreatureGroup::LeaderMoveTo(float x, float y, float z)
 {
     //! To do: This should probably get its own movement generator or use WaypointMovementGenerator.
@@ -237,15 +277,16 @@ void CreatureGroup::LeaderMoveTo(float x, float y, float z)
     for (CreatureGroupMemberType::iterator itr = m_members.begin(); itr != m_members.end(); ++itr)
     {
         Creature* member = itr->first;
-        if (member == m_leader || !member->IsAlive() || member->GetVictim() || !(itr->second->groupAI & FLAG_IDLE_IN_FORMATION))
+        if (member == m_leader || !member->IsAlive() || member->GetVictim() || !itr->second || !(itr->second->groupAI & FLAG_IDLE_IN_FORMATION))
             continue;
 
-        if (itr->second->point_1)
-            if (m_leader->GetCurrentWaypointID() == itr->second->point_1 - 1 || m_leader->GetCurrentWaypointID() == itr->second->point_2 - 1)
-                itr->second->follow_angle = float(M_PI) * 2 - itr->second->follow_angle;
+        if (itr->second)
+            if (itr->second->point_1)
+                if (m_leader->GetCurrentWaypointID() == itr->second->point_1 - 1 || m_leader->GetCurrentWaypointID() == itr->second->point_2 - 1)
+                    itr->second->follow_angle = float(M_PI) * 2 - itr->second->follow_angle;
 
-        float angle = itr->second->follow_angle;
-        float dist = itr->second->follow_dist;
+        float angle = itr->second ? itr->second->follow_angle : 0.f;
+        float dist = itr->second ? itr->second->follow_dist: 0.f;
 
         float dx = x + std::cos(angle + pathangle) * dist;
         float dy = y + std::sin(angle + pathangle) * dist;
@@ -265,4 +306,15 @@ void CreatureGroup::LeaderMoveTo(float x, float y, float z)
         member->GetMotionMaster()->MovePoint(0, dx, dy, dz);
         member->SetHomePosition(dx, dy, dz, pathangle);
     }
+}
+
+void CreatureGroup::CheckWipe(Creature* killed)
+{
+    // Check if we have at least one member alive
+    for (auto member : m_members)
+        if (member.first->IsAlive())
+            return;
+
+    if (InstanceScript* instanceScript = killed->GetInstanceScript())
+        instanceScript->OnCreatureGroupWipe(GetId());
 }

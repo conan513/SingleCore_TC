@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -18,7 +18,7 @@
 #include "ScriptMgr.h"
 #include "court_of_stars.h"
 
-void AddSC_talixae_flamewreath()
+void AddSC_boss_talixae_flamewreath()
 {
 
 }

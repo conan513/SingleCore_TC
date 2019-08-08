@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -88,8 +88,8 @@ struct boss_lady_hatecoil : public BossAI
         {
             _arcanistsDead = true;
             me->RemoveAurasDueToSpell(SPELL_ARCANE_SHIELDING);
-            me->SetUInt32Value(UNIT_FIELD_BYTES_1, 0);
-            me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE_TO_PC);
+            me->SetStandState(UNIT_STAND_STATE_STAND);
+            me->RemoveUnitFlag(UNIT_FLAG_IMMUNE_TO_PC);
         }
     }
 

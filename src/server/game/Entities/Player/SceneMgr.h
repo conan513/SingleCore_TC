@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+ * Copyright (C) 2008-2019 TrinityCore <https://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -44,8 +44,8 @@ public:
 
     Player* GetPlayer() const { return _player; }
 
-    uint32 PlayScene(uint32 sceneId, Position const* position = nullptr);
-    uint32 PlaySceneByTemplate(SceneTemplate const sceneTemplate, Position const* position = nullptr);
+    uint32 PlayScene(uint32 sceneId, Position const* position = nullptr, ObjectGuid const* transportGuid = nullptr);
+    uint32 PlaySceneByTemplate(SceneTemplate const sceneTemplate, Position const* position = nullptr, ObjectGuid const* transportGuid = nullptr);
     uint32 PlaySceneByPackageId(uint32 sceneScriptPackageId, uint32 playbackflags = SCENEFLAG_UNK16, Position const* position = nullptr);
     void CancelScene(uint32 sceneInstanceID, bool removeFromMap = true);
 

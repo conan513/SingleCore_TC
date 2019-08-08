@@ -1,3 +1,20 @@
+/*
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
+ *
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the
+ * Free Software Foundation; either version 2 of the License, or (at your
+ * option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+ * more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #include "ScriptMgr.h"
 #include "blackwing_descent.h"
 #include "Vehicle.h"
@@ -524,7 +541,7 @@ public:
             {
                 case ACTION_TRON_ACTIVATE:
                     me->RemoveAurasDueToSpell(SPELL_INACTIVE);
-                    me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE);
+                    me->RemoveUnitFlag(UnitFlags(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE));
                     me->SetReactState(REACT_AGGRESSIVE);
                     DoZoneInCombat(me);
                     if(instance)
@@ -596,7 +613,7 @@ public:
                         me->AttackStop();
                         if(instance)
                         instance->SendEncounterUnit(ENCOUNTER_FRAME_DISENGAGE, me); // Remove
-                        me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE);
+                        me->RemoveUnitFlag(UnitFlags(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE));
                         me->GetMotionMaster()->MovePoint(1, wayPos[0]);
                         activated = true;
                         isMovingHome = false;
@@ -612,7 +629,7 @@ public:
                     if(instance)
                         instance->SendEncounterUnit(ENCOUNTER_FRAME_DISENGAGE, me); // Remove
                     me->GetMotionMaster()->MovePoint(0, homePosition);
-                    me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE);
+                    me->AddUnitFlag(UnitFlags(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE));
                     isMovingHome = true;
                     activated = false;
                     break;
@@ -643,7 +660,7 @@ public:
                 me->SetPower(POWER_ENERGY, 100);
                 if(instance)
                     instance->SendEncounterUnit(ENCOUNTER_FRAME_DISENGAGE, me); // Remove
-                me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE);
+                me->AddUnitFlag(UnitFlags(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE));
                 me->RemoveAura(me->GetMap()->IsHeroic() ? SPELL_ACTIVATED_H : SPELL_ACTIVATED);
                 DoCast(me, SPELL_SHUTTING_DOWN);
                 return;
@@ -829,7 +846,7 @@ public:
             {
             case NPC_POWER_GENERATOR:
                 summon->SetReactState(REACT_PASSIVE);
-                summon->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE);
+                summon->AddUnitFlag(UnitFlags(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE));
                 summon->DespawnOrUnsummon(30000);
                 break;
             }

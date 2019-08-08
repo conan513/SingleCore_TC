@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
  * Copyright (C) 2016 Firestorm Servers <https://firestorm-servers.com>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -443,7 +443,7 @@ class boss_tayak : public CreatureScript
 
                 /*if (me->GetMap()->IsLFR())
                 {
-                    me->SetLootRecipient(NULL);
+                    me->ResetLootRecipients();
                     Player* l_Player = me->GetMap()->GetPlayers().begin()->GetSource();
                     if (l_Player && l_Player->GetGroup())
                         sLFGMgr->AutomaticLootAssignation(me, l_Player->GetGroup());
@@ -762,7 +762,7 @@ class npc_tempest_slash_tornado : public CreatureScript
 
                     // Applying auras and moving
                     me->SetInCombatWithZone();
-                    me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_IMMUNE_TO_NPC | UNIT_FLAG_IMMUNE_TO_PC);
+                    me->AddUnitFlag(UnitFlags(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_IMMUNE_TO_NPC | UNIT_FLAG_IMMUNE_TO_PC));
 
                     me->AddAura(SPELL_TEMP_SLASH_AURA, me);     // Visual aura
 
@@ -847,7 +847,7 @@ class npc_storm_unleashed_tornado : public CreatureScript
                 m_Events.Reset();
                 storm1 = true;
                 me->AddAura(SPELL_SU_DUMMY_VIS, me);    // Visual aura.
-                me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE);
+                me->AddUnitFlag(UnitFlags(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE));
                 me->SetReactState(REACT_PASSIVE);
 
                 me->SetSpeed(MOVE_WALK, 1.1f);

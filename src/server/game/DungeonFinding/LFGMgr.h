@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+ * Copyright (C) 2008-2019 TrinityCore <https://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -29,6 +29,7 @@
 class Group;
 class Player;
 class Quest;
+class Map;
 struct LFGDungeonsEntry;
 struct LfgQueueRoleCount;
 enum Difficulty : uint8;
@@ -124,7 +125,7 @@ enum LfgJoinResult
     LFG_JOIN_OK                                     = 0x00, // Joined (no client msg)
     LFG_JOIN_GROUP_FULL                             = 0x1F, // Your group is already full.
     LFG_JOIN_NO_LFG_OBJECT                          = 0x21, // Internal LFG Error.
-    LFG_JOIN_NO_SLOTS_PLAYER                        = 0x22, // You do not meet the requirements for the chosen dungeons.
+    LFG_JOIN_NO_SLOTS                               = 0x22, // You do not meet the requirements for the chosen dungeons.
     LFG_JOIN_MISMATCHED_SLOTS                       = 0x23, // You cannot mix dungeons, raids, and random when picking dungeons.
     LFG_JOIN_PARTY_PLAYERS_FROM_DIFFERENT_REALMS    = 0x24, // The dungeon you chose does not support players from multiple realms.
     LFG_JOIN_MEMBERS_NOT_PRESENT                    = 0x25, // One or more group members are pending invites or disconnected.
@@ -190,6 +191,7 @@ struct LfgJoinResultData
     LfgJoinResult result;
     LfgRoleCheckState state;
     LfgLockPartyMap lockmap;
+    std::vector<std::string const*> playersMissingRequirement;
 };
 
 // Data needed by SMSG_LFG_UPDATE_STATUS
@@ -338,7 +340,7 @@ class TC_GAME_API LFGMgr
 
         // World.cpp
         /// Finish the dungeon for the given group. All check are performed using internal lfg data
-        void FinishDungeon(ObjectGuid gguid, uint32 dungeonId);
+        void FinishDungeon(ObjectGuid gguid, uint32 dungeonId, Map const* currMap);
         /// Loads rewards for random dungeons
         void LoadRewards();
         /// Loads dungeons from dbc and adds teleport coords
@@ -404,7 +406,7 @@ class TC_GAME_API LFGMgr
 
         // LFGHandler
         /// Get locked dungeons
-        LfgLockMap const GetLockedDungeons(ObjectGuid guid);
+        LfgLockMap GetLockedDungeons(ObjectGuid guid);
         /// Returns current lfg status
         LfgUpdateData GetLfgStatus(ObjectGuid guid);
         /// Checks if Seasonal dungeon is active
@@ -476,7 +478,7 @@ class TC_GAME_API LFGMgr
         void SetState(ObjectGuid guid, LfgState state);
         void SetVoteKick(ObjectGuid gguid, bool active);
         void RemovePlayerData(ObjectGuid guid);
-        void GetCompatibleDungeons(LfgDungeonSet& dungeons, GuidSet const& players, LfgLockPartyMap& lockMap, bool isContinue);
+        void GetCompatibleDungeons(LfgDungeonSet* dungeons, GuidSet const& players, LfgLockPartyMap* lockMap, std::vector<std::string const*>* playersMissingRequirement, bool isContinue);
         void _SaveToDB(ObjectGuid guid, uint32 db_guid);
 
         // Proposals

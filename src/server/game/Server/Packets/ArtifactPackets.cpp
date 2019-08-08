@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+ * Copyright (C) 2008-2019 TrinityCore <https://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -70,10 +70,18 @@ WorldPacket const* WorldPackets::Artifact::ArtifactXpGain::Write()
     return &_worldPacket;
 }
 
-WorldPacket const* WorldPackets::Artifact::ArtifactKnowledge::Write()
+WorldPacket const * WorldPackets::Artifact::AzeriteXpGain::Write()
 {
-    _worldPacket << int32(ArtifactCategoryID);
-    _worldPacket << int8(KnowledgeLevel);
+    _worldPacket << Item;
+    _worldPacket << AzeriteXPGained;
 
     return &_worldPacket;
+}
+
+void WorldPackets::Artifact::AzeriteEmpoweredItemSelectPower::Read()
+{
+    _worldPacket >> Tier;
+    _worldPacket >> PowerID;
+    _worldPacket >> ContainerSlot;
+    _worldPacket >> Slot;
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -33,6 +33,10 @@ class TC_GAME_API SceneObject : public WorldObject, public GridObject<SceneObjec
         void AddToWorld() override;
         void RemoveFromWorld() override;
 
+        void BuildValuesCreate(ByteBuffer* data, Player const* target) const override;
+        void BuildValuesUpdate(ByteBuffer* data, Player const* target) const override;
+        void ClearUpdateMask(bool remove) override;
+
         bool IsNeverVisibleFor(WorldObject const* seer) const override;
 
         void Update(uint32 diff) override;
@@ -46,6 +50,8 @@ class TC_GAME_API SceneObject : public WorldObject, public GridObject<SceneObjec
         ObjectGuid const& GetCreatorGuid() const { return _creatorGuid; }
 
         uint32 GetScriptId() const;
+
+        UF::UpdateField<UF::SceneObjectData, 0, TYPEID_SCENEOBJECT> m_sceneObjectData;
 
     private:
         ObjectGuid _creatorGuid;

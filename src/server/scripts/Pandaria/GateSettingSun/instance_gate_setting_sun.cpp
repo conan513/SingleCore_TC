@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
  * Copyright (C) 2016 Firestorm Servers <https://firestorm-servers.com>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -258,8 +258,16 @@ public:
                     {
                         if (Creature* artillery = instance->GetCreature(itr))
                         {
-                            artillery->ApplyModFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE, state != IN_PROGRESS);
-                            artillery->ApplyModFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_SPELLCLICK, state == IN_PROGRESS);
+                            if (state != IN_PROGRESS)
+                            {
+                                artillery->AddUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
+                                artillery->RemoveNpcFlag(UNIT_NPC_FLAG_SPELLCLICK);
+                            }
+                            else
+                            {
+                                artillery->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
+                                artillery->AddNpcFlag(UNIT_NPC_FLAG_SPELLCLICK);
+                            }
                         }
                     }
                     break;

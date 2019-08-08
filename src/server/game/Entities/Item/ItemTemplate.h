@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+ * Copyright (C) 2008-2019 TrinityCore <https://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -157,7 +157,7 @@ enum ItemFieldFlags : uint32
     ITEM_FIELD_FLAG_CHILD         = 0x00080000,
     ITEM_FIELD_FLAG_UNK15         = 0x00100000,
     ITEM_FIELD_FLAG_NEW_ITEM      = 0x00200000, // Item glows in inventory
-    ITEM_FIELD_FLAG_UNK17         = 0x00400000,
+    ITEM_FLAG_AZERITE_EMPOWERED   = 0x00400000,
     ITEM_FIELD_FLAG_UNK18         = 0x00800000,
     ITEM_FIELD_FLAG_UNK19         = 0x01000000,
     ITEM_FIELD_FLAG_UNK20         = 0x02000000,
@@ -270,6 +270,11 @@ enum ItemFlags3
     ITEM_FLAG3_CAN_STORE_ENCHANTS                           = 0x01000000
 };
 
+enum ItemFlags4
+{
+    ITEM_FLAG4_SCRAPPABLE                                   = 0x00000020
+};
+
 enum ItemFlagsCustom
 {
     ITEM_FLAGS_CU_UNUSED                = 0x0001,
@@ -339,7 +344,7 @@ enum SocketColor
     SOCKET_COLOR_RELIC_HOLY                     = 0x10000
 };
 
-extern uint32 const SocketColorToGemTypeMask[19];
+extern int32 const SocketColorToGemTypeMask[19];
 
 #define SOCKET_COLOR_STANDARD (SOCKET_COLOR_RED | SOCKET_COLOR_YELLOW | SOCKET_COLOR_BLUE)
 
@@ -734,7 +739,6 @@ struct TC_GAME_API ItemTemplate
     uint32 GetMaxCount() const { return ExtendedData->MaxCount; }
     uint32 GetContainerSlots() const { return ExtendedData->ContainerSlots; }
     int32 GetItemStatType(uint32 index) const { ASSERT(index < MAX_ITEM_PROTO_STATS); return ExtendedData->StatModifierBonusStat[index]; }
-    int32 GetItemStatValue(uint32 index) const { ASSERT(index < MAX_ITEM_PROTO_STATS); return ExtendedData->ItemStatValue[index]; }
     int32 GetItemStatAllocation(uint32 index) const { ASSERT(index < MAX_ITEM_PROTO_STATS); return ExtendedData->StatPercentEditor[index]; }
     float GetItemStatSocketCostMultiplier(uint32 index) const { ASSERT(index < MAX_ITEM_PROTO_STATS); return ExtendedData->StatPercentageOfSocket[index]; }
     uint32 GetScalingStatDistribution() const { return ExtendedData->ScalingStatDistributionID; }
@@ -746,8 +750,6 @@ struct TC_GAME_API ItemTemplate
     uint32 GetPageText() const { return ExtendedData->PageID; }
     uint32 GetStartQuest() const { return ExtendedData->StartQuestID; }
     uint32 GetLockID() const { return ExtendedData->LockID; }
-    uint32 GetRandomProperty() const { return ExtendedData->RandomSelect; }
-    uint32 GetRandomSuffix() const { return ExtendedData->ItemRandomSuffixGroupID; }
     uint32 GetItemSet() const { return ExtendedData->ItemSet; }
     uint32 GetArea() const { return ExtendedData->ZoneBound; }
     uint32 GetMap() const { return ExtendedData->InstanceBound; }
@@ -774,6 +776,7 @@ struct TC_GAME_API ItemTemplate
     uint32 MaxMoneyLoot;
     uint32 FlagsCu;
     float SpellPPMRate;
+    uint32 RandomBonusListTemplateId;
     std::bitset<MAX_CLASSES * MAX_SPECIALIZATIONS> Specializations[3];  // one set for 1-40 level range and another for 41-109 and one for 110
     uint32 ItemSpecClassMask;
 

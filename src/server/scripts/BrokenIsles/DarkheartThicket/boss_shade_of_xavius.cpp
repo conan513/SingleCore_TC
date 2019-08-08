@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -368,9 +368,9 @@ public:
             int32 deltaX = urand(0, 150);
             int32 deltaY = urand(0, 150);
 
-            if (Creature* tempSumm = caster->SummonCreature(WORLD_TRIGGER, caster->GetPositionX() + deltaX - 75, caster->GetPositionY() + deltaY - 75, caster->GetPositionZ(), 0, TEMPSUMMON_TIMED_DESPAWN, 2000))
+            if (TempSummon* tempSumm = caster->SummonCreature(WORLD_TRIGGER, caster->GetPositionX() + deltaX - 75, caster->GetPositionY() + deltaY - 75, caster->GetPositionZ(), 0, TEMPSUMMON_TIMED_DESPAWN, 2000))
             {
-                tempSumm->SetGuidValue(UNIT_FIELD_SUMMONEDBY, caster->GetGUID());
+                tempSumm->SetSummonerGUID(caster->GetGUID());
                 PhasingHandler::InheritPhaseShift(tempSumm, caster);
                 tempSumm->SetName(caster->GetName());
                 caster->CastSpell(tempSumm, SPELL_AN_TRIGGERMISSILE, false);

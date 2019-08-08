@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+ * Copyright (C) 2008-2019 TrinityCore <https://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -26,7 +26,7 @@
 #include "ObjectMgr.h"
 #include "Player.h"
 
-InstanceScenario::InstanceScenario(Map const* map, ScenarioData const* scenarioData) : Scenario(scenarioData), _map(map)
+InstanceScenario::InstanceScenario(Map* map, ScenarioData const* scenarioData) : Scenario(scenarioData), _map(map)
 {
     ASSERT(_map);
     LoadInstanceData(_map->GetInstanceId());
@@ -35,6 +35,8 @@ InstanceScenario::InstanceScenario(Map const* map, ScenarioData const* scenarioD
     for (Map::PlayerList::const_iterator itr = players.begin(); itr != players.end(); ++itr)
         if (Player* player = itr->GetSource()->ToPlayer())
             SendScenarioState(player);
+
+    _scenarioType = SCENARIO_INSTANCE_TYPE_INSTANCE_SCENARIO;
 }
 
 void InstanceScenario::SaveToDB()
@@ -53,7 +55,7 @@ void InstanceScenario::SaveToDB()
         return;
     }
 
-    SQLTransaction trans = CharacterDatabase.BeginTransaction();
+    CharacterDatabaseTransaction trans = CharacterDatabase.BeginTransaction();
     for (auto iter = _criteriaProgress.begin(); iter != _criteriaProgress.end(); ++iter)
     {
         if (!iter->second.Changed)
@@ -71,7 +73,7 @@ void InstanceScenario::SaveToDB()
 
         if (iter->second.Counter)
         {
-            PreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_SCENARIO_INSTANCE_CRITERIA);
+            CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_SCENARIO_INSTANCE_CRITERIA);
             stmt->setUInt32(0, id);
             stmt->setUInt32(1, iter->first);
             trans->Append(stmt);
@@ -92,13 +94,13 @@ void InstanceScenario::SaveToDB()
 
 void InstanceScenario::LoadInstanceData(uint32 instanceId)
 {
-    PreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_SCENARIO_INSTANCE_CRITERIA_FOR_INSTANCE);
+    CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_SCENARIO_INSTANCE_CRITERIA_FOR_INSTANCE);
     stmt->setUInt32(0, instanceId);
 
     PreparedQueryResult result = CharacterDatabase.Query(stmt);
     if (result)
     {
-        SQLTransaction trans = CharacterDatabase.BeginTransaction();
+        CharacterDatabaseTransaction trans = CharacterDatabase.BeginTransaction();
         time_t now = time(nullptr);
 
         std::vector<CriteriaTree const*> criteriaTrees;
@@ -150,7 +152,7 @@ void InstanceScenario::LoadInstanceData(uint32 instanceId)
             if (!step)
                 continue;
 
-            if (IsCompletedCriteriaTree(tree))
+            if (CheckCompletedCriteriaTree(tree, nullptr))
                 SetStepState(step, SCENARIO_STEP_DONE);
         }
     }

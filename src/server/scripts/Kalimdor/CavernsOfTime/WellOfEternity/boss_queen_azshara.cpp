@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -147,12 +147,12 @@ public:
             me->ApplySpellImmune(0, IMMUNITY_STATE, SPELL_AURA_MOD_CONFUSE, true);
             me->setActive(true);
 
-            me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_NON_ATTACKABLE);
+            me->AddUnitFlag(UnitFlags(UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_NON_ATTACKABLE));
         }
 
         void InitializeAI() override
         {
-            if (!instance || static_cast<InstanceMap*>(me->GetMap())->GetScriptId() != sObjectMgr->GetScriptId(WoEScriptName))
+            if (!instance || static_cast<InstanceMap*>(me->GetMap())->GetScriptId() != sObjectMgr->GetScriptIdOrAdd(WoEScriptName))
                 me->IsAIEnabled = false;
             else if (!me->isDead())
                 Reset();
@@ -264,7 +264,7 @@ public:
                         if (Creature* pAdd = ObjectAccessor::GetCreature(*me, addsGUIDs[i]))
                         {
                             pAdd->SetReactState(REACT_AGGRESSIVE);
-                            pAdd->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE_TO_PC);
+                            pAdd->RemoveUnitFlag(UNIT_FLAG_IMMUNE_TO_PC);
                             DoZoneInCombat(pAdd);
                             pAdd->AI()->DoAction(ACTION_ATTACK);
                         }

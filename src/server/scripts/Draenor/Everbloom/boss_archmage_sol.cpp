@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
  * Copyright (C) 2016 Firestorm Servers <https://firestorm-servers.com>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -74,7 +74,7 @@ public:
             introDone = false;
 
             DoCast(me, SPELL_BARRIER);
-            me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE_TO_PC);
+            me->AddUnitFlag(UNIT_FLAG_IMMUNE_TO_PC);
         }
 
         void Reset() override
@@ -125,7 +125,7 @@ public:
                 if (me->GetVictim())
                     return;
 
-                me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE_TO_PC);
+                me->RemoveUnitFlag(UNIT_FLAG_IMMUNE_TO_PC);
                 me->RemoveAurasDueToSpell(SPELL_BARRIER);
                 DoCast(me, SPELL_DESPAWN_AREA_TRIGGERS);
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -39,7 +39,7 @@ void PetBattleMgr::HandleWildRequest(Player* player, PetBattleRequest request)
     SendFinalizeLocation(player, request);
 
     // TEMP SOLUTION - NEED REMOVAL
-    if (Creature* npc = player->GetNPCIfCanInteractWith(request.opponentGUID, UNIT_NPC_FLAG_WILD_BATTLE_PET))
+    if (Creature* npc = player->GetNPCIfCanInteractWith(request.opponentGUID, UNIT_NPC_FLAG_WILD_BATTLE_PET, UNIT_NPC_FLAG_2_NONE))
         DoCapture(player, npc->GetWildBattlePet());
 }
 
@@ -57,7 +57,7 @@ PetBattleRequestResult PetBattleMgr::CanPlayerEnterInPetBattle(Player* player, P
 
     if (request.opponentGUID.IsCreature())
     {
-        Creature* creature = player->GetNPCIfCanInteractWith(request.opponentGUID, UNIT_NPC_FLAG_WILD_BATTLE_PET);
+        Creature* creature = player->GetNPCIfCanInteractWith(request.opponentGUID, UNIT_NPC_FLAG_WILD_BATTLE_PET, UNIT_NPC_FLAG_2_NONE);
 
         if (!creature)
             return PET_BATTLE_REQUEST_TARGET_INVALID;

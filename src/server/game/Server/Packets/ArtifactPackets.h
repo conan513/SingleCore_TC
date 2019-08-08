@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+ * Copyright (C) 2008-2019 TrinityCore <https://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -100,15 +100,28 @@ namespace WorldPackets
             uint64 Amount = 0;
         };
 
-        class ArtifactKnowledge final : public ServerPacket
+        class AzeriteXpGain final : public ServerPacket
         {
         public:
-            ArtifactKnowledge() : ServerPacket(SMSG_ARTIFACT_KNOWLEDGE, 1 + 4) { }
+            AzeriteXpGain() : ServerPacket(SMSG_AZERITE_XP_GAIN, 16 + 8) { }
 
             WorldPacket const* Write() override;
 
-            int32 ArtifactCategoryID = 0;
-            int8 KnowledgeLevel = 0;
+            ObjectGuid Item;
+            uint64 AzeriteXPGained = 0;
+        };
+
+        class AzeriteEmpoweredItemSelectPower final : public ClientPacket
+        {
+        public:
+            AzeriteEmpoweredItemSelectPower(WorldPacket&& packet) : ClientPacket(CMSG_AZERITE_EMPOWERED_ITEM_SELECT_POWER, std::move(packet)) { }
+
+            void Read() override;
+
+            int32 Tier = 0;
+            int32 PowerID = 0;
+            uint8 ContainerSlot = 0;
+            uint8 Slot = 0;
         };
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+ * Copyright (C) 2008-2019 TrinityCore <https://www.trinitycore.org/>
  * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -125,9 +125,6 @@ void SummonList::DoActionImpl(int32 action, StorageType const& summons)
 
 ScriptedAI::ScriptedAI(Creature* creature) : CreatureAI(creature),
     IsFleeing(false),
-    summons(creature),
-    damageEvents(creature),
-    instance(creature->GetInstanceScript()),
     _isCombatMovementAllowed(true)
 {
     _isHeroic = me->GetMap()->IsHeroic();
@@ -158,6 +155,16 @@ void ScriptedAI::UpdateAI(uint32 diff)
         return;
 
     events.Update(diff);
+
+    if (me->HasUnitState(UNIT_STATE_CASTING))
+        return;
+
+    while (uint32 eventId = events.ExecuteEvent())
+    {
+        ExecuteEvent(eventId);
+        if (me->HasUnitState(UNIT_STATE_CASTING))
+            return;
+    }
 
     DoMeleeAttackIfReady();
 }
@@ -227,7 +234,7 @@ SpellInfo const* ScriptedAI::SelectSpell(Unit* target, uint32 school, uint32 mec
         return nullptr;
 
     //Silenced so we can't cast
-    if (me->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_SILENCED))
+    if (me->HasUnitFlag(UNIT_FLAG_SILENCED))
         return nullptr;
 
     //Using the extended script system we first create a list of viable spells
@@ -549,26 +556,6 @@ void BossAI::SummonedCreatureDespawn(Creature* summon)
     summons.Despawn(summon);
 }
 
-void BossAI::UpdateAI(uint32 diff)
-{
-    if (!UpdateVictim())
-        return;
-
-    events.Update(diff);
-
-    if (me->HasUnitState(UNIT_STATE_CASTING))
-        return;
-
-    while (uint32 eventId = events.ExecuteEvent())
-    {
-        ExecuteEvent(eventId);
-        if (me->HasUnitState(UNIT_STATE_CASTING))
-            return;
-    }
-
-    DoMeleeAttackIfReady();
-}
-
 bool BossAI::CanAIAttack(Unit const* target) const
 {
     return CheckBoundary(target);
@@ -652,8 +639,7 @@ void StaticBossAI::_InitStaticSpellCast()
 // WorldBossAI - for non-instanced bosses
 
 WorldBossAI::WorldBossAI(Creature* creature) :
-    ScriptedAI(creature),
-    summons(creature) { }
+    ScriptedAI(creature) { }
 
 void WorldBossAI::_Reset()
 {
@@ -689,26 +675,6 @@ void WorldBossAI::JustSummoned(Creature* summon)
 void WorldBossAI::SummonedCreatureDespawn(Creature* summon)
 {
     summons.Despawn(summon);
-}
-
-void WorldBossAI::UpdateAI(uint32 diff)
-{
-    if (!UpdateVictim())
-        return;
-
-    events.Update(diff);
-
-    if (me->HasUnitState(UNIT_STATE_CASTING))
-        return;
-
-    while (uint32 eventId = events.ExecuteEvent())
-    {
-        ExecuteEvent(eventId);
-        if (me->HasUnitState(UNIT_STATE_CASTING))
-            return;
-    }
-
-    DoMeleeAttackIfReady();
 }
 
 void GetPositionWithDistInOrientation(Position* pUnit, float dist, float orientation, float& x, float& y)

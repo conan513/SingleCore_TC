@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+ * Copyright (C) 2008-2019 TrinityCore <https://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -43,6 +43,8 @@ namespace Trinity
             return EXPANSION_MISTS_OF_PANDARIA;
         else if (level < 100)
             return EXPANSION_WARLORDS_OF_DRAENOR;
+        else if (level < 110)
+            return EXPANSION_LEGION;
         else
             return CURRENT_EXPANSION;
     }
@@ -56,11 +58,17 @@ namespace Trinity
             {
                 case EXPANSION_CLASSIC:
                 case EXPANSION_THE_BURNING_CRUSADE:
-                    return 20.0f;
+                    return 40.f;
                 case EXPANSION_WRATH_OF_THE_LICH_KING:
-                    return 25.0f;
+                    return 50.f;
                 case EXPANSION_CATACLYSM:
+                    return 27.f;
+                case EXPANSION_MISTS_OF_PANDARIA:
                     return 13.5f;
+                case EXPANSION_WARLORDS_OF_DRAENOR:
+                    return 7.f;
+                case EXPANSION_LEGION:
+                    return 3.5f;
                 default:
                     break;
             }

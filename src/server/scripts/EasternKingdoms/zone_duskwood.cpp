@@ -299,7 +299,7 @@ struct npc_stalvan : public ScriptedAI
                         tobias->CastSpell(tobias, SPELL_WORGEN_TRANSFORMATION, true);
                         tobias->SetReactState(REACT_AGGRESSIVE);
 
-                        me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_IMMUNE_TO_PC);
+                        me->RemoveUnitFlag(UnitFlags(UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_IMMUNE_TO_PC));
                         me->AddThreat(tobias, 10.f);
                         tobias->AddThreat(me, 10.f);
                         tobias->SetInCombatWith(me);
@@ -409,7 +409,7 @@ class spell_sacred_cleansing : public SpellScript
 
     SpellCastResult CheckRequirement()
     {
-        if (Creature* fel = GetCaster()->FindNearestCreature(NPC_MORBENT_FEL, 15.0f, true))
+        if (GetCaster()->FindNearestCreature(NPC_MORBENT_FEL, 15.0f, true))
             return SPELL_CAST_OK;
 
         return SPELL_FAILED_INCORRECT_AREA;
@@ -481,7 +481,7 @@ class spell_summon_stalvan : public SpellScript
     {
         if (TempSummon* tobias = GetCaster()->SummonCreature(NPC_TOBIAS, tobiasPositions[0]))
         {
-            tobias->RemoveFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_QUESTGIVER | UNIT_NPC_FLAG_GOSSIP);
+            tobias->RemoveNpcFlag(NPCFlags(UNIT_NPC_FLAG_QUESTGIVER | UNIT_NPC_FLAG_GOSSIP));
             tobias->SetWalk(true);
             tobias->SetSpeed(MOVE_WALK, 3.5);
             tobias->GetMotionMaster()->MovePoint(0, tobiasPositions[3], true);
@@ -504,7 +504,7 @@ struct npc_ebenlocke : public ScriptedAI
         QUEST_EMBALMERS_REVENGE    = 26727,
         NPC_STITCHES               = 43862
     };
-    
+
     npc_ebenlocke(Creature* creature) : ScriptedAI(creature) { }
 
     void sQuestAccept(Player* /*player*/, Quest const* quest) override

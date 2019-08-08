@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+ * Copyright (C) 2008-2019 TrinityCore <https://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -25,47 +25,25 @@
 class Unit;
 class SpellInfo;
 
-#pragma pack(push, 1)
-struct ConversationDynamicFieldActor
+#define CONVERSATION_RELOCATE_TICK 1000
+
+namespace UF
 {
-    ConversationDynamicFieldActor() : Type(0), Padding(0)
+    inline bool operator==(ConversationLine const& left, ConversationLine const& right)
     {
-        memset(Raw.Data, 0, sizeof(Raw.Data));
+        return left.ConversationLineID == right.ConversationLineID;
     }
-
-    bool IsEmpty() const
-    {
-        return ActorGuid.IsEmpty(); // this one is good enough
-    }
-
-    enum ActorType
-    {
-        WorldObjectActor = 0,
-        CreatureActor = 1
-    };
-
-    union
-    {
-        ObjectGuid ActorGuid;
-
-        ConversationActorTemplate ActorTemplate;
-
-        struct
-        {
-            uint32 Data[4];
-        } Raw;
-    };
-
-    uint32 Type;
-    uint32 Padding;
-};
-#pragma pack(pop)
+}
 
 class TC_GAME_API Conversation : public WorldObject, public GridObject<Conversation>
 {
     public:
         Conversation();
         ~Conversation();
+
+        void BuildValuesCreate(ByteBuffer* data, Player const* target) const override;
+        void BuildValuesUpdate(ByteBuffer* data, Player const* target) const override;
+        void ClearUpdateMask(bool remove) override;
 
         void AddToWorld() override;
         void RemoveFromWorld() override;
@@ -75,10 +53,11 @@ class TC_GAME_API Conversation : public WorldObject, public GridObject<Conversat
         void Update(uint32 diff) override;
         void Remove();
         int32 GetDuration() const { return _duration; }
+        uint32 GetTextureKitId() const { return _textureKitId; }
 
         static Conversation* CreateConversation(uint32 conversationEntry, Unit* creator, Position const& pos, GuidUnorderedSet&& participants, SpellInfo const* spellInfo = nullptr);
         bool Create(ObjectGuid::LowType lowGuid, uint32 conversationEntry, Map* map, Unit* creator, Position const& pos, GuidUnorderedSet&& participants, SpellInfo const* spellInfo = nullptr);
-        void AddActor(ObjectGuid const& actorGuid, uint16 actorIdx);
+        void AddActor(ObjectGuid const& actorGuid, uint16 actorIdx, uint32 padding = 0);
         void AddParticipant(ObjectGuid const& participantGuid);
 
         ObjectGuid const& GetCreatorGuid() const { return _creatorGuid; }
@@ -91,10 +70,20 @@ class TC_GAME_API Conversation : public WorldObject, public GridObject<Conversat
 
         uint32 GetScriptId() const;
 
+        UF::UpdateField<UF::ConversationData, 0, TYPEID_CONVERSATION> m_conversationData;
+
+        enum class ActorType
+        {
+            WorldObjectActor = 0,
+            CreatureActor = 1
+        };
+
     private:
         Position _stationaryPosition;
         ObjectGuid _creatorGuid;
         uint32 _duration;
+        uint32 _relocateTick;
+        uint32 _textureKitId;
         GuidUnorderedSet _participants;
 };
 

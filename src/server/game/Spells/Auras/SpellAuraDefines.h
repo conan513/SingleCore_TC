@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+ * Copyright (C) 2008-2019 TrinityCore <https://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -195,7 +195,7 @@ enum AuraType : uint32
     SPELL_AURA_MOD_REGEN_DURING_COMBAT                      = 116,
     SPELL_AURA_MOD_MECHANIC_RESISTANCE                      = 117,
     SPELL_AURA_MOD_HEALING_PCT                              = 118,
-    SPELL_AURA_PVP_TALENTS                                  = 119,
+    SPELL_AURA_WAR_MODE                                     = 119,
     SPELL_AURA_UNTRACKABLE                                  = 120,
     SPELL_AURA_EMPATHY                                      = 121,
     SPELL_AURA_MOD_OFFHAND_DAMAGE_PCT                       = 122,
@@ -325,7 +325,7 @@ enum AuraType : uint32
     SPELL_AURA_MOD_AURA_DURATION_BY_DISPEL_NOT_STACK        = 246,
     SPELL_AURA_CLONE_CASTER                                 = 247,
     SPELL_AURA_MOD_COMBAT_RESULT_CHANCE                     = 248,
-    SPELL_AURA_MOD_DAMAGE_PERCENT_DONE_BY_TARGET_AURA_MECHANIC = 249, // NYI
+    SPELL_AURA_MOD_DAMAGE_PERCENT_DONE_BY_TARGET_AURA_MECHANIC = 249,
     SPELL_AURA_MOD_INCREASE_HEALTH_2                        = 250,
     SPELL_AURA_MOD_ENEMY_DODGE                              = 251,
     SPELL_AURA_MOD_SPEED_SLOW_ALL                           = 252,
@@ -420,11 +420,11 @@ enum AuraType : uint32
     SPELL_AURA_MOD_SPELL_CATEGORY_COOLDOWN                  = 341,  // Modifies cooldown of all spells using affected category
     SPELL_AURA_MOD_MELEE_RANGED_HASTE_2                     = 342,
     SPELL_AURA_MOD_MELEE_DAMAGE_FROM_CASTER                 = 343,  // NYI
-    SPELL_AURA_MOD_AUTOATTACK_DAMAGE                        = 344,  // NYI
+    SPELL_AURA_MOD_AUTOATTACK_DAMAGE                        = 344,
     SPELL_AURA_BYPASS_ARMOR_FOR_CASTER                      = 345,
     SPELL_AURA_ENABLE_ALT_POWER                             = 346,
     SPELL_AURA_MOD_SPELL_COOLDOWN_BY_HASTE                  = 347,
-    SPELL_AURA_DEPOSIT_BONUS_MONEY_IN_GUILD_BANK_ON_LOOT    = 348,
+    SPELL_AURA_MOD_MONEY_GAIN                               = 348,  // Modifies gold gains from source: [Misc = 0, Quests][Misc = 1, Loot]
     SPELL_AURA_MOD_CURRENCY_GAIN                            = 349,
     SPELL_AURA_MOD_GATHERING_ITEMS_GAINED_PERCENT           = 350,  // NYI
     SPELL_AURA_351                                          = 351,
@@ -497,8 +497,8 @@ enum AuraType : uint32
     SPELL_AURA_MOD_MAX_POWER                                = 418,
     SPELL_AURA_MOD_BASE_MANA_PCT                            = 419,
     SPELL_AURA_MOD_BATTLE_PET_XP_PCT                        = 420,  // NYI
-    SPELL_AURA_MOD_ABSORB_EFFECTS_AMOUNT_PCT                = 421,  // NYI
-    SPELL_AURA_MOD_ABSORB_EFFECTS_AMOUNT_PCT_2              = 422,  // NYI
+    SPELL_AURA_MOD_ABSORB_EFFECTS_AMOUNT_PCT                = 421,
+    SPELL_AURA_MOD_ABSORB_EFFECTS_AMOUNT_PCT_2              = 422,
     SPELL_AURA_423                                          = 423,  // Not used in 7.3.5
     SPELL_AURA_424                                          = 424,  // Not used in 7.3.5
     SPELL_AURA_425                                          = 425,  // Not used in 7.3.5
@@ -568,7 +568,9 @@ enum AuraType : uint32
     SPELL_AURA_FORGET_LANGUAGE                              = 489,
     SPELL_AURA_SWITCH_TEAM                                  = 490,
     SPELL_AURA_MOD_HONOR_GAIN_PCT_2                         = 491,
-    TOTAL_AURAS                                             = 492
+    SPELL_AURA_492                                          = 492,
+    SPELL_AURA_493                                          = 493, // 1 spell, 267116 - Animal Companion (modifies Call Pet)
+    TOTAL_AURAS
 };
 
 enum AuraObjectType

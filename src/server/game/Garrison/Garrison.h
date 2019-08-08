@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+ * Copyright (C) 2008-2019 TrinityCore <https://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -31,6 +31,7 @@ class GameObject;
 class GarrisonAI;
 class Map;
 class Player;
+class WarCampaign;
 class WodGarrison;
 struct GarrSiteLevelEntry;
 
@@ -59,9 +60,9 @@ public:
     Player* GetOwner() const { return _owner; }
 
     virtual bool LoadFromDB();
-    virtual void SaveToDB(SQLTransaction& trans);
-    void DeleteFromDB(SQLTransaction& trans);
-    static void DeleteFromDB(SQLTransaction& trans, ObjectGuid::LowType guid, GarrisonType garrType);
+    virtual void SaveToDB(CharacterDatabaseTransaction& trans);
+    void DeleteFromDB(CharacterDatabaseTransaction& trans);
+    static void DeleteFromDB(CharacterDatabaseTransaction& trans, ObjectGuid::LowType guid, GarrisonType garrType);
 
     virtual bool Create(uint32 garrSiteId);
     void Update(uint32 const diff);
@@ -117,6 +118,10 @@ public:
     bool IsClassHall() const { return GetType() == GARRISON_TYPE_CLASS_HALL; }
     ClassHall* ToClassHall() { if (IsClassHall()) return reinterpret_cast<ClassHall*>(this); else return nullptr; }
     ClassHall const* ToClassHall() const { if (IsClassHall()) return reinterpret_cast<ClassHall const*>(this); else return nullptr; }
+
+    bool IsWarCampaign() const { return GetType() == GARRISON_TYPE_WAR_CAMPAIGN; }
+    WarCampaign* ToWarCampaign() { if (IsWarCampaign()) return reinterpret_cast<WarCampaign*>(this); else return nullptr; }
+    WarCampaign const* ToWarCampaign() const { if (IsWarCampaign()) return reinterpret_cast<WarCampaign const*>(this); else return nullptr; }
 
 protected:
     GarrisonType _garrisonType;

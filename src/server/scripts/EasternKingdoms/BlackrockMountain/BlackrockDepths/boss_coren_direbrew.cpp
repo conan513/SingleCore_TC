@@ -142,7 +142,7 @@ public:
         void Reset() override
         {
             _Reset();
-            me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE_TO_PC);
+            me->AddUnitFlag(UNIT_FLAG_IMMUNE_TO_PC);
             me->setFaction(COREN_DIREBREW_FACTION_FRIEND);
             events.SetPhase(PHASE_ALL);
 
@@ -165,7 +165,7 @@ public:
             if (action == ACTION_START_FIGHT)
             {
                 events.SetPhase(PHASE_ONE);
-                me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE_TO_PC);
+                me->RemoveUnitFlag(UNIT_FLAG_IMMUNE_TO_PC);
                 me->setFaction(COREN_DIREBREW_FACTION_HOSTILE);
                 me->SetInCombatWithZone();
 
@@ -208,7 +208,7 @@ public:
             {
                 if (Group* group = players.begin()->GetSource()->GetGroup())
                     if (group->isLFGGroup())
-                        sLFGMgr->FinishDungeon(group->GetGUID(), 287);
+                        sLFGMgr->FinishDungeon(group->GetGUID(), 287, me->GetMap());
             }
         }
 
@@ -398,7 +398,7 @@ public:
                     Talk(SAY_ANTAGONIST_2);
                     break;
                 case ACTION_ANTAGONIST_HOSTILE:
-                    me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE_TO_PC);
+                    me->RemoveUnitFlag(UNIT_FLAG_IMMUNE_TO_PC);
                     me->setFaction(COREN_DIREBREW_FACTION_HOSTILE);
                     me->SetInCombatWithZone();
                     break;

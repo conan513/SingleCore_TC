@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2017-2018 AshamaneProject <https://github.com/AshamaneProject>
+* Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
 * Copyright (C) 2011-2013 Project Trinity <http://www.projectTrinity.org/>
 * Copyright (C) 2008-2013 Trinity <http://www.trinitycore.org/>
 * Copyright (C) 2005-2013 MaNGOS <http://www.getmangos.com/>
@@ -212,7 +212,7 @@ public:
                                     {
                                         thug->SetReactState(REACT_AGGRESSIVE);
                                         thug->setFaction(14);
-                                        thug->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PVP_ATTACKABLE);
+                                        thug->AddUnitFlag(UNIT_FLAG_PVP_ATTACKABLE);
                                     }
                                 }
 
@@ -1117,7 +1117,7 @@ public:
                     if (Creature* Shadowy3 = me->SummonCreature(42662, -11138.659f, 545.20f, 70.30f, 0.19f, TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 90000))
                     {
                         Shadowy3GUID = Shadowy3->GetGUID();
-                        Shadowy3->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
+                        Shadowy3->AddUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
                         Shadowy3->SetWalk(true);
                         Shadowy3->GetMotionMaster()->MovePoint(0, -11131.710f, 546.810f, 70.380f);
                         bSumm1 = true;
@@ -1129,7 +1129,7 @@ public:
                     if (Creature* Glubtok3 = me->SummonCreature(42492,-11128.11f, 547.52f, 70.41f, 3.32f, TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 90000))
                     {
                         Glubtok3GUID = Glubtok3->GetGUID();
-                        Glubtok3->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
+                        Glubtok3->AddUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
                         bSumm2 = true;
                     }
                 }
@@ -2025,8 +2025,7 @@ class npc_hungry_hobo : public CreatureScript
                     {
                         case 0:
                         {
-                            me->RemoveStandFlags(UNIT_STAND_STATE_SLEEP);
-                            me->SetStandFlags(UNIT_STAND_STATE_STAND);
+                            me->SetStandState(UNIT_STAND_STATE_STAND);
                             Miam = 1000;
                             count++;
                             break;

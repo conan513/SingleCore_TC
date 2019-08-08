@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -116,7 +116,7 @@ struct boss_ymiron_maw : public BossAI
     void JustReachedHome() override
     {
         BossAI::JustReachedHome();
-        me->SetUInt32Value(UNIT_NPC_EMOTESTATE, 16);
+        me->SetEmoteState(EMOTE_ONESHOT_KNEEL);
     }
 
     void KilledUnit(Unit* victim) override

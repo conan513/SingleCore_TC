@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+ * Copyright (C) 2008-2019 TrinityCore <https://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -23,6 +23,7 @@
 #include "LFGPacketsCommon.h"
 #include "ObjectGuid.h"
 #include "Optional.h"
+#include "PacketUtilities.h"
 #include "Position.h"
 #include <array>
 
@@ -33,12 +34,14 @@ namespace WorldPackets
         class PVPSeason final : public ServerPacket
         {
         public:
-            PVPSeason() : ServerPacket(SMSG_PVP_SEASON, 8) { }
+            PVPSeason() : ServerPacket(SMSG_PVP_SEASON, 4 + 4 + 4 + 4) { }
 
             WorldPacket const* Write() override;
 
-            uint32 PreviousSeason = 0;
-            uint32 CurrentSeason = 0;
+            int32 MythicPlusSeasonID = 0;
+            int32 PreviousSeason = 0;
+            int32 CurrentSeason = 0;
+            int32 PvpSeasonID = 0;
         };
 
         class AreaSpiritHealerQuery final : public ClientPacket
@@ -109,7 +112,7 @@ namespace WorldPackets
                 uint32 ContributionPoints = 0;
             };
 
-            struct PlayerData
+            struct PVPMatchPlayerStatistics
             {
                 ObjectGuid PlayerGUID;
                 uint32 Kills = 0;
@@ -124,15 +127,16 @@ namespace WorldPackets
                 Optional<int32> MmrChange;
                 std::vector<int32> Stats;
                 int32 PrimaryTalentTree = 0;
-                int32 PrimaryTalentTreeNameIndex = 0;  // controls which name field from ChrSpecialization.dbc will be sent to lua
+                int32 Sex = 0;
                 int32 Race = 0;
-                uint32 Prestige = 0;
+                int32 Class = 0;
+                int32 CreatureID = 0;
+                int32 HonorLevel = 0;
             };
 
-            Optional<uint8> Winner;
-            std::vector<PlayerData> Players;
+            std::vector<PVPMatchPlayerStatistics> Statistics;
             Optional<RatingData> Ratings;
-            int8 PlayerCount[2] = { };
+            std::array<int8, 2> PlayerCount = { };
         };
 
         struct BattlefieldStatusHeader
@@ -220,9 +224,8 @@ namespace WorldPackets
 
             void Read() override;
 
-            bool JoinAsGroup = false;
+            Array<uint64, 1> QueueIDs;
             uint8 Roles = 0;
-            uint64 QueueID = 0;
             int32 BlacklistMap[2] = { };
         };
 

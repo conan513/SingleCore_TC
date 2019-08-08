@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+ * Copyright (C) 2008-2019 TrinityCore <https://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -81,7 +81,7 @@ class TC_GAME_API LootStore
 
         bool HaveLootFor(uint32 loot_id) const { return m_LootTemplates.find(loot_id) != m_LootTemplates.end(); }
         bool HaveQuestLootFor(uint32 loot_id) const;
-        bool HaveQuestLootForPlayer(uint32 loot_id, Player* player) const;
+        bool HaveQuestLootForPlayer(uint32 loot_id, Player const* player) const;
 
         LootTemplate const* GetLootFor(uint32 loot_id) const;
         void ResetConditions();
@@ -146,6 +146,7 @@ TC_GAME_API extern LootStore LootTemplates_Mail;
 TC_GAME_API extern LootStore LootTemplates_Milling;
 TC_GAME_API extern LootStore LootTemplates_Pickpocketing;
 TC_GAME_API extern LootStore LootTemplates_Reference;
+TC_GAME_API extern LootStore LootTemplates_Scrapping;
 TC_GAME_API extern LootStore LootTemplates_Skinning;
 TC_GAME_API extern LootStore LootTemplates_Disenchant;
 TC_GAME_API extern LootStore LootTemplates_Prospecting;
@@ -158,6 +159,7 @@ TC_GAME_API void LoadLootTemplates_Item();
 TC_GAME_API void LoadLootTemplates_Mail();
 TC_GAME_API void LoadLootTemplates_Milling();
 TC_GAME_API void LoadLootTemplates_Pickpocketing();
+TC_GAME_API void LoadLootTemplates_Scrapping();
 TC_GAME_API void LoadLootTemplates_Skinning();
 TC_GAME_API void LoadLootTemplates_Disenchant();
 TC_GAME_API void LoadLootTemplates_Prospecting();

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+ * Copyright (C) 2008-2019 TrinityCore <https://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -537,7 +537,7 @@ public:
 
         Player* player = handler->GetSession()->GetPlayer();
 
-        PreparedStatement* stmt = WorldDatabase.GetPreparedStatement(WORLD_SEL_GAMEOBJECT_NEAREST);
+        WorldDatabasePreparedStatement* stmt = WorldDatabase.GetPreparedStatement(WORLD_SEL_GAMEOBJECT_NEAREST);
         stmt->setFloat(0, player->GetPositionX());
         stmt->setFloat(1, player->GetPositionY());
         stmt->setFloat(2, player->GetPositionZ());
@@ -669,16 +669,31 @@ public:
 
         int32 objectState = atoi(state);
 
-        if (objectType < 4)
-            object->SetByteValue(GAMEOBJECT_BYTES_1, uint8(objectType), uint8(objectState));
-        else if (objectType == 4)
-            object->SendCustomAnim(objectState);
-        else if (objectType == 5)
+        switch (objectType)
         {
-            if (objectState < 0 || objectState > GO_DESTRUCTIBLE_REBUILDING)
-                return false;
+            case 0:
+                object->SetGoState(GOState(objectState));
+                break;
+            case 1:
+                object->SetGoType(GameobjectTypes(objectState));
+                break;
+            case 2:
+                object->SetGoArtKit(objectState);
+                break;
+            case 3:
+                object->SetGoAnimProgress(objectState);
+                break;
+            case 4:
+                object->SendCustomAnim(objectState);
+                break;
+            case 5:
+                if (objectState < 0 || objectState > GO_DESTRUCTIBLE_REBUILDING)
+                    return false;
 
-            object->SetDestructibleState(GameObjectDestructibleState(objectState));
+                object->SetDestructibleState(GameObjectDestructibleState(objectState));
+                break;
+            default:
+                break;
         }
 
         handler->PSendSysMessage("Set gobject type %d state %d", objectType, objectState);

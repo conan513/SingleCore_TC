@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+ * Copyright (C) 2008-2019 TrinityCore <https://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -27,18 +27,20 @@ typedef std::unordered_map<uint8, CriteriaProgressMap> StepCriteriaProgressMap;
 class TC_GAME_API InstanceScenario : public Scenario
 {
     public:
-        InstanceScenario(Map const* map, ScenarioData const* scenarioData);
+        InstanceScenario(Map* map, ScenarioData const* scenarioData);
 
         void SaveToDB();
         void LoadInstanceData(uint32 instanceId);
 
         void CompleteScenario() override;
 
+        Map* GetMap() const { return _map; }
+
     protected:
         std::string GetOwnerInfo() const override;
         void SendPacket(WorldPacket const* data) const override;
 
-        Map const* _map;
+        Map* _map;
         ScenarioData const* _data;
         StepCriteriaProgressMap _stepCriteriaProgress;
 };

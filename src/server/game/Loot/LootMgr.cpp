@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+ * Copyright (C) 2008-2019 TrinityCore <https://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -52,6 +52,7 @@ LootStore LootTemplates_Milling("milling_loot_template",             "item entry
 LootStore LootTemplates_Pickpocketing("pickpocketing_loot_template", "creature pickpocket lootid",      true);
 LootStore LootTemplates_Prospecting("prospecting_loot_template",     "item entry (ore)",                true);
 LootStore LootTemplates_Reference("reference_loot_template",         "reference id",                    false);
+LootStore LootTemplates_Scrapping("scrapping_loot_template",         "scrapping id",                    true);
 LootStore LootTemplates_Skinning("skinning_loot_template",           "creature skinning id",            true);
 LootStore LootTemplates_Spell("spell_loot_template",                 "spell id (random item creating)", false);
 
@@ -65,11 +66,11 @@ struct LootGroupInvalidSelector : public std::unary_function<LootStoreItem*, boo
         if (!(item->lootmode & _lootMode))
             return true;
 
-        uint8 foundDuplicates = 0;
+        /*uint8 foundDuplicates = 0;
         for (std::vector<LootItem>::const_iterator itr = _loot.items.begin(); itr != _loot.items.end(); ++itr)
             if (itr->itemid == item->itemid)
                 if (++foundDuplicates == _loot.maxDuplicates)
-                    return true;
+                    return true;*/
 
         return false;
     }
@@ -207,7 +208,7 @@ bool LootStore::HaveQuestLootFor(uint32 loot_id) const
     return itr->second->HasQuestDrop(m_LootTemplates);
 }
 
-bool LootStore::HaveQuestLootForPlayer(uint32 loot_id, Player* player) const
+bool LootStore::HaveQuestLootForPlayer(uint32 loot_id, Player const* player) const
 {
     LootTemplateMap::const_iterator tab = m_LootTemplates.find(loot_id);
     if (tab != m_LootTemplates.end())
@@ -826,6 +827,9 @@ void LoadLootTemplates_Creature()
     for (LootIdSet::const_iterator itr = lootIdSetUsed.begin(); itr != lootIdSetUsed.end(); ++itr)
         lootIdSet.erase(*itr);
 
+    // 1 means loot for player corpse
+    lootIdSet.erase(PLAYER_CORPSE_LOOT_ENTRY);
+
     // output error for any still listed (not referenced from appropriate table) ids
     LootTemplates_Creature.ReportUnusedIds(lootIdSet);
 
@@ -1066,6 +1070,36 @@ void LoadLootTemplates_Mail()
         TC_LOG_ERROR("server.loading", ">> Loaded 0 mail loot templates. DB table `mail_loot_template` is empty");
 }
 
+void LoadLootTemplates_Scrapping()
+{
+    TC_LOG_INFO("server.loading", "Loading scrapping loot templates...");
+
+    uint32 oldMSTime = getMSTime();
+
+    LootIdSet lootIdSet, lootIdSetUsed;
+    uint32 count = LootTemplates_Scrapping.LoadAndCollectLootIds(lootIdSet);
+
+    for (auto const& itemScrappingLoot : *sObjectMgr->GetItemScrappingLootStore())
+    {
+        uint32 lootid = itemScrappingLoot.Id;
+        if (lootIdSet.find(lootid) == lootIdSet.end())
+            LootTemplates_Scrapping.ReportNonExistingId(lootid);
+        else
+            lootIdSetUsed.insert(lootid);
+    }
+
+    for (LootIdSet::const_iterator itr = lootIdSetUsed.begin(); itr != lootIdSetUsed.end(); ++itr)
+        lootIdSet.erase(*itr);
+
+    // output error for any still listed (not referenced from appropriate table) ids
+    LootTemplates_Scrapping.ReportUnusedIds(lootIdSet);
+
+    if (count)
+        TC_LOG_INFO("server.loading", ">> Loaded %u scrapping loot templates in %u ms", count, GetMSTimeDiffToNow(oldMSTime));
+    else
+        TC_LOG_ERROR("server.loading", ">> Loaded 0 scrapping loot templates. DB table `disenchant_loot_template` is empty");
+}
+
 void LoadLootTemplates_Skinning()
 {
     TC_LOG_INFO("server.loading", "Loading skinning loot templates...");
@@ -1157,6 +1191,7 @@ void LoadLootTemplates_Reference()
     LootTemplates_Item.CheckLootRefs(&lootIdSet);
     LootTemplates_Milling.CheckLootRefs(&lootIdSet);
     LootTemplates_Pickpocketing.CheckLootRefs(&lootIdSet);
+    LootTemplates_Scrapping.CheckLootRefs(&lootIdSet);
     LootTemplates_Skinning.CheckLootRefs(&lootIdSet);
     LootTemplates_Disenchant.CheckLootRefs(&lootIdSet);
     LootTemplates_Prospecting.CheckLootRefs(&lootIdSet);
@@ -1178,6 +1213,7 @@ void LoadLootTables()
     LoadLootTemplates_Mail();
     LoadLootTemplates_Milling();
     LoadLootTemplates_Pickpocketing();
+    LoadLootTemplates_Scrapping();
     LoadLootTemplates_Skinning();
     LoadLootTemplates_Disenchant();
     LoadLootTemplates_Prospecting();

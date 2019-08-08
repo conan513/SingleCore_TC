@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2017-2018 AshamaneProject <https://github.com/AshamaneProject>
- * Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2008-2019 TrinityCore <https://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -118,6 +118,7 @@ enum WarriorSpells
     SPELL_WARRIOR_RENEWED_FURY                      = 202288,
     SPELL_WARRIOR_RENEWED_FURY_EFFECT               = 202289,
     SPELL_WARRIOR_RETALIATION_DAMAGE                = 22858,
+    SPELL_WARRIOR_SEASONED_SOLDIER                  = 279423,
     SPELL_WARRIOR_SECOND_WIND_DAMAGED               = 202149,
     SPELL_WARRIOR_SECOND_WIND_HEAL                  = 202147,
     SPELL_WARRIOR_SHIELD_BLOCKC_TRIGGERED           = 132404,
@@ -1315,7 +1316,7 @@ public:
             if (Player* _player = GetCaster()->ToPlayer())
                 if (Unit* target = GetHitUnit())
                 {
-                    _player->CastCustomSpell(SPELL_WARRIOR_COLOSSUS_SMASH_BUFF, SPELLVALUE_BASE_POINT0, 15.0f + _player->GetFloatValue(PLAYER_MASTERY), target, true);
+                    _player->CastCustomSpell(SPELL_WARRIOR_COLOSSUS_SMASH_BUFF, SPELLVALUE_BASE_POINT0, 15.0f + _player->m_activePlayerData->Mastery, target, true);
                 }
         }
 
@@ -1993,7 +1994,11 @@ public:
 
         void HandleOnHit(SpellEffIndex effIndex)
         {
-            uint32 _spec = GetCaster()->GetUInt32Value(PLAYER_FIELD_CURRENT_SPEC_ID);
+            Player* caster = GetCaster()->ToPlayer();
+            if (!caster)
+                return;
+
+            uint32 _spec = caster->GetSpecializationId();
             if (_spec != TALENT_SPEC_WARRIOR_FURY) //only fury warriors should deal damage with offhand
             {
                 PreventHitDamage();
@@ -2067,8 +2072,8 @@ class aura_warr_ignore_pain : public AuraScript
             if (m_newRage < 0)
                 m_newRage = 0;
             caster->SetPower(POWER_RAGE, m_newRage);
-            if (Player* player = caster->ToPlayer())
-                player->SendPowerUpdate(POWER_RAGE, m_newRage);
+            /*if (Player* player = caster->ToPlayer())
+                player->SendPowerUpdate(POWER_RAGE, m_newRage);*/
         }
     }
 
@@ -2820,47 +2825,53 @@ private:
     bool _alreadyProc = false;
 };
 
-// 163201 - Execute
-// 217955 - Execute (PvP Talent)
+// 163201  - Execute
+// 217955  - Execute
+// 281000  - Execute
 class spell_warr_execute : public SpellScript
 {
     PrepareSpellScript(spell_warr_execute);
 
-    int32 m_maxExtraRageTaken = 0;
-    int32 m_ExtraSpellCost = 0;
-    int32 m_powerTaken = 0;
-
-    bool Load() override
-    {
-        m_maxExtraRageTaken = (GetEffectInfo(EFFECT_4)->BasePoints - GetEffectInfo(EFFECT_3)->BasePoints) * 10;
-        m_ExtraSpellCost = std::max(std::min(GetCaster()->GetPower(POWER_RAGE), m_maxExtraRageTaken), 0);
-        return true;
-    }
+    float m_powerTaken = 0.f;
 
     void HandleTakePower(SpellPowerCost& powerCost)
     {
-        powerCost.Amount += m_ExtraSpellCost;
         m_powerTaken = powerCost.Amount;
-    }
-
-    void HandleDamage(SpellEffIndex /*effIndex*/)
-    {
-        int32 dmg = CalculatePct(GetHitDamage(), 100.f + (float(m_ExtraSpellCost) / float(m_maxExtraRageTaken) * 300.f));
-        SetHitDamage(dmg);
+        uint32 requiredAmount = powerCost.Amount - powerCost.OptionalAmount;
+        float dmgMultiplier = powerCost.Amount / (requiredAmount ? requiredAmount : 1);
+        GetCaster()->Variables.Set("spell_warr_execute_damages::multiplier", dmgMultiplier);
     }
 
     void HandleAfterHit()
     {
         if (Unit* target = GetHitUnit())
             if (target->IsAlive())
-                GetCaster()->ModifyPower(POWER_RAGE, CalculatePct(m_powerTaken, GetEffectInfo(EFFECT_4)->BasePoints));
+                GetCaster()->ModifyPower(POWER_RAGE, CalculatePct(m_powerTaken, GetEffectInfo(EFFECT_1)->BasePoints));
+
+        GetCaster()->Variables.Remove("spell_warr_execute_damages::multiplier");
     }
 
     void Register() override
     {
         OnTakePower += SpellOnTakePowerFn(spell_warr_execute::HandleTakePower);
-        OnEffectHitTarget += SpellEffectFn(spell_warr_execute::HandleDamage, EFFECT_1, SPELL_EFFECT_WEAPON_PERCENT_DAMAGE);
         AfterHit += SpellHitFn(spell_warr_execute::HandleAfterHit);
+    }
+};
+
+// 260798  - Executes damages
+class spell_warr_execute_damages : public SpellScript
+{
+    PrepareSpellScript(spell_warr_execute_damages);
+
+    void HandleDamage(SpellEffIndex /*effIndex*/)
+    {
+        float damageMultiplier = GetCaster()->Variables.GetValue<float>("spell_warr_execute_damages::multiplier", 1.f);
+        SetHitDamage(GetHitDamage() * damageMultiplier);
+    }
+
+    void Register() override
+    {
+        OnEffectHitTarget += SpellEffectFn(spell_warr_execute_damages::HandleDamage, EFFECT_0, SPELL_EFFECT_SCHOOL_DAMAGE);
     }
 };
 
@@ -2905,9 +2916,9 @@ struct npc_warr_ravager : public ScriptedAI
         me->CastSpell(me, SPELL_RAVAGER_VISUAL, true);
         me->SetReactState(ReactStates::REACT_PASSIVE);
         me->AddUnitState(UnitState::UNIT_STATE_ROOT);
-        me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE |
+        me->AddUnitFlag(UnitFlags(UNIT_FLAG_NOT_SELECTABLE |
                                         UNIT_FLAG_UNK_15 |
-                                        UNIT_FLAG_PVP_ATTACKABLE);
+                                        UNIT_FLAG_PVP_ATTACKABLE));
 
         if (summoner == nullptr || !summoner->IsPlayer())
             return;
@@ -3003,6 +3014,7 @@ void AddSC_warrior_spell_scripts()
     RegisterSpellAndAuraScriptPair(spell_warr_ravager, aura_warr_ravager);
     RegisterSpellScript(spell_warr_ravager_damage);
     RegisterSpellScript(spell_warr_execute);
+    RegisterSpellScript(spell_warr_execute_damages);
     RegisterAuraScript(aura_warr_war_machine);
 
     RegisterCreatureAI(npc_warr_ravager);

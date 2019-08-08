@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -188,7 +188,7 @@ public:
 
         void InitializeAI() override
         {
-            if (!instance || static_cast<InstanceMap*>(me->GetMap())->GetScriptId() != sObjectMgr->GetScriptId(WoEScriptName))
+            if (!instance || static_cast<InstanceMap*>(me->GetMap())->GetScriptId() != sObjectMgr->GetScriptIdOrAdd(WoEScriptName))
                 me->IsAIEnabled = false;
             else if (!me->isDead())
                 Reset();
@@ -551,7 +551,7 @@ public:
         {
             events.Reset();
             if (!me->FindNearestCreature(NPC_ILLIDAN_2, 100.0f))
-                me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE_TO_PC);
+                me->AddUnitFlag(UNIT_FLAG_IMMUNE_TO_PC);
         }
 
         void EnterCombat(Unit* /*attacker*/) override

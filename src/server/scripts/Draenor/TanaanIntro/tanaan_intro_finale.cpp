@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -292,9 +292,9 @@ public:
         {
             m_Summoned = true;
             m_PlayerGuid = summoner->GetGUID();
-            me->RemoveFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_GOSSIP);
-            me->RemoveFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_VENDOR);
-            me->RemoveFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_QUESTGIVER);
+            me->RemoveNpcFlag(UNIT_NPC_FLAG_GOSSIP);
+            me->RemoveNpcFlag(UNIT_NPC_FLAG_VENDOR);
+            me->RemoveNpcFlag(UNIT_NPC_FLAG_QUESTGIVER);
 
             /// TALK
             Talk(0);
@@ -611,7 +611,7 @@ public:
             //go->SetCancelAnim(true);
 
             if (go->GetPositionX() > 4060.0f || go->GetPositionY() > -2020.0f)
-                go->SetFlag(GAMEOBJECT_FLAGS, GO_FLAG_NOT_SELECTABLE);
+                go->AddFlag(GO_FLAG_NOT_SELECTABLE);
         }
     };
 

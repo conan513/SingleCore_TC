@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+ * Copyright (C) 2008-2019 TrinityCore <https://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -67,12 +67,6 @@ WorldPackets::Character::EnumCharactersResult::CharacterInfo::CharacterInfo(Fiel
     if (atLoginFlags & AT_LOGIN_RESURRECT)
         playerFlags &= ~PLAYER_FLAGS_GHOST;
 
-    if (playerFlags & PLAYER_FLAGS_HIDE_HELM)
-        Flags |= CHARACTER_FLAG_HIDE_HELM;
-
-    if (playerFlags & PLAYER_FLAGS_HIDE_CLOAK)
-        Flags |= CHARACTER_FLAG_HIDE_CLOAK;
-
     if (playerFlags & PLAYER_FLAGS_GHOST)
         Flags |= CHARACTER_FLAG_GHOST;
 
@@ -117,7 +111,7 @@ WorldPackets::Character::EnumCharactersResult::CharacterInfo::CharacterInfo(Fiel
     if (ChrSpecializationEntry const* spec = sDB2Manager.GetChrSpecializationByIndex(Class, fields[29].GetUInt8()))
         SpecID = spec->ID;
 
-    LastLoginBuild = fields[30].GetUInt32();
+    LastLoginVersion = fields[30].GetUInt32();
 
     for (uint8 slot = 0; slot < INVENTORY_SLOT_BAG_END; ++slot)
     {
@@ -140,6 +134,7 @@ ByteBuffer& operator<<(ByteBuffer& data, WorldPackets::Character::EnumCharacters
 ByteBuffer& operator<<(ByteBuffer& data, WorldPackets::Character::EnumCharactersResult::CharacterInfo const& charInfo)
 {
     data << charInfo.Guid;
+    data << uint64(charInfo.GuildClubMemberID);
     data << uint8(charInfo.ListPosition);
     data << uint8(charInfo.Race);
     data << uint8(charInfo.Class);
@@ -171,7 +166,7 @@ ByteBuffer& operator<<(ByteBuffer& data, WorldPackets::Character::EnumCharacters
     data << uint32(charInfo.LastPlayedTime);
     data << uint16(charInfo.SpecID);
     data << uint32(charInfo.Unknown703);
-    data << uint32(charInfo.LastLoginBuild);
+    data << uint32(charInfo.LastLoginVersion);
     data << uint32(charInfo.Flags4);
     data.WriteBits(charInfo.Name.length(), 6);
     data.WriteBit(charInfo.FirstLogin);
@@ -195,23 +190,35 @@ ByteBuffer& operator<<(ByteBuffer& data, WorldPackets::Character::EnumCharacters
     return data;
 }
 
+ByteBuffer& operator<<(ByteBuffer& data, WorldPackets::Character::EnumCharactersResult::UnlockedConditionalAppearance const& unlockedConditionalAppearance)
+{
+    data << int32(unlockedConditionalAppearance.AchievementID);
+    data << int32(unlockedConditionalAppearance.Unused);
+
+    return data;
+}
+
 WorldPacket const* WorldPackets::Character::EnumCharactersResult::Write()
 {
     _worldPacket.reserve(9 + Characters.size() * sizeof(CharacterInfo) + RaceUnlockData.size() * sizeof(RaceUnlock));
 
     _worldPacket.WriteBit(Success);
     _worldPacket.WriteBit(IsDeletedCharacters);
-    _worldPacket.WriteBit(IsDemonHunterCreationAllowed);
+    _worldPacket.WriteBit(IsTestDemonHunterCreationAllowed);
     _worldPacket.WriteBit(HasDemonHunterOnRealm);
-    _worldPacket.WriteBit(Unknown7x);
+    _worldPacket.WriteBit(IsDemonHunterCreationAllowed);
     _worldPacket.WriteBit(DisabledClassesMask.is_initialized());
     _worldPacket.WriteBit(IsAlliedRacesCreationAllowed);
     _worldPacket << uint32(Characters.size());
     _worldPacket << int32(MaxCharacterLevel);
     _worldPacket << uint32(RaceUnlockData.size());
+    _worldPacket << uint32(UnlockedConditionalAppearances.size());
 
     if (DisabledClassesMask)
         _worldPacket << uint32(*DisabledClassesMask);
+
+    for (UnlockedConditionalAppearance const& unlockedConditionalAppearance : UnlockedConditionalAppearances)
+        _worldPacket << unlockedConditionalAppearance;
 
     for (CharacterInfo const& charInfo : Characters)
         _worldPacket << charInfo;
@@ -227,6 +234,7 @@ void WorldPackets::Character::CreateCharacter::Read()
     CreateInfo.reset(new CharacterCreateInfo());
     uint32 nameLength = _worldPacket.ReadBits(6);
     bool const hasTemplateSet = _worldPacket.ReadBit();
+    CreateInfo->IsTrialBoost = _worldPacket.ReadBit();
 
     _worldPacket >> CreateInfo->Race;
     _worldPacket >> CreateInfo->Class;
@@ -246,6 +254,7 @@ void WorldPackets::Character::CreateCharacter::Read()
 WorldPacket const* WorldPackets::Character::CreateChar::Write()
 {
     _worldPacket << uint8(Code);
+    _worldPacket << Guid;
     return &_worldPacket;
 }
 

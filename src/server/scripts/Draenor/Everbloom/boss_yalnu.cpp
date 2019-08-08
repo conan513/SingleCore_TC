@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
  * Copyright (C) 2016 Firestorm Servers <https://firestorm-servers.com>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -93,7 +93,7 @@ public:
             if (who->IsPlayer() && me->IsWithinDistInMap(who, 50.0f) && !introDone)
             {
                 introDone = true;
-                me->PlayOneShotAnimKitId(ANIMKIT_PRE);
+                me->SetAIAnimKitId(ANIMKIT_PRE, true);
                 me->SetWalk(false);
                 me->GetMotionMaster()->MovePoint(0, 623.6406f, 1733.708f, 143.6253f);
             }
@@ -267,9 +267,9 @@ public:
                 introDone = 2;
                 me->SetWalk(true);
 
-                me->PlayOneShotAnimKitId(ANIMKIT);
-                me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE_TO_PC);
-                me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE_TO_NPC);
+                me->SetAIAnimKitId(ANIMKIT, true);
+                me->RemoveUnitFlag(UNIT_FLAG_IMMUNE_TO_PC);
+                me->RemoveUnitFlag(UNIT_FLAG_IMMUNE_TO_NPC);
 
                 std::list<Creature*> listMage;
                 GetCreatureListWithEntryInGrid(listMage, me, NPC_MAGE, 500.0f);
@@ -542,8 +542,8 @@ public:
                     me->RemoveAurasDueToSpell(SPELL_SUBMERGED);
                     me->RemoveAurasDueToSpell(SPELL_GENESIS_LASHER);
 
-                    me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE_TO_PC);
-                    me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE_TO_NPC);
+                    me->RemoveUnitFlag(UNIT_FLAG_IMMUNE_TO_PC);
+                    me->RemoveUnitFlag(UNIT_FLAG_IMMUNE_TO_NPC);
                 }
                 else
                     sproutsTimer -= diff;
@@ -774,7 +774,7 @@ public:
             if (!attack)
             {
                 attack = true;
-                me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
+                me->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
                 DoCast(me, SPELL_ENTANGLEMENT_PLAYER_DAMAGE);
             }
 
@@ -816,7 +816,7 @@ public:
             if (!attack)
             {
                 attack = true;
-                me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
+                me->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
                 DoCast(me, SPELL_ENTANGLEMENT_PLAYER_DAMAGE);
             }
 

@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2017-2018 AshamaneProject <https://github.com/AshamaneProject>
+* Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
 *
 * This program is free software; you can redistribute it and/or modify it
 * under the terms of the GNU General Public License as published by the
@@ -352,7 +352,7 @@ class spell_arti_warl_dimensional_rift : public SpellScript
             rift->SetOwnerGUID(caster->GetGUID());
             rift->SetTarget(target->GetGUID());
             // We use same ID and script for Chaos Portal and Chaos Tear as there are no more NPCs for this spell
-            rift->SetArmor(id);
+            rift->SetArmor(id, 0);
         }
     }
 
@@ -745,6 +745,6 @@ void AddSC_artifact_spell_scripts()
     RegisterCreatureAI(npc_arti_priest_void_tendril);
 
     RegisterSpellScript(spell_arti_pal_tyr_deliverance);
-    
+
     RegisterAuraScript(aura_artifact_shaman_stormkeeper);
 }

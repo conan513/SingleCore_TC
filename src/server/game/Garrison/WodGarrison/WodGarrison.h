@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
  * Copyright (C) 2008-2017 TrinityCore <http://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -79,7 +79,7 @@ public:
     explicit WodGarrison(Player* owner);
 
     bool LoadFromDB() override;
-    void SaveToDB(SQLTransaction& trans) override;
+    void SaveToDB(CharacterDatabaseTransaction& trans) override;
 
     bool Create(uint32 garrSiteId) override;
     bool CanUpgrade(bool checkCost = true);

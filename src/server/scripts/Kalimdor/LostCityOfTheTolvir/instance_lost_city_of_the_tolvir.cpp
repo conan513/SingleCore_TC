@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2017-2018 AshamaneProject <https://github.com/AshamaneProject>
+* Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
 *
 * This program is free software; you can redistribute it and/or modify it
 * under the terms of the GNU General Public License as published by the
@@ -65,8 +65,8 @@ class instance_lost_city_of_the_tolvir : public InstanceMapScript
             {
                 if (GameObject* platform = instance->GetGameObject(uiSiamatPlatformGUID))
                 {
-                    platform->RemoveFlag(GAMEOBJECT_FLAGS, GO_FLAG_DAMAGED);
-                    platform->SetFlag(GAMEOBJECT_FLAGS, GO_FLAG_DESTROYED);
+                    platform->RemoveFlag(GO_FLAG_DAMAGED);
+                    platform->AddFlag(GO_FLAG_DESTROYED);
                 }
 
                 for (int i = 0; i < 6; ++i)

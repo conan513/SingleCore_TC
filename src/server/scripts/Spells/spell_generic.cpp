@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+ * Copyright (C) 2008-2019 TrinityCore <https://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -1098,8 +1098,8 @@ class spell_gen_creature_permanent_feign_death : public SpellScriptLoader
             void HandleEffectApply(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
             {
                 Unit* target = GetTarget();
-                target->SetFlag(OBJECT_DYNAMIC_FLAGS, UNIT_DYNFLAG_DEAD);
-                target->SetFlag(UNIT_FIELD_FLAGS_2, UNIT_FLAG2_FEIGN_DEATH);
+                target->SetDynamicFlags(UNIT_DYNFLAG_DEAD);
+                target->AddUnitFlag2(UNIT_FLAG2_FEIGN_DEATH);
 
                 if (target->GetTypeId() == TYPEID_UNIT)
                     target->ToCreature()->SetReactState(REACT_PASSIVE);
@@ -1108,8 +1108,8 @@ class spell_gen_creature_permanent_feign_death : public SpellScriptLoader
             void OnRemove(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
             {
                 Unit* target = GetTarget();
-                target->RemoveFlag(OBJECT_DYNAMIC_FLAGS, UNIT_DYNFLAG_DEAD);
-                target->RemoveFlag(UNIT_FIELD_FLAGS_2, UNIT_FLAG2_FEIGN_DEATH);
+                target->RemoveDynamicFlag(UNIT_DYNFLAG_DEAD);
+                target->RemoveUnitFlag2(UNIT_FLAG2_FEIGN_DEATH);
             }
 
             void Register() override
@@ -3927,7 +3927,7 @@ class spell_gen_gm_freeze : public SpellScriptLoader
                     player->CombatStop();
                     if (player->IsNonMeleeSpellCast(true))
                         player->InterruptNonMeleeSpells(true);
-                    player->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
+                    player->AddUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
 
                     // if player class = hunter || warlock remove pet if alive
                     if ((player->getClass() == CLASS_HUNTER) || (player->getClass() == CLASS_WARLOCK))
@@ -3950,7 +3950,7 @@ class spell_gen_gm_freeze : public SpellScriptLoader
                 {
                     // Reset player faction + allow combat + allow duels
                     player->setFactionForRace(player->getRace());
-                    player->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
+                    player->RemoveUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
                     // save player
                     player->SaveToDB();
                 }
@@ -4426,6 +4426,42 @@ class spell_gen_pony_mount_check : public SpellScriptLoader
         }
 };
 
+class spell_gen_shroud_of_death : public SpellScriptLoader
+{
+public:
+    spell_gen_shroud_of_death() : SpellScriptLoader("spell_gen_shroud_of_death") { }
+
+    class spell_gen_shroud_of_death_AuraScript : public AuraScript
+    {
+        PrepareAuraScript(spell_gen_shroud_of_death_AuraScript);
+
+        void OnApply(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
+        {
+            PreventDefaultAction();
+            GetUnitOwner()->m_serverSideVisibility.SetValue(SERVERSIDE_VISIBILITY_GHOST, GHOST_VISIBILITY_GHOST);
+            GetUnitOwner()->m_serverSideVisibilityDetect.SetValue(SERVERSIDE_VISIBILITY_GHOST, GHOST_VISIBILITY_GHOST);
+        }
+
+        void OnRemove(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
+        {
+            PreventDefaultAction();
+            GetUnitOwner()->m_serverSideVisibility.SetValue(SERVERSIDE_VISIBILITY_GHOST, GHOST_VISIBILITY_ALIVE);
+            GetUnitOwner()->m_serverSideVisibilityDetect.SetValue(SERVERSIDE_VISIBILITY_GHOST, GHOST_VISIBILITY_ALIVE);
+        }
+
+        void Register() override
+        {
+            OnEffectApply += AuraEffectApplyFn(spell_gen_shroud_of_death_AuraScript::OnApply, EFFECT_0, SPELL_AURA_DUMMY, AURA_EFFECT_HANDLE_REAL);
+            OnEffectRemove += AuraEffectRemoveFn(spell_gen_shroud_of_death_AuraScript::OnRemove, EFFECT_0, SPELL_AURA_DUMMY, AURA_EFFECT_HANDLE_REAL);
+        }
+    };
+
+    AuraScript* GetAuraScript() const override
+    {
+        return new spell_gen_shroud_of_death_AuraScript();
+    }
+};
+
 // 169869 - Transformation Sickness
 class spell_gen_decimatus_transformation_sickness : public SpellScriptLoader
 {
@@ -4776,7 +4812,7 @@ class spell_light_judgement : public SpellScript
     void HandleDamage(SpellEffIndex /*effIndex*/)
     {
         if (Unit* caster = GetCaster())
-            SetHitDamage(6.25f * caster->GetUInt32Value(UNIT_FIELD_ATTACK_POWER));
+            SetHitDamage(6.25f * caster->m_unitData->AttackPower);
     }
 
     void Register() override
@@ -4802,6 +4838,145 @@ public:
             if (SpellInfo const* info = sSpellMgr->GetSpellInfo(SPELL_LIGHT_RECKONING))
                 if (SpellEffectInfo const* effectInfo = info->GetEffect(EFFECT_0))
                     player->CastSpell(player, effectInfo->TriggerSpell, true);
+    }
+};
+
+// 214027 - Adaptation
+class spell_pvp_honor_adaptation : public SpellScriptLoader
+{
+public:
+    spell_pvp_honor_adaptation() : SpellScriptLoader("spell_pvp_honor_adaptation") { }
+
+    enum AdaptionSpells
+    {
+        SPELL_ADAPTATION_DEBUFF = 195901,
+        SPELL_PVP_TRINKET = 42292
+    };
+
+    class spell_pvp_honor_adaptation_AuraScript : public AuraScript
+    {
+        PrepareAuraScript(spell_pvp_honor_adaptation_AuraScript);
+
+        bool Validate(SpellInfo const* spellInfo) override
+        {
+            return spellInfo->GetEffect(EFFECT_0) && ValidateSpellInfo(
+                {
+                    SPELL_ADAPTATION_DEBUFF,
+                    SPELL_PVP_TRINKET
+                });
+        }
+
+        bool CheckProc(ProcEventInfo& eventInfo)
+        {
+            if (!eventInfo.GetActionTarget())
+                return false;
+
+            if (eventInfo.GetActionTarget()->HasAura(SPELL_ADAPTATION_DEBUFF))
+                return false;
+
+            auto isLossOfControlSpell = [](SpellInfo const* spellInfo) -> bool
+            {
+                return (spellInfo->GetAllEffectsMechanicMask() & IMMUNE_TO_MOVEMENT_IMPAIRMENT_AND_LOSS_CONTROL_MASK) != 0;
+            };
+
+            if (!eventInfo.GetSpellInfo() || !isLossOfControlSpell(eventInfo.GetSpellInfo()))
+                return false;
+
+            int32 durationLimit = GetEffect(EFFECT_0)->GetAmount() * IN_MILLISECONDS;
+
+            /// @workaround: we need to check the entire spell instead of the auras on the unit
+            auto hasLossOfControlAuras = [&]() -> bool
+            {
+                Unit::AuraApplicationMap const& appliedAuras = eventInfo.GetActionTarget()->GetAppliedAuras();
+                for (auto itr = appliedAuras.begin(); itr != appliedAuras.end(); ++itr)
+                {
+                    Aura const* aura = itr->second->GetBase();
+
+                    if (aura->GetDuration() < durationLimit)
+                        continue;
+
+                    if (isLossOfControlSpell(aura->GetSpellInfo()))
+                        return true;
+                }
+
+                return false;
+            };
+
+            return hasLossOfControlAuras();
+        }
+
+        void Proc(ProcEventInfo& /*eventInfo*/)
+        {
+            Unit* target = GetTarget();
+            target->CastSpell(target, SPELL_ADAPTATION_DEBUFF, true);
+            target->CastSpell(target, SPELL_PVP_TRINKET, true);
+        }
+
+        void Register() override
+        {
+            DoCheckProc += AuraCheckProcFn(spell_pvp_honor_adaptation_AuraScript::CheckProc);
+            OnProc += AuraProcFn(spell_pvp_honor_adaptation_AuraScript::Proc);
+        }
+    };
+
+    AuraScript* GetAuraScript() const override
+    {
+        return new spell_pvp_honor_adaptation_AuraScript();
+    }
+};
+
+// 42292 - PvP Trinket
+// 195710 - Honorable Medallion
+// 208683 - Gladiator's Medallion
+class spell_pvp_honor_medallion : public SpellScriptLoader
+{
+public:
+    spell_pvp_honor_medallion() : SpellScriptLoader("spell_pvp_honor_medallion") { }
+
+    enum MedallionDummys
+    {
+        SPELL_GENERIC_PVP_TRINKET_DUMMY_ALLIANCE = 97403,
+        SPELL_GENERIC_PVP_TRINKET_DUMMY_HORDE = 97404,
+
+        VISUAL_KIT_ACTIVE_TRINKET = 701
+    };
+
+    class spell_pvp_honor_medallion_SpellScript : public SpellScript
+    {
+        PrepareSpellScript(spell_pvp_honor_medallion_SpellScript);
+
+        bool Validate(SpellInfo const* /*spellInfo*/) override
+        {
+            return ValidateSpellInfo(
+                {
+                    SPELL_GENERIC_PVP_TRINKET_DUMMY_ALLIANCE,
+                    SPELL_GENERIC_PVP_TRINKET_DUMMY_HORDE
+                });
+        }
+
+        void TriggerDummy()
+        {
+            if (Player* player = GetCaster()->ToPlayer())
+            {
+                if (player->GetTeamId() == TEAM_ALLIANCE)
+                    player->CastSpell(player, SPELL_GENERIC_PVP_TRINKET_DUMMY_ALLIANCE, true);
+                else
+                    player->CastSpell(player, SPELL_GENERIC_PVP_TRINKET_DUMMY_HORDE, true);
+
+                // send to caster only
+                player->SendPlaySpellVisualKit(VISUAL_KIT_ACTIVE_TRINKET, 0, 0);
+            }
+        }
+
+        void Register() override
+        {
+            AfterCast += SpellCastFn(spell_pvp_honor_medallion_SpellScript::TriggerDummy);
+        }
+    };
+
+    SpellScript* GetSpellScript() const override
+    {
+        return new spell_pvp_honor_medallion_SpellScript();
     }
 };
 
@@ -4905,6 +5080,7 @@ void AddSC_generic_spell_scripts()
     new spell_gen_landmine_knockback_achievement();
     new spell_gen_clear_debuffs();
     new spell_gen_pony_mount_check();
+    new spell_gen_shroud_of_death();
     new spell_gen_decimatus_transformation_sickness();
     new spell_gen_anetheron_summon_towering_infernal();
     new spell_gen_mark_of_kazrogal_hellfire();
@@ -4918,4 +5094,7 @@ void AddSC_generic_spell_scripts()
     RegisterSpellScript(spell_spatial_rift_despawn);
     RegisterSpellScript(spell_light_judgement);
     new playerscript_light_reckoning();
+
+    new spell_pvp_honor_adaptation();
+    new spell_pvp_honor_medallion();
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
  * Copyright (C) 2016 Firestorm Servers <https://firestorm-servers.com>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -202,7 +202,7 @@ class boss_tectus : public CreatureScript
                 me->CastSpell(me, eSpells::ZeroPowerZeroRegen, true);
 
                 me->ClearUnitState(UnitState::UNIT_STATE_STUNNED);
-                me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_REMOVE_CLIENT_CONTROL | UNIT_FLAG_PREPARATION | UNIT_FLAG_DISARMED);
+                me->RemoveUnitFlag(UnitFlags(UNIT_FLAG_REMOVE_CLIENT_CONTROL | UNIT_FLAG_PREPARATION | UNIT_FLAG_DISARMED));
 
                 switch (me->GetEntry())
                 {
@@ -216,14 +216,14 @@ class boss_tectus : public CreatureScript
                         if (!AllGardiansDead())
                         {
                             me->SetReactState(ReactStates::REACT_PASSIVE);
-                            me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_IMMUNE_TO_PC);
+                            me->AddUnitFlag(UnitFlags(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_IMMUNE_TO_PC));
                             me->SetAIAnimKitId(eAnimKits::AnimFall);
                         }
                         else
                         {
                             me->SetAIAnimKitId(0);
                             me->SetReactState(ReactStates::REACT_AGGRESSIVE);
-                            me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_IMMUNE_TO_PC);
+                            me->RemoveUnitFlag(UnitFlags(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_IMMUNE_TO_PC));
                         }
 
                         break;
@@ -234,7 +234,7 @@ class boss_tectus : public CreatureScript
                         me->CastSpell(me, eSpells::Grow, true);
                         me->SetDisplayId(eMiscs::InvisDisplay);
                         me->SetReactState(ReactStates::REACT_PASSIVE);
-                        me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_IMMUNE_TO_PC);
+                        me->AddUnitFlag(UnitFlags(UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_IMMUNE_TO_PC));
                         me->AddUnitState(UnitState::UNIT_STATE_STUNNED);
                         break;
                     }
@@ -244,7 +244,7 @@ class boss_tectus : public CreatureScript
                         me->CastSpell(me, eSpells::Grow, true);
                         me->SetDisplayId(eMiscs::InvisDisplay);
                         me->SetReactState(ReactStates::REACT_PASSIVE);
-                        me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_IMMUNE_TO_PC);
+                        me->AddUnitFlag(UnitFlags(UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_IMMUNE_TO_PC));
                         me->AddUnitState(UnitState::UNIT_STATE_STUNNED);
                         break;
                     }
@@ -258,7 +258,7 @@ class boss_tectus : public CreatureScript
 
                 me->SetPower(Powers::POWER_ENERGY, 0);
                 me->SetMaxPower(Powers::POWER_ENERGY, 100);
-                me->RemoveFlag(UNIT_FIELD_FLAGS_2, UNIT_FLAG2_REGENERATE_POWER | UNIT_FLAG2_DISABLE_TURN);
+                me->RemoveUnitFlag2(UnitFlags2(UNIT_FLAG2_REGENERATE_POWER | UNIT_FLAG2_DISABLE_TURN));
 
                 m_CrystallineBarrageTarget = ObjectGuid::Empty;
 
@@ -275,13 +275,13 @@ class boss_tectus : public CreatureScript
                 if (!AllGardiansDead())
                 {
                     me->SetReactState(ReactStates::REACT_PASSIVE);
-                    me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_IMMUNE_TO_PC);
+                    me->AddUnitFlag(UnitFlags(UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_IMMUNE_TO_PC));
                 }
                 else
                 {
                     me->SetAIAnimKitId(0);
                     me->SetReactState(ReactStates::REACT_AGGRESSIVE);
-                    me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_IMMUNE_TO_PC);
+                    me->RemoveUnitFlag(UnitFlags(UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_IMMUNE_TO_PC));
                 }
 
                 me->RemoveAura(eHighmaulSpells::Berserker);
@@ -290,7 +290,7 @@ class boss_tectus : public CreatureScript
 
                 me->SetPower(Powers::POWER_ENERGY, 0);
                 me->SetMaxPower(Powers::POWER_ENERGY, 100);
-                me->RemoveFlag(UNIT_FIELD_FLAGS_2, UNIT_FLAG2_REGENERATE_POWER | UNIT_FLAG2_DISABLE_TURN);
+                me->RemoveUnitFlag2(UnitFlags2(UNIT_FLAG2_REGENERATE_POWER | UNIT_FLAG2_DISABLE_TURN));
 
                 m_CrystallineBarrageTarget = ObjectGuid::Empty;
 
@@ -317,12 +317,12 @@ class boss_tectus : public CreatureScript
                             return;
 
                         me->SetAIAnimKitId(0);
-                        me->PlayOneShotAnimKitId(eAnimKits::AnimRise);
+                        me->SetAIAnimKitId(eAnimKits::AnimRise, true);
 
                         AddTimedDelayedOperation(4500, [this]() -> void
                         {
                             me->SetReactState(ReactStates::REACT_AGGRESSIVE);
-                            me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_IMMUNE_TO_PC);
+                            me->RemoveUnitFlag(UnitFlags(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_IMMUNE_TO_PC));
                         });
 
                         break;
@@ -350,7 +350,7 @@ class boss_tectus : public CreatureScript
                         if (m_MoteKilled >= (eMiscs::MotesSpawnCount * 2))
                         {
                             me->SetAIAnimKitId(0);
-                            me->PlayOneShotAnimKitId(eAnimKits::AnimRise);
+                            me->SetAIAnimKitId(eAnimKits::AnimRise, true);
 
                             AddTimedDelayedOperation(4 * TimeConstants::IN_MILLISECONDS, [this]() -> void
                             {
@@ -360,12 +360,12 @@ class boss_tectus : public CreatureScript
 
                             AddTimedDelayedOperation(8 * TimeConstants::IN_MILLISECONDS, [this]() -> void
                             {
-                                me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_IMMUNE_TO_PC);
+                                me->RemoveUnitFlag(UnitFlags(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_IMMUNE_TO_PC));
                                 if (Player* player = me->GetMap()->GetPlayers().begin()->GetSource())
                                 {
                                     player->CastSpell(me, eSpells::SuicideNoBloodNoLogging, true);
-                                    if(me->GetLootRecipient() == nullptr)
-                                        me->SetLootRecipient(player);
+                                    if(!me->HasLootRecipients())
+                                        me->AddLootRecipient(player);
                                 }
                             });
                         }
@@ -548,7 +548,7 @@ class boss_tectus : public CreatureScript
                         break;
                     case eSpells::SpawnTectusShards:
                     {
-                        target->PlayOneShotAnimKitId(eAnimKits::AnimRise2);
+                        target->SetAIAnimKitId(eAnimKits::AnimRise2, true);
                         target->RestoreDisplayId();
 
                         ObjectGuid guid = target->GetGUID();
@@ -578,7 +578,7 @@ class boss_tectus : public CreatureScript
                     return;
 
                 /// Prevent boss from dying too soon
-                if (me->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE))
+                if (me->HasUnitFlag(UNIT_FLAG_NON_ATTACKABLE))
                 {
                     damage = 0;
                     return;
@@ -611,8 +611,8 @@ class boss_tectus : public CreatureScript
                             me->CastSpell(me, eSpells::BreakPlayerTargetting, true);
                             me->CastSpell(me, eSpells::ZeroPowerZeroRegen, true);
 
-                            me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_IMMUNE_TO_PC);
-                            me->SetFlag(UNIT_FIELD_FLAGS_2, UNIT_FLAG2_DISABLE_TURN);
+                            me->AddUnitFlag(UnitFlags(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_IMMUNE_TO_PC));
+                            me->AddUnitFlag2(UNIT_FLAG2_DISABLE_TURN);
 
                             me->AddUnitState(UnitState::UNIT_STATE_STUNNED);
                             me->SetAIAnimKitId(eAnimKits::AnimFall);
@@ -637,8 +637,8 @@ class boss_tectus : public CreatureScript
                             me->InterruptNonMeleeSpells(true);
                             me->RemoveAllAreaTriggers();
                             me->SetAIAnimKitId(eAnimKits::AnimFall);
-                            me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_IMMUNE_TO_PC);
-                            me->SetFlag(UNIT_FIELD_FLAGS_2, UNIT_FLAG2_DISABLE_TURN);
+                            me->AddUnitFlag(UnitFlags(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_IMMUNE_TO_PC));
+                            me->AddUnitFlag2(UNIT_FLAG2_DISABLE_TURN);
                             me->AddUnitState(UnitState::UNIT_STATE_STUNNED);
 
                             (me->GetEntry() == eHighmaulCreatures::Tectus) ? me->CastSpell(me, HollowedHeartOfTheMountain) :
@@ -653,8 +653,8 @@ class boss_tectus : public CreatureScript
                             AddTimedDelayedOperation(3000, [this]() -> void
                             {
                                 me->ClearUnitState(UNIT_STATE_STUNNED);
-                                me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_IMMUNE_TO_PC | UNIT_FLAG_STUNNED);
-                                me->RemoveFlag(UNIT_FIELD_FLAGS_2, UNIT_FLAG2_DISABLE_TURN);
+                                me->RemoveUnitFlag(UnitFlags(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_IMMUNE_TO_PC | UNIT_FLAG_STUNNED));
+                                me->RemoveUnitFlag2(UNIT_FLAG2_DISABLE_TURN);
                                 me->SetAIAnimKitId(eAnimKits::AnimRise);
                             });
                         }
@@ -949,7 +949,7 @@ class npc_highmaul_night_twisted_supplicant : public CreatureScript
             void Reset() override
             {
                 me->SetReactState(ReactStates::REACT_PASSIVE);
-                me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE_TO_PC | UNIT_FLAG_NOT_SELECTABLE);
+                me->AddUnitFlag(UnitFlags(UNIT_FLAG_IMMUNE_TO_PC | UNIT_FLAG_NOT_SELECTABLE));
                 SetCanSeeEvenInPassiveMode(true);
             }
 
@@ -1059,7 +1059,7 @@ class npc_highmaul_rokka_and_lokk : public CreatureScript
                 if (!m_Risen)
                 {
                     me->SetReactState(ReactStates::REACT_PASSIVE);
-                    me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_IMMUNE_TO_PC);
+                    me->AddUnitFlag(UnitFlags(UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_IMMUNE_TO_PC));
                 }
                 else
                     me->SetAIAnimKitId(0);
@@ -1103,12 +1103,12 @@ class npc_highmaul_rokka_and_lokk : public CreatureScript
                 {
                     m_Risen = true;
                     me->SetAIAnimKitId(0);
-                    me->PlayOneShotAnimKitId(eAnimKit::AnimRise);
+                    me->SetAIAnimKitId(eAnimKit::AnimRise, true);
 
                     AddTimedDelayedOperation(4500, [this]() -> void
                     {
                         me->SetReactState(ReactStates::REACT_AGGRESSIVE);
-                        me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_IMMUNE_TO_PC);
+                        me->RemoveUnitFlag(UnitFlags(UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_IMMUNE_TO_PC));
                     });
                 }
             }
@@ -1213,7 +1213,7 @@ class npc_highmaul_oro : public CreatureScript
                 if (!m_Risen)
                 {
                     me->SetReactState(ReactStates::REACT_PASSIVE);
-                    me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_IMMUNE_TO_PC);
+                    me->AddUnitFlag(UnitFlags(UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_IMMUNE_TO_PC));
                 }
                 else
                     me->SetAIAnimKitId(0);
@@ -1248,12 +1248,12 @@ class npc_highmaul_oro : public CreatureScript
                 {
                     m_Risen = true;
                     me->SetAIAnimKitId(0);
-                    me->PlayOneShotAnimKitId(eAnimKit::AnimRise);
+                    me->SetAIAnimKitId(eAnimKit::AnimRise, true);
 
                     AddTimedDelayedOperation(4500, [this]() -> void
                     {
                         me->SetReactState(ReactStates::REACT_AGGRESSIVE);
-                        me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_IMMUNE_TO_PC);
+                        me->RemoveUnitFlag(UnitFlags(UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_IMMUNE_TO_PC));
                     });
                 }
             }
@@ -1340,7 +1340,7 @@ class npc_highmaul_earthen_pillar_stalker : public CreatureScript
             void Reset() override
             {
                 me->SetReactState(ReactStates::REACT_PASSIVE);
-                me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE_TO_PC | UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_NON_ATTACKABLE);
+                me->AddUnitFlag(UnitFlags(UNIT_FLAG_IMMUNE_TO_PC | UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_NON_ATTACKABLE));
 
                 me->AddUnitState(UnitState::UNIT_STATE_ROOT);
 
@@ -1779,7 +1779,7 @@ class spell_highmaul_accretion : public SpellScriptLoader
 
             /*
 
-            // @Use this only if tectus didn't buff allies 
+            // @Use this only if tectus didn't buff allies
             void HandleMythicAllyBuffing(AuraEffect const* aurEff, AuraEffectHandleModes mode)
             {
                 // trigger ally buffing in MM only if the caster is buffing himself !
@@ -1881,7 +1881,7 @@ class spell_highmaul_spawn_dust_cloud : public SpellScriptLoader
                 if (Creature* target = GetTarget()->ToCreature())
                 {
                     target->SetReactState(ReactStates::REACT_AGGRESSIVE);
-                    target->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_IMMUNE_TO_PC);
+                    target->RemoveUnitFlag(UnitFlags(UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_IMMUNE_TO_PC));
                 }
             }
 
@@ -2089,7 +2089,7 @@ public:
             }
         }
     }
-        
+
     void OnRemove() override
     {
         /*if (Unit* caster = at->GetCaster())
@@ -2100,7 +2100,7 @@ public:
             Trinity::AnyUnfriendlyUnitInObjectRangeCheck l_Check(at, caster, radius);
             Trinity::UnitListSearcher<Trinity::AnyUnfriendlyUnitInObjectRangeCheck> l_Searcher(at, targetList, l_Check);
             Cell::VisitAllObjects(at, l_Searcher, radius);
-                
+
             for (Unit* l_Unit : targetList)
             {
                 if (!l_Unit->SelectNearestAreaTrigger(at->GetSpellId(), 2.0f))

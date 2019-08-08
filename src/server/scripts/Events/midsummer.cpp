@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
  * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
@@ -326,13 +326,7 @@ class spell_gen_ribbon_pole_dancer_check : public SpellScriptLoader
 
             bool Validate(SpellInfo const* /*spellInfo*/) override
             {
-                if (!sSpellStore.LookupEntry(SPELL_HAS_FULL_MIDSUMMER_SET))
-                    return false;
-                if (!sSpellStore.LookupEntry(SPELL_BURNING_HOT_POLE_DANCE))
-                    return false;
-                if (!sSpellStore.LookupEntry(SPELL_RIBBON_DANCE_XP))
-                    return false;
-                return true;
+                return ValidateSpellInfo({ SPELL_HAS_FULL_MIDSUMMER_SET, SPELL_BURNING_HOT_POLE_DANCE, SPELL_RIBBON_DANCE_XP });
             }
 
             void PeriodicTick(AuraEffect const* /*aurEff*/)

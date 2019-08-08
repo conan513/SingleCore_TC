@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+ * Copyright (C) 2008-2019 TrinityCore <https://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -110,7 +110,7 @@ ByteBuffer& operator<<(ByteBuffer& data, WorldPackets::Garrison::GarrisonMission
     return data;
 }
 
-ByteBuffer& operator<<(ByteBuffer& data, WorldPackets::Garrison::GarrisonMissionAreaBonus const& areaBonus)
+ByteBuffer& operator<<(ByteBuffer& data, WorldPackets::Garrison::GarrisonMissionBonusAbility const& areaBonus)
 {
     data << uint32(areaBonus.GarrMssnBonusAbilityID);
     data << uint32(areaBonus.StartTime);
@@ -130,7 +130,7 @@ ByteBuffer& operator<<(ByteBuffer& data, WorldPackets::Garrison::GarrisonTalent 
 ByteBuffer& operator<<(ByteBuffer& data, WorldPackets::Garrison::GarrisonInfo const& garrison)
 {
     ASSERT(garrison.Missions.size() == garrison.MissionRewards.size());
-    ASSERT(garrison.Missions.size() == garrison.MissionBonusRewards.size());
+    ASSERT(garrison.Missions.size() == garrison.MissionOvermaxRewards.size());
     ASSERT(garrison.Missions.size() == garrison.CanStartMission.size());
 
     data << int32(garrison.GarrTypeID);
@@ -141,7 +141,7 @@ ByteBuffer& operator<<(ByteBuffer& data, WorldPackets::Garrison::GarrisonInfo co
     data << uint32(garrison.Followers.size());
     data << uint32(garrison.Missions.size());
     data << uint32(garrison.MissionRewards.size());
-    data << uint32(garrison.MissionBonusRewards.size());
+    data << uint32(garrison.MissionOvermaxRewards.size());
     data << uint32(garrison.MissionAreaBonuses.size());
     data << uint32(garrison.Talents.size());
     data << uint32(garrison.CanStartMission.size());
@@ -162,14 +162,14 @@ ByteBuffer& operator<<(ByteBuffer& data, WorldPackets::Garrison::GarrisonInfo co
             data << missionRewardItem;
     }
 
-    for (std::vector<WorldPackets::Garrison::GarrisonMissionReward> const& missionReward : garrison.MissionBonusRewards)
+    for (std::vector<WorldPackets::Garrison::GarrisonMissionReward> const& missionReward : garrison.MissionOvermaxRewards)
     {
         data << uint32(missionReward.size());
         for (WorldPackets::Garrison::GarrisonMissionReward const& missionRewardItem : missionReward)
             data << missionRewardItem;
     }
 
-    for (WorldPackets::Garrison::GarrisonMissionAreaBonus const* areaBonus : garrison.MissionAreaBonuses)
+    for (WorldPackets::Garrison::GarrisonMissionBonusAbility const* areaBonus : garrison.MissionAreaBonuses)
         data << *areaBonus;
 
     for (WorldPackets::Garrison::GarrisonTalent const& talent : garrison.Talents)
@@ -407,7 +407,8 @@ WorldPacket const* WorldPackets::Garrison::GarrisonOpenMissionNpc::Write()
 
 WorldPacket const* WorldPackets::Garrison::ShowAdventureMap::Write()
 {
-    _worldPacket << Unit;
+    _worldPacket << UnitGUID;
+    _worldPacket << uint32(UiMapID);
 
     return &_worldPacket;
 }

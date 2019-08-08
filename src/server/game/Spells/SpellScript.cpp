@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+ * Copyright (C) 2008-2019 TrinityCore <https://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -325,7 +325,7 @@ bool SpellScript::TargetHook::CheckEffect(SpellInfo const* spellEntry, uint8 eff
             return true;
         case TARGET_SELECT_CATEGORY_CONE: // AREA
         case TARGET_SELECT_CATEGORY_AREA: // AREA
-        case TARGET_SELECT_CATEGORY_LINE: //LINE
+        //case TARGET_SELECT_CATEGORY_LINE: //LINE
             return area;
         case TARGET_SELECT_CATEGORY_DEFAULT:
             switch (targetInfo.GetObjectType())
@@ -634,6 +634,16 @@ void SpellScript::SetHitHeal(int32 heal)
     m_spell->m_healing = heal;
 }
 
+TargetInfo* SpellScript::GetCurrentTargetInfo() const
+{
+    if (!IsInTargetHook())
+    {
+        TC_LOG_ERROR("scripts", "Script: `%s` Spell: `%u`: function SpellScript::GetCurrentTargetInfo was called, but function has no effect in current hook!", m_scriptName->c_str(), m_scriptSpellId);
+        return nullptr;
+    }
+    return m_spell->m_currentTargetInfo;
+}
+
 Aura* SpellScript::GetHitAura() const
 {
     if (!IsInTargetHook())
@@ -898,6 +908,17 @@ AuraScript::EffectPeriodicHandler::EffectPeriodicHandler(AuraEffectPeriodicFnTyp
 void AuraScript::EffectPeriodicHandler::Call(AuraScript* auraScript, AuraEffect const* _aurEff)
 {
     (auraScript->*pEffectHandlerScript)(_aurEff);
+}
+
+AuraScript::EffectDamageHandler::EffectDamageHandler(AuraEffectDamageFnType _pEffectHandlerScript, uint8 _effIndex, uint16 _effName)
+    : AuraScript::EffectBase(_effIndex, _effName)
+{
+    pEffectHandlerScript = _pEffectHandlerScript;
+}
+
+void AuraScript::EffectDamageHandler::Call(AuraScript* auraScript, AuraEffect const* _aurEff, Unit * target, uint32 & damage)
+{
+    (auraScript->*pEffectHandlerScript)(_aurEff, target, damage);
 }
 
 AuraScript::AuraUpdateHandler::AuraUpdateHandler(AuraUpdateFnType _pEffectHandlerScript)
@@ -1265,9 +1286,9 @@ void AuraScript::SetStackAmount(uint8 num)
     m_aura->SetStackAmount(num);
 }
 
-bool AuraScript::ModStackAmount(int32 num, AuraRemoveMode removeMode)
+bool AuraScript::ModStackAmount(int32 num, AuraRemoveMode removeMode /*= AURA_REMOVE_BY_DEFAULT*/, bool resetPeriodicTimer /*= true*/, bool refresh /*= true*/)
 {
-    return m_aura->ModStackAmount(num, removeMode);
+    return m_aura->ModStackAmount(num, removeMode, resetPeriodicTimer, refresh);
 }
 
 bool AuraScript::IsPassive() const

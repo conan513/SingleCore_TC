@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -312,7 +312,7 @@ struct npc_tanaan_yrel_summon : public FollowerAI
                     GetClosestCreatureWithEntry(me, TanaanCreatures::NpcLadyLiadrin, 50.0f)
                     || me->GetPositionX() < 4560.0f)
                 {
-                    me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE_TO_NPC);
+                    me->AddUnitFlag(UNIT_FLAG_IMMUNE_TO_NPC);
                     SetFollowPaused(true);
 
                     m_Events.CancelEvent(eEvents::EventCheckStopFollow);

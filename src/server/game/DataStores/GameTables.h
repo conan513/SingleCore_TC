@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+ * Copyright (C) 2008-2019 TrinityCore <https://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -22,9 +22,20 @@
 #include "Common.h"
 #include <vector>
 
-struct GtArmorMitigationByLvlEntry
+struct GtAzeriteKnowledgeMultiplierEntry
 {
-    float Mitigation = 0.0f;
+    float Multiplier = 0.f;
+};
+
+struct GtAzeriteLevelToItemLevelEntry
+{
+    float ItemLevel = 0.f;
+};
+
+struct GtAzeriteBaseExperiencePerLevelEntry
+{
+    float BaseExperienceToNextLevel = 0.f;
+    float MinimumExperienceToNextLevel = 0.f;
 };
 
 struct GtArtifactKnowledgeMultiplierEntry
@@ -113,12 +124,6 @@ struct GtChallengeModeHealth
     float Scalar;
 };
 
-uint8 constexpr PRESTIGE_COLUMN_COUNT = 33;
-struct GtHonorLevelEntry
-{
-    float Prestige[PRESTIGE_COLUMN_COUNT] = { };
-};
-
 struct GtHpPerStaEntry
 {
     float Health = 0.0f;
@@ -186,6 +191,8 @@ struct GtSpellScalingEntry
     float Gem2 = 0.0f;
     float Gem3 = 0.0f;
     float Health = 0.0f;
+    float DamageReplaceStat = 0.0f;
+    float DamageSecondary = 0.0f;
 };
 
 struct GtXpEntry
@@ -209,6 +216,8 @@ public:
         return &_data[row];
     }
 
+    T const* operator[](uint32 row) const { return GetRow(row); }
+    
     std::size_t GetTableRowCount() const { return _data.size(); }
 
     void SetData(std::vector<T> data) { _data = std::move(data); }
@@ -217,16 +226,17 @@ private:
     std::vector<T> _data;
 };
 
-TC_GAME_API extern GameTable<GtArmorMitigationByLvlEntry>           sArmorMitigationByLvlGameTable;
 TC_GAME_API extern GameTable<GtArtifactKnowledgeMultiplierEntry>    sArtifactKnowledgeMultiplierGameTable;
 TC_GAME_API extern GameTable<GtArtifactLevelXPEntry>                sArtifactLevelXPGameTable;
+TC_GAME_API extern GameTable<GtAzeriteBaseExperiencePerLevelEntry>  sAzeriteBaseExperiencePerLevelTable;
+TC_GAME_API extern GameTable<GtAzeriteKnowledgeMultiplierEntry>     sAzeriteKnowledgeMultiplierGameTable;
+TC_GAME_API extern GameTable<GtAzeriteLevelToItemLevelEntry>        sAzeriteLevelToItemLevelGameTable;
 TC_GAME_API extern GameTable<GtBarberShopCostBaseEntry>             sBarberShopCostBaseGameTable;
 TC_GAME_API extern GameTable<GtBaseMPEntry>                         sBaseMPGameTable;
-TC_GAME_API extern GameTable<GtCombatRatingsEntry>                  sCombatRatingsGameTable;
-TC_GAME_API extern GameTable<GtCombatRatingsMultByILvl>             sCombatRatingsMultByILvlGameTable;
 TC_GAME_API extern GameTable<GtChallengeModeDamage>                 sChallengeModeDamage;
 TC_GAME_API extern GameTable<GtChallengeModeHealth>                 sChallengeModeHealth;
-TC_GAME_API extern GameTable<GtHonorLevelEntry>                     sHonorLevelGameTable;
+TC_GAME_API extern GameTable<GtCombatRatingsEntry>                  sCombatRatingsGameTable;
+TC_GAME_API extern GameTable<GtCombatRatingsMultByILvl>             sCombatRatingsMultByILvlGameTable;
 TC_GAME_API extern GameTable<GtHpPerStaEntry>                       sHpPerStaGameTable;
 TC_GAME_API extern GameTable<GtItemSocketCostPerLevelEntry>         sItemSocketCostPerLevelGameTable;
 TC_GAME_API extern GameTable<GtNpcDamageByClassEntry>               sNpcDamageByClassGameTable[MAX_EXPANSIONS];
@@ -302,6 +312,7 @@ inline float GetSpellScalingColumnForClass(GtSpellScalingEntry const* row, int32
         case CLASS_DEMON_HUNTER:
             return row->DemonHunter;
         case -1:
+        case -7:
             return row->Item;
         case -2:
             return row->Consumable;
@@ -313,6 +324,10 @@ inline float GetSpellScalingColumnForClass(GtSpellScalingEntry const* row, int32
             return row->Gem3;
         case -6:
             return row->Health;
+        case -8:
+            return row->DamageReplaceStat;
+        case -9:
+            return row->DamageSecondary;
         default:
             break;
     }

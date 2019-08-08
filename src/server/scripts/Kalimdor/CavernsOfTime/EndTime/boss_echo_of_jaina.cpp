@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
  * Copyright (C) 2008-2013 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
@@ -103,7 +103,7 @@ class boss_echo_of_jaina : public CreatureScript
 
                 DoZoneInCombat();
                 i = 0;
-                me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_REMOVE_CLIENT_CONTROL);
+                me->AddUnitFlag(UNIT_FLAG_REMOVE_CLIENT_CONTROL);
 
                 events.ScheduleEvent(EVENT_PYROBLAST, 1000);
                 events.ScheduleEvent(EVENT_BLINK, 3500); // 20 seconds

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+ * Copyright (C) 2008-2019 TrinityCore <https://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -21,7 +21,6 @@
 #include "DB2Stores.h"
 #include "DisableMgr.h"
 #include "GameEventMgr.h"
-#include "WodGarrison.h"
 #include "ClassHall.h"
 #include "Group.h"
 #include "InstanceScript.h"
@@ -33,6 +32,8 @@
 #include "ScriptMgr.h"
 #include "SpellInfo.h"
 #include "SpellMgr.h"
+#include "WarCampaign.h"
+#include "WodGarrison.h"
 #include "World.h"
 
 bool CriteriaData::IsValid(Criteria const* criteria)
@@ -107,7 +108,7 @@ bool CriteriaData::IsValid(Criteria const* criteria)
                     criteria->ID, criteria->Entry->Type, DataType, ClassRace.Class);
                 return false;
             }
-            if (ClassRace.Race && ((1 << (ClassRace.Race-1)) & RACEMASK_ALL_PLAYABLE) == 0)
+            if (ClassRace.Race && ((UI64LIT(1) << (ClassRace.Race-1)) & RACEMASK_ALL_PLAYABLE) == 0)
             {
                 TC_LOG_ERROR("sql.sql", "Table `criteria_data` (Entry: %u Type: %u) for data type CRITERIA_DATA_TYPE_T_PLAYER_CLASS_RACE (%u) contains a non-existing race in value2 (%u), ignored.",
                     criteria->ID, criteria->Entry->Type, DataType, ClassRace.Race);
@@ -252,7 +253,7 @@ bool CriteriaData::IsValid(Criteria const* criteria)
                     criteria->ID, criteria->Entry->Type, DataType, ClassRace.Class);
                 return false;
             }
-            if (ClassRace.Race && ((1 << (ClassRace.Race-1)) & RACEMASK_ALL_PLAYABLE) == 0)
+            if (ClassRace.Race && ((UI64LIT(1) << (ClassRace.Race-1)) & RACEMASK_ALL_PLAYABLE) == 0)
             {
                 TC_LOG_ERROR("sql.sql", "Table `criteria_data` (Entry: %u Type: %u) for data type CRITERIA_DATA_TYPE_S_PLAYER_CLASS_RACE (%u) contains a non-existing race entry in value2 (%u), ignored.",
                     criteria->ID, criteria->Entry->Type, DataType, ClassRace.Race);
@@ -593,7 +594,7 @@ void CriteriaHandler::UpdateCriteria(CriteriaTypes type, uint64 miscValue1 /*= 0
                 for (RewardedQuestSet::const_iterator itr = rewQuests.begin(); itr != rewQuests.end(); ++itr)
                 {
                     Quest const* quest = sObjectMgr->GetQuestTemplate(*itr);
-                    if (quest && quest->GetZoneOrSort() >= 0 && uint32(quest->GetZoneOrSort()) == criteria->Entry->Asset.ZoneID)
+                    if (quest && quest->GetZoneOrSort() >= 0 && quest->GetZoneOrSort() == criteria->Entry->Asset.ZoneID)
                         ++counter;
                 }
                 SetCriteriaProgress(criteria, counter, referencePlayer);
@@ -639,7 +640,11 @@ void CriteriaHandler::UpdateCriteria(CriteriaTypes type, uint64 miscValue1 /*= 0
                     for (SkillLineAbilityMap::const_iterator skillIter = bounds.first; skillIter != bounds.second; ++skillIter)
                     {
                         if (skillIter->second->SkillLine == int32(criteria->Entry->Asset.SkillID))
-                            spellCount++;
+                        {
+                            // do not add couter twice if by any chance skill is listed twice in dbc (eg. skill 777 and spell 22717)
+                            ++spellCount;
+                            break;
+                        }
                     }
                 }
                 SetCriteriaProgress(criteria, spellCount, referencePlayer);
@@ -655,7 +660,7 @@ void CriteriaHandler::UpdateCriteria(CriteriaTypes type, uint64 miscValue1 /*= 0
                 SetCriteriaProgress(criteria, referencePlayer->GetReputationMgr().GetVisibleFactionCount(), referencePlayer);
                 break;
             case CRITERIA_TYPE_EARN_HONORABLE_KILL:
-                SetCriteriaProgress(criteria, referencePlayer->GetUInt32Value(PLAYER_FIELD_LIFETIME_HONORABLE_KILLS), referencePlayer);
+                SetCriteriaProgress(criteria, referencePlayer->m_activePlayerData->LifetimeHonorableKills, referencePlayer);
                 break;
             case CRITERIA_TYPE_HIGHEST_GOLD_VALUE_OWNED:
                 SetCriteriaProgress(criteria, referencePlayer->GetMoney(), referencePlayer, PROGRESS_HIGHEST);
@@ -687,22 +692,22 @@ void CriteriaHandler::UpdateCriteria(CriteriaTypes type, uint64 miscValue1 /*= 0
                 SetCriteriaProgress(criteria, miscValue1, referencePlayer);
                 break;
             case CRITERIA_TYPE_TRANSMOG_SET_UNLOCKED:
-                if (miscValue1 != criteria->Entry->Asset.TransmogSetGroupID)
+                if (miscValue1 != uint64(criteria->Entry->Asset.TransmogSetGroupID))
                     continue;
                 SetCriteriaProgress(criteria, 1, referencePlayer, PROGRESS_ACCUMULATE);
                 break;
             case CRITERIA_TYPE_APPEARANCE_UNLOCKED_BY_SLOT:
-                if (!miscValue2 /*login case*/ || miscValue1 != criteria->Entry->Asset.EquipmentSlot)
+                if (!miscValue2 /*login case*/ || miscValue1 != uint64(criteria->Entry->Asset.EquipmentSlot))
                     continue;
                 SetCriteriaProgress(criteria, 1, referencePlayer, PROGRESS_ACCUMULATE);
                 break;
             case CRITERIA_TYPE_COMPLETE_DUNGEON_ENCOUNTER:
-                if (miscValue1 != criteria->Entry->Asset.DungeonEncounterID)
+                if (miscValue1 != uint64(criteria->Entry->Asset.DungeonEncounterID))
                     continue;
                 SetCriteriaProgress(criteria, 1, referencePlayer, PROGRESS_ACCUMULATE);
                 break;
             case CRITERIA_TYPE_SEND_EVENT_SCENARIO:
-                if (miscValue1 != criteria->Entry->Asset.ScenarioEventID)
+                if (miscValue1 != uint64(criteria->Entry->Asset.ScenarioEventID))
                     continue;
                 SetCriteriaProgress(criteria, 1, referencePlayer);
                 break;
@@ -783,14 +788,15 @@ void CriteriaHandler::UpdateCriteria(CriteriaTypes type, uint64 miscValue1 /*= 0
             case CRITERIA_TYPE_GAIN_PARAGON_REPUTATION:
             case CRITERIA_TYPE_EARN_HONOR_XP:
             case CRITERIA_TYPE_RELIC_TALENT_UNLOCKED:
+            case CRITERIA_TYPE_REACH_ACCOUNT_HONOR_LEVEL:
+            case CRITERIA_TREE_HEART_OF_AZEROTH_ARTIFACT_POWER_EARNED:
+            case CRITERIA_TREE_HEART_OF_AZEROTH_LEVEL_REACHED:
                 break;                                   // Not implemented yet :(
         }
 
         for (CriteriaTree const* tree : *trees)
         {
-            if (IsCompletedCriteriaTree(tree))
-                CompletedCriteriaTree(tree, referencePlayer);
-
+            CheckCompletedCriteriaTree(tree, referencePlayer);
             AfterCriteriaTreeUpdate(tree, referencePlayer);
         }
     }
@@ -832,7 +838,7 @@ void CriteriaHandler::StartCriteriaTimer(CriteriaTimedTypes type, uint32 entry, 
         bool canStart = false;
         for (CriteriaTree const* tree : *trees)
         {
-            if (_timeCriteriaTrees.find(tree->ID) == _timeCriteriaTrees.end() && !IsCompletedCriteriaTree(tree))
+            if (_timeCriteriaTrees.find(tree->ID) == _timeCriteriaTrees.end() && !CheckCompletedCriteriaTree(tree, nullptr))
             {
                 // Start the timer
                 if (criteria->Entry->StartTimer * uint32(IN_MILLISECONDS) > timeLost)
@@ -962,7 +968,7 @@ void CriteriaHandler::SetCriteriaProgress(Criteria const* criteria, uint64 chang
                 timeElapsed = criteria->Entry->StartTimer - (timedIter->second / IN_MILLISECONDS);
 
                 // Remove the timer, we wont need it anymore
-                if (IsCompletedCriteriaTree(tree))
+                if (CheckCompletedCriteriaTree(tree, referencePlayer))
                     _timeCriteriaTrees.erase(timedIter);
             }
         }
@@ -985,8 +991,11 @@ void CriteriaHandler::RemoveCriteriaProgress(Criteria const* criteria)
     _criteriaProgress.erase(criteriaProgress);
 }
 
-bool CriteriaHandler::IsCompletedCriteriaTree(CriteriaTree const* tree)
+bool CriteriaHandler::CheckCompletedCriteriaTree(CriteriaTree const* tree, Player* referencePlayer)
 {
+    if (_completedCriteriaTree.find(tree->ID) != _completedCriteriaTree.end())
+        return true;
+
     if (!CanCompleteCriteriaTree(tree))
         return false;
 
@@ -994,14 +1003,18 @@ bool CriteriaHandler::IsCompletedCriteriaTree(CriteriaTree const* tree)
     switch (tree->Entry->Operator)
     {
         case CRITERIA_TREE_OPERATOR_SINGLE:
-            return tree->Criteria && IsCompletedCriteria(tree->Criteria, requiredCount);
+            if (!tree->Criteria || !IsCompletedCriteria(tree->Criteria, requiredCount))
+                return false;
+            break;
         case CRITERIA_TREE_OPERATOR_SINGLE_NOT_COMPLETED:
-            return !tree->Criteria || !IsCompletedCriteria(tree->Criteria, requiredCount);
+            if (tree->Criteria && IsCompletedCriteria(tree->Criteria, requiredCount))
+                return false;
+            break;
         case CRITERIA_TREE_OPERATOR_ALL:
             for (CriteriaTree const* node : tree->Children)
-                if (!IsCompletedCriteriaTree(node))
+                if (!CheckCompletedCriteriaTree(node, referencePlayer))
                     return false;
-            return true;
+            break;
         case CRITERIA_TREE_OPERAROR_SUM_CHILDREN:
         {
             uint64 progress = 0;
@@ -1011,7 +1024,9 @@ bool CriteriaHandler::IsCompletedCriteriaTree(CriteriaTree const* tree)
                     if (CriteriaProgress const* criteriaProgress = GetCriteriaProgress(criteriaTree->Criteria))
                         progress += criteriaProgress->Counter;
             });
-            return progress >= requiredCount;
+            if (progress < requiredCount)
+                return false;
+            break;
         }
         case CRITERIA_TREE_OPERATOR_MAX_CHILD:
         {
@@ -1023,29 +1038,43 @@ bool CriteriaHandler::IsCompletedCriteriaTree(CriteriaTree const* tree)
                         if (criteriaProgress->Counter > progress)
                             progress = criteriaProgress->Counter;
             });
-            return progress >= requiredCount;
+            if (progress < requiredCount)
+                return false;
+            break;
         }
         case CRITERIA_TREE_OPERATOR_COUNT_DIRECT_CHILDREN:
         {
             uint64 progress = 0;
+            bool progressDone = false;
             for (CriteriaTree const* node : tree->Children)
                 if (node->Criteria)
                     if (CriteriaProgress const* criteriaProgress = GetCriteriaProgress(node->Criteria))
                         if (criteriaProgress->Counter >= 1)
                             if (++progress >= requiredCount)
-                                return true;
+                            {
+                                progressDone = true;
+                                break;
+                            }
 
-            return false;
+            if (!progressDone)
+                return false;
+            break;
         }
         case CRITERIA_TREE_OPERATOR_ANY:
         {
+            bool progressDone = false;
             uint64 progress = 0;
             for (CriteriaTree const* node : tree->Children)
-                if (IsCompletedCriteriaTree(node))
+                if (CheckCompletedCriteriaTree(node, referencePlayer))
                     if (++progress >= requiredCount)
-                        return true;
+                    {
+                        progressDone = true;
+                        break;
+                    }
 
-            return false;
+            if (!progressDone)
+                return false;
+            break;
         }
         case CRITERIA_TREE_OPERATOR_SUM_CHILDREN_WEIGHT:
         {
@@ -1056,13 +1085,23 @@ bool CriteriaHandler::IsCompletedCriteriaTree(CriteriaTree const* tree)
                     if (CriteriaProgress const* criteriaProgress = GetCriteriaProgress(criteriaTree->Criteria))
                         progress += criteriaProgress->Counter * criteriaTree->Entry->Amount;
             });
-            return progress >= requiredCount;
+            if (progress < requiredCount)
+                return false;
+            break;
         }
         default:
             break;
     }
 
-    return false;
+    if (_completedCriteriaTree.find(tree->ID) == _completedCriteriaTree.end())
+        CompletedCriteriaTree(tree, referencePlayer);
+
+    return true;
+}
+
+bool CriteriaHandler::CheckCompletedCriteriaTree(uint32 criteriaTreeId, Player* referencePlayer)
+{
+    return CheckCompletedCriteriaTree(sCriteriaMgr->GetCriteriaTree(criteriaTreeId), referencePlayer);
 }
 
 bool CriteriaHandler::CanUpdateCriteriaTree(Criteria const* criteria, CriteriaTree const* tree, Player* referencePlayer) const
@@ -1081,6 +1120,11 @@ bool CriteriaHandler::CanUpdateCriteriaTree(Criteria const* criteria, CriteriaTr
 bool CriteriaHandler::CanCompleteCriteriaTree(CriteriaTree const* /*tree*/)
 {
     return true;
+}
+
+void CriteriaHandler::CompletedCriteriaTree(CriteriaTree const* tree, Player* /*referencePlayer*/)
+{
+    _completedCriteriaTree.insert(tree->ID);
 }
 
 bool CriteriaHandler::IsCompletedCriteria(Criteria const* criteria, uint64 requiredAmount)
@@ -1147,6 +1191,9 @@ bool CriteriaHandler::IsCompletedCriteria(Criteria const* criteria, uint64 requi
         case CRITERIA_TYPE_RELIC_TALENT_UNLOCKED:
         case CRITERIA_TYPE_COMPLETE_DUNGEON_ENCOUNTER:
         case CRITERIA_TYPE_SEND_EVENT_SCENARIO:
+        case CRITERIA_TYPE_REACH_ACCOUNT_HONOR_LEVEL:
+        case CRITERIA_TREE_HEART_OF_AZEROTH_ARTIFACT_POWER_EARNED:
+        case CRITERIA_TREE_HEART_OF_AZEROTH_LEVEL_REACHED:
             return progress->Counter >= requiredAmount;
         case CRITERIA_TYPE_COMPLETE_ACHIEVEMENT:
         case CRITERIA_TYPE_COMPLETE_QUEST:
@@ -1331,22 +1378,22 @@ bool CriteriaHandler::RequirementsSatisfied(Criteria const* criteria, uint64 mis
         case CRITERIA_TYPE_WIN_BG:
         case CRITERIA_TYPE_COMPLETE_BATTLEGROUND:
         case CRITERIA_TYPE_DEATH_AT_MAP:
-            if (!miscValue1 || criteria->Entry->Asset.MapID != referencePlayer->GetMapId())
+            if (!miscValue1 || uint32(criteria->Entry->Asset.MapID) != referencePlayer->GetMapId())
                 return false;
             break;
         case CRITERIA_TYPE_KILL_CREATURE:
         case CRITERIA_TYPE_KILLED_BY_CREATURE:
-            if (!miscValue1 || criteria->Entry->Asset.CreatureID != miscValue1)
+            if (!miscValue1 || uint32(criteria->Entry->Asset.CreatureID) != miscValue1)
                 return false;
             break;
         case CRITERIA_TYPE_REACH_SKILL_LEVEL:
         case CRITERIA_TYPE_LEARN_SKILL_LEVEL:
             // update at loading or specific skill update
-            if (miscValue1 && miscValue1 != criteria->Entry->Asset.SkillID)
+            if (miscValue1 && miscValue1 != uint32(criteria->Entry->Asset.SkillID))
                 return false;
             break;
         case CRITERIA_TYPE_COMPLETE_QUESTS_IN_ZONE:
-            if (miscValue1 && miscValue1 != criteria->Entry->Asset.ZoneID)
+            if (miscValue1 && miscValue1 != uint32(criteria->Entry->Asset.ZoneID))
                 return false;
             break;
         case CRITERIA_TYPE_DEATH:
@@ -1365,7 +1412,7 @@ bool CriteriaHandler::RequirementsSatisfied(Criteria const* criteria, uint64 mis
                 return false;
 
             //FIXME: work only for instances where max == min for players
-            if (map->ToInstanceMap()->GetMaxPlayers() != criteria->Entry->Asset.GroupSize)
+            if (map->ToInstanceMap()->GetMaxPlayers() != uint32(criteria->Entry->Asset.GroupSize))
                 return false;
             break;
         }
@@ -1374,7 +1421,7 @@ bool CriteriaHandler::RequirementsSatisfied(Criteria const* criteria, uint64 mis
                 return false;
             break;
         case CRITERIA_TYPE_DEATHS_FROM:
-            if (!miscValue1 || miscValue2 != criteria->Entry->Asset.DamageType)
+            if (!miscValue1 || miscValue2 != uint32(criteria->Entry->Asset.DamageType))
                 return false;
             break;
         case CRITERIA_TYPE_COMPLETE_QUEST:
@@ -1382,7 +1429,7 @@ bool CriteriaHandler::RequirementsSatisfied(Criteria const* criteria, uint64 mis
             // if miscValues != 0, it contains the questID.
             if (miscValue1)
             {
-                if (miscValue1 != criteria->Entry->Asset.QuestID)
+                if (miscValue1 != uint32(criteria->Entry->Asset.QuestID))
                     return false;
             }
             else
@@ -1401,11 +1448,11 @@ bool CriteriaHandler::RequirementsSatisfied(Criteria const* criteria, uint64 mis
         case CRITERIA_TYPE_BE_SPELL_TARGET2:
         case CRITERIA_TYPE_CAST_SPELL:
         case CRITERIA_TYPE_CAST_SPELL2:
-            if (!miscValue1 || miscValue1 != criteria->Entry->Asset.SpellID)
+            if (!miscValue1 || miscValue1 != uint32(criteria->Entry->Asset.SpellID))
                 return false;
             break;
         case CRITERIA_TYPE_LEARN_SPELL:
-            if (miscValue1 && miscValue1 != criteria->Entry->Asset.SpellID)
+            if (miscValue1 && miscValue1 != uint32(criteria->Entry->Asset.SpellID))
                 return false;
 
             if (!referencePlayer->HasSpell(criteria->Entry->Asset.SpellID))
@@ -1414,17 +1461,17 @@ bool CriteriaHandler::RequirementsSatisfied(Criteria const* criteria, uint64 mis
         case CRITERIA_TYPE_LOOT_TYPE:
             // miscValue1 = itemId - miscValue2 = count of item loot
             // miscValue3 = loot_type (note: 0 = LOOT_CORPSE and then it ignored)
-            if (!miscValue1 || !miscValue2 || !miscValue3 || miscValue3 != criteria->Entry->Asset.LootType)
+            if (!miscValue1 || !miscValue2 || !miscValue3 || miscValue3 != uint32(criteria->Entry->Asset.LootType))
                 return false;
             break;
         case CRITERIA_TYPE_OWN_ITEM:
-            if (miscValue1 && criteria->Entry->Asset.ItemID != miscValue1)
+            if (miscValue1 && uint32(criteria->Entry->Asset.ItemID) != miscValue1)
                 return false;
             break;
         case CRITERIA_TYPE_USE_ITEM:
         case CRITERIA_TYPE_LOOT_ITEM:
         case CRITERIA_TYPE_EQUIP_ITEM:
-            if (!miscValue1 || criteria->Entry->Asset.ItemID != miscValue1)
+            if (!miscValue1 || uint32(criteria->Entry->Asset.ItemID )!= miscValue1)
                 return false;
             break;
         case CRITERIA_TYPE_EXPLORE_AREA:
@@ -1443,12 +1490,12 @@ bool CriteriaHandler::RequirementsSatisfied(Criteria const* criteria, uint64 mis
                 if (area->AreaBit < 0)
                     continue;
 
-                uint16 playerIndexOffset = uint16(uint32(area->AreaBit) / 32);
+                uint16 playerIndexOffset = uint16(uint32(area->AreaBit) / 64);
                 if (playerIndexOffset >= PLAYER_EXPLORED_ZONES_SIZE)
                     continue;
 
-                uint32 mask = 1 << (uint32(area->AreaBit) % 32);
-                if (referencePlayer->GetUInt32Value(PLAYER_EXPLORED_ZONES_1 + playerIndexOffset) & mask)
+                uint64 mask = uint64(1) << (area->AreaBit % 64);
+                if (referencePlayer->m_activePlayerData->ExploredZones[playerIndexOffset] & mask)
                 {
                     matchFound = true;
                     break;
@@ -1460,19 +1507,19 @@ bool CriteriaHandler::RequirementsSatisfied(Criteria const* criteria, uint64 mis
             break;
         }
         case CRITERIA_TYPE_GAIN_REPUTATION:
-            if (miscValue1 && miscValue1 != criteria->Entry->Asset.FactionID)
+            if (miscValue1 && miscValue1 != uint32(criteria->Entry->Asset.FactionID))
                 return false;
             break;
         case CRITERIA_TYPE_EQUIP_EPIC_ITEM:
             // miscValue1 = itemid miscValue2 = itemSlot
-            if (!miscValue1 || miscValue2 != criteria->Entry->Asset.ItemSlot)
+            if (!miscValue1 || miscValue2 != uint32(criteria->Entry->Asset.ItemSlot))
                 return false;
             break;
         case CRITERIA_TYPE_ROLL_NEED_ON_LOOT:
         case CRITERIA_TYPE_ROLL_GREED_ON_LOOT:
         {
             // miscValue1 = itemid miscValue2 = diced value
-            if (!miscValue1 || miscValue2 != criteria->Entry->Asset.RollValue)
+            if (!miscValue1 || miscValue2 != uint32(criteria->Entry->Asset.RollValue))
                 return false;
 
             ItemTemplate const* proto = sObjectMgr->GetItemTemplate(uint32(miscValue1));
@@ -1481,7 +1528,7 @@ bool CriteriaHandler::RequirementsSatisfied(Criteria const* criteria, uint64 mis
             break;
         }
         case CRITERIA_TYPE_DO_EMOTE:
-            if (!miscValue1 || miscValue1 != criteria->Entry->Asset.EmoteID)
+            if (!miscValue1 || miscValue1 != uint32(criteria->Entry->Asset.EmoteID))
                 return false;
             break;
         case CRITERIA_TYPE_DAMAGE_DONE:
@@ -1501,12 +1548,12 @@ bool CriteriaHandler::RequirementsSatisfied(Criteria const* criteria, uint64 mis
             break;
         case CRITERIA_TYPE_USE_GAMEOBJECT:
         case CRITERIA_TYPE_FISH_IN_GAMEOBJECT:
-            if (!miscValue1 || miscValue1 != criteria->Entry->Asset.GameObjectID)
+            if (!miscValue1 || miscValue1 != uint32(criteria->Entry->Asset.GameObjectID))
                 return false;
             break;
         case CRITERIA_TYPE_LEARN_SKILLLINE_SPELLS:
         case CRITERIA_TYPE_LEARN_SKILL_LINE:
-            if (miscValue1 && miscValue1 != criteria->Entry->Asset.SkillID)
+            if (miscValue1 && miscValue1 != uint32(criteria->Entry->Asset.SkillID))
                 return false;
             break;
         case CRITERIA_TYPE_LOOT_EPIC_ITEM:
@@ -1520,34 +1567,42 @@ bool CriteriaHandler::RequirementsSatisfied(Criteria const* criteria, uint64 mis
             break;
         }
         case CRITERIA_TYPE_HK_CLASS:
-            if (!miscValue1 || miscValue1 != criteria->Entry->Asset.ClassID)
+            if (!miscValue1 || miscValue1 != uint32(criteria->Entry->Asset.ClassID))
                 return false;
             break;
         case CRITERIA_TYPE_HK_RACE:
-            if (!miscValue1 || miscValue1 != criteria->Entry->Asset.RaceID)
+            if (!miscValue1 || miscValue1 != uint32(criteria->Entry->Asset.RaceID))
                 return false;
             break;
         case CRITERIA_TYPE_BG_OBJECTIVE_CAPTURE:
-            if (!miscValue1 || miscValue1 != criteria->Entry->Asset.ObjectiveId)
+            if (!miscValue1 || miscValue1 != uint32(criteria->Entry->Asset.ObjectiveId))
                 return false;
             break;
         case CRITERIA_TYPE_HONORABLE_KILL_AT_AREA:
-            if (!miscValue1 || miscValue1 != criteria->Entry->Asset.AreaID)
+            if (!miscValue1 || miscValue1 != uint32(criteria->Entry->Asset.AreaID))
                 return false;
             break;
         case CRITERIA_TYPE_CURRENCY:
             if (!miscValue1 || !miscValue2 || int64(miscValue2) < 0
-                || miscValue1 != criteria->Entry->Asset.CurrencyID)
+                || miscValue1 != uint32(criteria->Entry->Asset.CurrencyID))
                 return false;
             break;
         case CRITERIA_TYPE_WIN_ARENA:
-            if (miscValue1 != criteria->Entry->Asset.MapID)
+            if (miscValue1 != uint32(criteria->Entry->Asset.MapID))
                 return false;
             break;
         case CRITERIA_TYPE_HIGHEST_TEAM_RATING:
             return false;
         case CRITERIA_TYPE_PLACE_GARRISON_BUILDING:
-            if (miscValue1 != criteria->Entry->Asset.GarrBuildingID)
+            if (miscValue1 != uint32(criteria->Entry->Asset.GarrBuildingID))
+                return false;
+            break;
+        case CRITERIA_TYPE_TRANSMOG_SET_UNLOCKED:
+            if (miscValue1 != uint32(criteria->Entry->Asset.TransmogSetGroupID))
+                return false;
+            break;
+        case CRITERIA_TYPE_APPEARANCE_UNLOCKED_BY_SLOT:
+            if (!miscValue2 /*login case*/ || miscValue1 != uint32(criteria->Entry->Asset.EquipmentSlot))
                 return false;
             break;
         default:
@@ -1583,6 +1638,15 @@ bool CriteriaHandler::AdditionalRequirementsSatisfied(ModifierTreeNode const* tr
         }
     }
 
+    bool conditionMet = AdditionalRequirementsConditionSatisfied(tree, miscValue1, miscValue2, unit, referencePlayer);
+    if (tree->Entry->Operator == CRITERIA_TREE_OPERATOR_MODIFIER_SINGLE_NOT_COMPLETED)
+        conditionMet = !conditionMet;
+
+    return conditionMet;
+}
+
+bool CriteriaHandler::AdditionalRequirementsConditionSatisfied(ModifierTreeNode const* tree, uint64 miscValue1, uint64 /*miscValue2*/, Unit const* unit, Player* referencePlayer) const
+{
     uint32 reqType = tree->Entry->Type;
     if (!reqType)
         return true;
@@ -1591,6 +1655,13 @@ bool CriteriaHandler::AdditionalRequirementsSatisfied(ModifierTreeNode const* tr
 
     switch (CriteriaAdditionalCondition(reqType))
     {
+        case CRITERIA_ADDITIONAL_CONDITION_SOURCE_PLAYER_CONDITION: // 2
+        {
+            PlayerConditionEntry const* playerCondition = sPlayerConditionStore.LookupEntry(reqValue);
+            if (!playerCondition || !ConditionMgr::IsPlayerMeetingCondition(referencePlayer, playerCondition))
+                return false;
+            break;
+        }
         case CRITERIA_ADDITIONAL_CONDITION_ITEM_LEVEL: // 3
         {
             // miscValue1 is itemid
@@ -1619,12 +1690,24 @@ bool CriteriaHandler::AdditionalRequirementsSatisfied(ModifierTreeNode const* tr
             if (!referencePlayer->HasAura(reqValue))
                 return false;
             break;
+        case CRITERIA_ADDITIONAL_CONDITION_SOURCE_HAS_AURA_TYPE: // 9
+            if (!referencePlayer->HasAuraType(AuraType(reqValue)))
+                return false;
+            break;
         case CRITERIA_ADDITIONAL_CONDITION_TARGET_HAS_AURA: // 10
             if (!unit || !unit->HasAura(reqValue))
                 return false;
             break;
         case CRITERIA_ADDITIONAL_CONDITION_TARGET_HAS_AURA_TYPE: // 11
             if (!unit || !unit->HasAuraType(AuraType(reqValue)))
+                return false;
+            break;
+        case CRITERIA_ADDITIONAL_CONDITION_SOURCE_AURA_STATE: // 12
+            if (!referencePlayer->HasAuraState(AuraStateType(reqValue)))
+                return false;
+            break;
+        case CRITERIA_ADDITIONAL_CONDITION_TARGET_AURA_STATE: // 13
+            if (!unit || !unit->HasAuraState(AuraStateType(reqValue)))
                 return false;
             break;
         case CRITERIA_ADDITIONAL_CONDITION_ITEM_QUALITY_MIN: // 14
@@ -1728,6 +1811,16 @@ bool CriteriaHandler::AdditionalRequirementsSatisfied(ModifierTreeNode const* tr
             if (!unit || unit->GetHealthPct() >= reqValue)
                 return false;
             break;
+        case CRITERIA_ADDITIONAL_CONDITION_TARGET_PLAYER_CONDITION: // 55
+        {
+            if (!unit || !unit->IsPlayer())
+                return false;
+
+            PlayerConditionEntry const* playerCondition = sPlayerConditionStore.LookupEntry(reqValue);
+            if (!playerCondition || !ConditionMgr::IsPlayerMeetingCondition(unit->ToPlayer(), playerCondition))
+                return false;
+            break;
+        }
         case CRITERIA_ADDITIONAL_CONDITION_RATED_BATTLEGROUND_RATING: // 64
             //if (referencePlayer->GetRBGPersonalRating() < reqValue)
                 return false;
@@ -1739,12 +1832,24 @@ bool CriteriaHandler::AdditionalRequirementsSatisfied(ModifierTreeNode const* tr
                 return false;
             break;
         }
+        case CRITERIA_ADDITIONAL_CONDITION_QUEST_INCOMPLETE: // 84
+            if (!referencePlayer->HasQuest(reqValue))
+                return false;
+            break;
         case CRITERIA_ADDITIONAL_CONDITION_BATTLE_PET_SPECIES: // 91
             if (miscValue1 != reqValue)
                 return false;
             break;
         case CRITERIA_ADDITIONAL_CONDITION_REPUTATION: // 95
             if (referencePlayer->GetReputation(reqValue) < int32(tree->Entry->SecondaryAsset))
+                return false;
+            break;
+        case CRITERIA_ADDITIONAL_CONDITION_REWARDED_QUEST: // 110
+            if (!referencePlayer->GetQuestRewardStatus(reqValue))
+                return false;
+            break;
+        case CRITERIA_ADDITIONAL_CONDITION_COMPLETED_QUEST: // 111
+            if (referencePlayer->GetQuestStatus(reqValue) != QUEST_STATUS_COMPLETE)
                 return false;
             break;
         case CRITERIA_ADDITIONAL_CONDITION_GARRISON_FOLLOWER_ENTRY: // 144
@@ -1808,9 +1913,7 @@ bool CriteriaHandler::AdditionalRequirementsSatisfied(ModifierTreeNode const* tr
                 return false;
             break;
         case CRITERIA_ADDITIONAL_CONDITION_PRESTIGE_LEVEL: // 194
-            if (!referencePlayer || referencePlayer->GetPrestigeLevel() != reqValue)
-                return false;
-            break;
+            return false;
         default:
             break;
     }
@@ -2184,6 +2287,12 @@ char const* CriteriaMgr::GetCriteriaTypeString(CriteriaTypes type)
             return "EARN_HONOR_XP";
         case CRITERIA_TYPE_RELIC_TALENT_UNLOCKED:
             return "RELIC_TALENT_UNLOCKED";
+        case CRITERIA_TYPE_REACH_ACCOUNT_HONOR_LEVEL:
+            return "REACH_ACCOUNT_HONOR_LEVEL";
+        case CRITERIA_TREE_HEART_OF_AZEROTH_ARTIFACT_POWER_EARNED:
+            return "HEART_OF_AZEROTH_ARTIFACT_POWER_EARNED";
+        case CRITERIA_TREE_HEART_OF_AZEROTH_LEVEL_REACHED:
+            return "HEART_OF_AZEROTH_LEVEL_REACHED";
     }
     return "MISSING_TYPE";
 }
@@ -2455,7 +2564,7 @@ void CriteriaMgr::LoadCriteriaData()
             if (dataType != CRITERIA_DATA_TYPE_SCRIPT)
                 TC_LOG_ERROR("sql.sql", "Table `criteria_data` contains a ScriptName for non-scripted data type (Entry: %u, type %u), useless data.", criteria_id, dataType);
             else
-                scriptId = sObjectMgr->GetScriptId(scriptName);
+                scriptId = sObjectMgr->GetScriptIdOrAdd(scriptName);
         }
 
         CriteriaData data(dataType, fields[2].GetUInt32(), fields[3].GetUInt32(), scriptId);

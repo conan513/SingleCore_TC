@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
  * Copyright (C) 2016 Firestorm Servers <https://firestorm-servers.com>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -187,7 +187,7 @@ class boss_raigonn : public CreatureScript
                     instance->SendEncounterUnit(ENCOUNTER_FRAME_ENGAGE, weakPoint);
                     weakPoint->setFaction(16);
                     weakPoint->ClearUnitState(UNIT_STATE_UNATTACKABLE);
-                    weakPoint->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
+                    weakPoint->RemoveUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
                 }
             }
 

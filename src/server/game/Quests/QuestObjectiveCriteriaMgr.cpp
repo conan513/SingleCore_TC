@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+ * Copyright (C) 2008-2019 TrinityCore <https://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -53,9 +53,9 @@ void QuestObjectiveCriteriaMgr::Reset()
 
 void QuestObjectiveCriteriaMgr::DeleteFromDB(ObjectGuid const& guid)
 {
-    SQLTransaction trans = CharacterDatabase.BeginTransaction();
+    CharacterDatabaseTransaction trans = CharacterDatabase.BeginTransaction();
 
-    PreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_CHAR_QUESTSTATUS_OBJECTIVES_CRITERIA);
+    CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_CHAR_QUESTSTATUS_OBJECTIVES_CRITERIA);
     stmt->setUInt64(0, guid.GetCounter());
     trans->Append(stmt);
 
@@ -99,7 +99,7 @@ void QuestObjectiveCriteriaMgr::LoadFromDB(PreparedQueryResult objectiveResult, 
                 // Removing non-existing criteria data for all characters
                 TC_LOG_ERROR("criteria.quest", "Non-existing quest objective criteria %u data has been removed from the table `character_queststatus_objectives_criteria_progress`.", criteriaId);
 
-                PreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_INVALID_QUEST_PROGRESS_CRITERIA);
+                CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_INVALID_QUEST_PROGRESS_CRITERIA);
                 stmt->setUInt32(0, criteriaId);
                 CharacterDatabase.Execute(stmt);
 
@@ -117,9 +117,9 @@ void QuestObjectiveCriteriaMgr::LoadFromDB(PreparedQueryResult objectiveResult, 
     }
 }
 
-void QuestObjectiveCriteriaMgr::SaveToDB(SQLTransaction& trans)
+void QuestObjectiveCriteriaMgr::SaveToDB(CharacterDatabaseTransaction& trans)
 {
-    PreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_CHAR_QUESTSTATUS_OBJECTIVES_CRITERIA);
+    CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_CHAR_QUESTSTATUS_OBJECTIVES_CRITERIA);
     stmt->setUInt64(0, _owner->GetGUID().GetCounter());
     trans->Append(stmt);
 
@@ -180,7 +180,7 @@ void QuestObjectiveCriteriaMgr::ResetCriteria(CriteriaTypes type, uint64 miscVal
         for (CriteriaTree const* tree : *trees)
         {
             // don't update already completed criteria if not forced
-            if (!(IsCompletedCriteriaTree(tree) && !evenIfCriteriaComplete))
+            if (!(CheckCompletedCriteriaTree(tree, _owner) && !evenIfCriteriaComplete))
             {
                 allComplete = false;
                 break;
@@ -307,6 +307,8 @@ bool QuestObjectiveCriteriaMgr::CanCompleteCriteriaTree(CriteriaTree const* tree
 
 void QuestObjectiveCriteriaMgr::CompletedCriteriaTree(CriteriaTree const* tree, Player* referencePlayer)
 {
+    CriteriaHandler::CompletedCriteriaTree(tree, referencePlayer);
+
     QuestObjective const* objective = tree->QuestObjective;
     if (!objective)
         return;

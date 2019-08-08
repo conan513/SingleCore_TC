@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2018 TrinityCore <https://www.trinitycore.org/>
+ * Copyright (C) 2008-2019 TrinityCore <https://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -414,7 +414,8 @@ class CreatureGameObjectAreaTriggerScriptRegistrySwapHooks
         ASSERT(!creature->IsCharmed(),
                "There is a disabled AI which is still loaded.");
 
-        creature->AI()->EnterEvadeMode();
+        if (creature->IsAlive())
+            creature->AI()->EnterEvadeMode();
     }
 
     static void UnloadDestroyScript(Creature* creature)
@@ -930,9 +931,16 @@ public:
 
         std::unique_ptr<ScriptType> script_ptr(script);
 
+        if (!sObjectMgr->FindScriptId(script->GetName()))
+        {
+            // The script uses a script name from database, but isn't assigned to anything.
+            TC_LOG_ERROR("sql.sql", "Script named '%s' does not have a script name assigned in database.",
+            script->GetName().c_str());
+        }
+
         // Get an ID for the script. An ID only exists if it's a script that is assigned in the database
         // through a script name (or similar).
-        if (uint32 const id = sObjectMgr->GetScriptId(script->GetName()))
+        if (uint32 const id = sObjectMgr->GetScriptIdOrAdd(script->GetName()))
         {
             // Try to find an existing script.
             for (auto const& stored_script : _scripts)
@@ -958,17 +966,6 @@ public:
 
             sScriptRegistryCompositum->SetScriptNameInContext(script->GetName(),
                 sScriptMgr->GetCurrentScriptContext());
-        }
-        else
-        {
-            // The script uses a script name from database, but isn't assigned to anything.
-            TC_LOG_ERROR("sql.sql", "Script named '%s' does not have a script name assigned in database.",
-                script->GetName().c_str());
-
-            // Avoid calling "delete script;" because we are currently in the script constructor
-            // In a valid scenario this will not happen because every script has a name assigned in the database
-            sScriptRegistryCompositum->QueueForDelayedDelete(std::move(script_ptr));
-            return;
         }
     }
 
@@ -2476,6 +2473,11 @@ void ScriptMgr::OnSceneComplete(Player* player, uint32 sceneInstanceId)
     FOREACH_SCRIPT(PlayerScript)->OnSceneComplete(player, sceneInstanceId);
 }
 
+void ScriptMgr::OnPlayerRepop(Player* player)
+{
+    FOREACH_SCRIPT(PlayerScript)->OnPlayerRepop(player);
+}
+
 void ScriptMgr::OnMovieComplete(Player* player, uint32 movieId)
 {
     FOREACH_SCRIPT(PlayerScript)->OnMovieComplete(player, movieId);
@@ -2701,6 +2703,14 @@ void ScriptMgr::OnConversationCreate(Conversation* conversation, Unit* creator)
 
     GET_SCRIPT(ConversationScript, conversation->GetScriptId(), tmpscript);
     tmpscript->OnConversationCreate(conversation, creator);
+}
+
+void ScriptMgr::OnConversationRemove(Conversation* conversation, Unit* creator)
+{
+    ASSERT(conversation);
+
+    GET_SCRIPT(ConversationScript, conversation->GetScriptId(), tmpscript);
+    tmpscript->OnConversationRemove(conversation, creator);
 }
 
 // Scene

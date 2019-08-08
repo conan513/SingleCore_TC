@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
  * Copyright (C) 2010-2011 Trinity <http://www.projecttrinity.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -90,7 +90,7 @@ CreatureAI* GetVortexPinnacleAI(Creature* creature)
 {
     if (InstanceMap* instance = creature->GetMap()->ToInstanceMap())
         if (instance->GetInstanceScript())
-            if (instance->GetScriptId() == sObjectMgr->GetScriptId(VortexPinnacleScriptName))
+            if (instance->GetScriptId() == sObjectMgr->GetScriptIdOrAdd(VortexPinnacleScriptName))
                 return new AI(creature);
 
     return NULL;

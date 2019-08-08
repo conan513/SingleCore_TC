@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 AshamaneProject <https://github.com/AshamaneProject>
+ * Copyright (C) 2017-2019 AshamaneProject <https://github.com/AshamaneProject>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -85,11 +85,7 @@ public:
         }
 
         if (player->GetQuestStatus(TanaanQuests::QuestTheBattleOfTheForge) == QUEST_STATUS_REWARDED)
-        {
-            PhaseShift phaseShift;
-            phaseShift.AddUiWorldMapAreaIdSwap((uint32)TanaanZones::TerrainSwapID);
-            PhasingHandler::SendToPlayer(player, phaseShift);
-        }
+            PhasingHandler::AddVisibleMapId(player, TanaanZones::TerrainSwapID);
     }
 
     void OnObjectiveValidate(Player* player, uint32 questId, uint32 objectiveId) override
