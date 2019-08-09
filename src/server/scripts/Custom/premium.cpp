@@ -321,7 +321,7 @@ public:
             npcDuration = 60;
 
         Creature* npc = player->SummonCreature(entry, player->GetPositionX(), player->GetPositionY(), player->GetPositionZ(), 0, TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, npcDuration);
-        npc->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
+        npc->SetUnitFlags(UNIT_FLAG_NON_ATTACKABLE);
         npc->GetMotionMaster()->MoveFollow(player, PET_FOLLOW_DIST, player->GetFollowAngle());
         npc->setFaction(player->getFaction());
 

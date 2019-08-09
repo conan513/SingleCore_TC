@@ -27,7 +27,7 @@ std::string GetNameLink(Player* player)
 	switch (player->getClass())
 	{
     case CLASS_DEATH_KNIGHT:
-        if (player->GetUInt32Value(PLAYER_FIELD_CURRENT_SPEC_ID) == TALENT_SPEC_DEATHKNIGHT_BLOOD)
+        if (player->GetPrimarySpecialization() == TALENT_SPEC_DEATHKNIGHT_BLOOD)
         {
             color = "|cffC41F3B";
             SPEC_ICON = "|TInterface\\icons\\spell_deathknight_bloodpresence:15|t|r";
@@ -35,14 +35,14 @@ std::string GetNameLink(Player* player)
             break;
 
         }
-        if (player->GetUInt32Value(PLAYER_FIELD_CURRENT_SPEC_ID) == TALENT_SPEC_DEATHKNIGHT_FROST)
+        if (player->GetPrimarySpecialization() == TALENT_SPEC_DEATHKNIGHT_FROST)
         {
             color = "|cffC41F3B";
             SPEC_ICON = "|TInterface\\icons\\spell_deathknight_frostpresence:15|t|r";
             CLASS_ICON = "|TInterface\\icons\\Spell_Deathknight_ClassIcon:15|t|r";
             break;
         }
-        if (player->GetUInt32Value(PLAYER_FIELD_CURRENT_SPEC_ID) == TALENT_SPEC_DEATHKNIGHT_UNHOLY)
+        if (player->GetPrimarySpecialization() == TALENT_SPEC_DEATHKNIGHT_UNHOLY)
         {
             color = "|cffC41F3B";
             SPEC_ICON = "|TInterface\\icons\\spell_deathknight_unholypresence:15|t|r";
@@ -51,7 +51,7 @@ std::string GetNameLink(Player* player)
         }
         break;
     case CLASS_DEMON_HUNTER:
-        if (player->GetUInt32Value(PLAYER_FIELD_CURRENT_SPEC_ID) == TALENT_SPEC_DEMON_HUNTER_HAVOC)
+        if (player->GetPrimarySpecialization() == TALENT_SPEC_DEMON_HUNTER_HAVOC)
         {
             color = "|cffC41F3B";
             SPEC_ICON = "|TInterface\\icons\\spell_deathknight_bloodpresence:15|t|r";
@@ -59,7 +59,7 @@ std::string GetNameLink(Player* player)
             break;
 
         }
-        if (player->GetUInt32Value(PLAYER_FIELD_CURRENT_SPEC_ID) == TALENT_SPEC_DEMON_HUNTER_VENGEANCE)
+        if (player->GetPrimarySpecialization() == TALENT_SPEC_DEMON_HUNTER_VENGEANCE)
         {
             color = "|cffC41F3B";
             SPEC_ICON = "|TInterface\\icons\\spell_deathknight_unholypresence:15|t|r";
@@ -68,7 +68,7 @@ std::string GetNameLink(Player* player)
         }
         break;
     case CLASS_DRUID:
-        if (player->GetUInt32Value(PLAYER_FIELD_CURRENT_SPEC_ID) == TALENT_SPEC_DRUID_BALANCE)
+        if (player->GetPrimarySpecialization() == TALENT_SPEC_DRUID_BALANCE)
         {
             color = "|cffFF7D0A";
             SPEC_ICON = "|TInterface\\icons\\spell_nature_forceofnature:15|t|r";
@@ -76,21 +76,21 @@ std::string GetNameLink(Player* player)
             break;
 
         }
-        if (player->GetUInt32Value(PLAYER_FIELD_CURRENT_SPEC_ID) == TALENT_SPEC_DRUID_CAT)
+        if (player->GetPrimarySpecialization() == TALENT_SPEC_DRUID_CAT)
         {
             color = "|cffFF7D0A";
             SPEC_ICON = "|TInterface\\icons\\ability_druid_catform:15|t|r";
             CLASS_ICON = "|TInterface\\icons\\Ability_Druid_Maul:15|t|r";
             break;
         }
-        if (player->GetUInt32Value(PLAYER_FIELD_CURRENT_SPEC_ID) == TALENT_SPEC_DRUID_BEAR)
+        if (player->GetPrimarySpecialization() == TALENT_SPEC_DRUID_BEAR)
         {
             color = "|cffFF7D0A";
             SPEC_ICON = "|TInterface\\icons\\ability_racial_bearform:15|t|r";
             CLASS_ICON = "|TInterface\\icons\\Ability_Druid_Maul:15|t|r";
             break;
         }
-        if (player->GetUInt32Value(PLAYER_FIELD_CURRENT_SPEC_ID) == TALENT_SPEC_DRUID_RESTORATION)
+        if (player->GetPrimarySpecialization() == TALENT_SPEC_DRUID_RESTORATION)
         {
             color = "|cffFF7D0A";
             SPEC_ICON = "|TInterface\\icons\\spell_nature_healingtouch:15|t|r";
@@ -99,21 +99,21 @@ std::string GetNameLink(Player* player)
         }
         break;
     case CLASS_HUNTER:
-        if (player->GetUInt32Value(PLAYER_FIELD_CURRENT_SPEC_ID) == TALENT_SPEC_HUNTER_BEASTMASTER)
+        if (player->GetPrimarySpecialization() == TALENT_SPEC_HUNTER_BEASTMASTER)
         {
             color = "|cffABD473";
             SPEC_ICON = "|TInterface\\icons\\ability_hunter_bestialdiscipline:15|t|r";
             CLASS_ICON = "|TInterface\\icons\\INV_Weapon_Bow_07:15|t|r";
             break;
         }
-        if (player->GetUInt32Value(PLAYER_FIELD_CURRENT_SPEC_ID) == TALENT_SPEC_HUNTER_MARKSMAN)
+        if (player->GetPrimarySpecialization() == TALENT_SPEC_HUNTER_MARKSMAN)
         {
             color = "|cffABD473";
             SPEC_ICON = "|TInterface\\icons\\ability_hunter_focusedaim:15|t|r";
             CLASS_ICON = "|TInterface\\icons\\INV_Weapon_Bow_07:15|t|r";
             break;
         }
-        if (player->GetUInt32Value(PLAYER_FIELD_CURRENT_SPEC_ID) == TALENT_SPEC_HUNTER_SURVIVAL)
+        if (player->GetPrimarySpecialization() == TALENT_SPEC_HUNTER_SURVIVAL)
         {
             color = "|cffABD473";
             SPEC_ICON = "|TInterface\\icons\\ability_hunter_camouflage:15|t|r";
@@ -122,21 +122,21 @@ std::string GetNameLink(Player* player)
         }
         break;
     case CLASS_MAGE:
-        if (player->GetUInt32Value(PLAYER_FIELD_CURRENT_SPEC_ID) == TALENT_SPEC_MAGE_ARCANE)
+        if (player->GetPrimarySpecialization() == TALENT_SPEC_MAGE_ARCANE)
         {
             color = "|cff69CCF0";
             SPEC_ICON = "|TInterface\\icons\\spell_holy_magicalsentry:15|t|r";
             CLASS_ICON = "|TInterface\\icons\\INV_Staff_13:15|t|r";
             break;
         }
-        if (player->GetUInt32Value(PLAYER_FIELD_CURRENT_SPEC_ID) == TALENT_SPEC_MAGE_FIRE)
+        if (player->GetPrimarySpecialization() == TALENT_SPEC_MAGE_FIRE)
         {
             color = "|cff69CCF0";
             SPEC_ICON = "|TInterface\\icons\\spell_fire_firebolt:15|t|r";
             CLASS_ICON = "|TInterface\\icons\\INV_Staff_13:15|t|r";
             break;
         }
-        if (player->GetUInt32Value(PLAYER_FIELD_CURRENT_SPEC_ID) == TALENT_SPEC_MAGE_FROST)
+        if (player->GetPrimarySpecialization() == TALENT_SPEC_MAGE_FROST)
         {
             color = "|cff69CCF0";
             SPEC_ICON = "|TInterface\\icons\\spell_frost_frostbolt02:15|t|r";
@@ -145,21 +145,21 @@ std::string GetNameLink(Player* player)
         }
         break;
     case CLASS_MONK:
-        if (player->GetUInt32Value(PLAYER_FIELD_CURRENT_SPEC_ID) == TALENT_SPEC_MONK_BREWMASTER)
+        if (player->GetPrimarySpecialization() == TALENT_SPEC_MONK_BREWMASTER)
         {
             color = "|cffABD473";
             SPEC_ICON = "|TInterface\\icons\\spell_monk_brewmaster_spec:15|t|r";
             CLASS_ICON = "|TInterface\\icons\\classicon_monk:15|t|r";
             break;
         }
-        if (player->GetUInt32Value(PLAYER_FIELD_CURRENT_SPEC_ID) == TALENT_SPEC_MONK_BATTLEDANCER)
+        if (player->GetPrimarySpecialization() == TALENT_SPEC_MONK_BATTLEDANCER)
         {
             color = "|cffABD473";
             SPEC_ICON = "|TInterface\\icons\\spell_monk_windwalker_spec:15|t|r";
             CLASS_ICON = "|TInterface\\icons\\classicon_monk:15|t|r";
             break;
         }
-        if (player->GetUInt32Value(PLAYER_FIELD_CURRENT_SPEC_ID) == TALENT_SPEC_MONK_MISTWEAVER)
+        if (player->GetPrimarySpecialization() == TALENT_SPEC_MONK_MISTWEAVER)
         {
             color = "|cffABD473";
             SPEC_ICON = "|TInterface\\icons\\spell_monk_mistweaver_spec:15|t|r";
@@ -168,21 +168,21 @@ std::string GetNameLink(Player* player)
         }
         break;
     case CLASS_PALADIN:
-        if (player->GetUInt32Value(PLAYER_FIELD_CURRENT_SPEC_ID) == TALENT_SPEC_PALADIN_HOLY)
+        if (player->GetPrimarySpecialization() == TALENT_SPEC_PALADIN_HOLY)
         {
             color = "|cffF58CBA";
             SPEC_ICON = "|TInterface\\icons\\spell_holy_holybolt:15|t|r";
             CLASS_ICON = "|TInterface\\icons\\INV_Hammer_01:15|t|r";
             break;
         }
-        if (player->GetUInt32Value(PLAYER_FIELD_CURRENT_SPEC_ID) == TALENT_SPEC_PALADIN_PROTECTION)
+        if (player->GetPrimarySpecialization() == TALENT_SPEC_PALADIN_PROTECTION)
         {
             color = "|cffF58CBA";
             SPEC_ICON = "|TInterface\\icons\\ability_paladin_shieldofthetemplar:15|t|r";
             CLASS_ICON = "|TInterface\\icons\\INV_Hammer_01:15|t|r";
             break;
         }
-        if (player->GetUInt32Value(PLAYER_FIELD_CURRENT_SPEC_ID) == TALENT_SPEC_PALADIN_RETRIBUTION)
+        if (player->GetPrimarySpecialization() == TALENT_SPEC_PALADIN_RETRIBUTION)
         {
             color = "|cffF58CBA";
             SPEC_ICON = "|TInterface\\icons\\spell_holy_auraoflight:15|t|r";
@@ -190,21 +190,21 @@ std::string GetNameLink(Player* player)
             break;
         }
     case CLASS_PRIEST:
-        if (player->GetUInt32Value(PLAYER_FIELD_CURRENT_SPEC_ID) == TALENT_SPEC_PRIEST_DISCIPLINE)
+        if (player->GetPrimarySpecialization() == TALENT_SPEC_PRIEST_DISCIPLINE)
         {
             color = "|cffFFFFFF";
             SPEC_ICON = "|TInterface\\icons\\spell_holy_powerwordshield:15|t|r";
             CLASS_ICON = "|TInterface\\icons\\INV_Staff_30:15|t|r";
             break;
         }
-        if (player->GetUInt32Value(PLAYER_FIELD_CURRENT_SPEC_ID) == TALENT_SPEC_PRIEST_HOLY)
+        if (player->GetPrimarySpecialization() == TALENT_SPEC_PRIEST_HOLY)
         {
             color = "|cffFFFFFF";
             SPEC_ICON = "|TInterface\\icons\\spell_holy_guardianspirit:15|t|r";
             CLASS_ICON = "|TInterface\\icons\\INV_Staff_30:15|t|r";
             break;
         }
-        if (player->GetUInt32Value(PLAYER_FIELD_CURRENT_SPEC_ID) == TALENT_SPEC_PRIEST_SHADOW)
+        if (player->GetPrimarySpecialization() == TALENT_SPEC_PRIEST_SHADOW)
         {
             color = "|cffFFFFFF";
             SPEC_ICON = "|TInterface\\icons\\spell_shadow_shadowwordpain:15|t|r";
@@ -213,21 +213,21 @@ std::string GetNameLink(Player* player)
         }
         break;
     case CLASS_ROGUE:
-        if (player->GetUInt32Value(PLAYER_FIELD_CURRENT_SPEC_ID) == TALENT_SPEC_ROGUE_ASSASSINATION)
+        if (player->GetPrimarySpecialization() == TALENT_SPEC_ROGUE_ASSASSINATION)
         {
             color = "|cffFFF569";
             SPEC_ICON = "|TInterface\\icons\\ability_rogue_eviscerate:15|t|r";
             CLASS_ICON = "|TInterface\\icons\\INV_ThrowingKnife_04:15|t|r";
             break;
         }
-        if (player->GetUInt32Value(PLAYER_FIELD_CURRENT_SPEC_ID) == TALENT_SPEC_ROGUE_COMBAT)
+        if (player->GetPrimarySpecialization() == TALENT_SPEC_ROGUE_COMBAT)
         {
             color = "|cffFFF569";
             SPEC_ICON = "|TInterface\\icons\\ability_backstab:15|t|r";
             CLASS_ICON = "|TInterface\\icons\\INV_ThrowingKnife_04:15|t|r";
             break;
         }
-        if (player->GetUInt32Value(PLAYER_FIELD_CURRENT_SPEC_ID) == TALENT_SPEC_ROGUE_SUBTLETY)
+        if (player->GetPrimarySpecialization() == TALENT_SPEC_ROGUE_SUBTLETY)
         {
             color = "|cffFFF569";
             SPEC_ICON = "|TInterface\\icons\\ability_stealth:15|t|r";
@@ -235,21 +235,21 @@ std::string GetNameLink(Player* player)
             break;
         }
     case CLASS_SHAMAN:
-        if (player->GetUInt32Value(PLAYER_FIELD_CURRENT_SPEC_ID) == TALENT_SPEC_SHAMAN_ELEMENTAL)
+        if (player->GetPrimarySpecialization() == TALENT_SPEC_SHAMAN_ELEMENTAL)
         {
             color = "|cff0070DE";
             SPEC_ICON = "|TInterface\\icons\\spell_nature_lightning:15|t|r";
             CLASS_ICON = "|TInterface\\icons\\Spell_Nature_BloodLust:15|t|r";
             break;
         }
-        if (player->GetUInt32Value(PLAYER_FIELD_CURRENT_SPEC_ID) == TALENT_SPEC_SHAMAN_ENHANCEMENT)
+        if (player->GetPrimarySpecialization() == TALENT_SPEC_SHAMAN_ENHANCEMENT)
         {
             color = "|cff0070DE";
             SPEC_ICON = "|TInterface\\icons\\spell_shaman_improvedstormstrike:15|t|r";
             CLASS_ICON = "|TInterface\\icons\\Spell_Nature_BloodLust:15|t|r";
             break;
         }
-        if (player->GetUInt32Value(PLAYER_FIELD_CURRENT_SPEC_ID) == TALENT_SPEC_SHAMAN_RESTORATION)
+        if (player->GetPrimarySpecialization() == TALENT_SPEC_SHAMAN_RESTORATION)
         {
             color = "|cff0070DE";
             SPEC_ICON = "|TInterface\\icons\\spell_nature_healingwavelesser:15|t|r";
@@ -258,21 +258,21 @@ std::string GetNameLink(Player* player)
         }
         break;
     case CLASS_WARLOCK:
-        if (player->GetUInt32Value(PLAYER_FIELD_CURRENT_SPEC_ID) == TALENT_SPEC_WARLOCK_AFFLICTION)
+        if (player->GetPrimarySpecialization() == TALENT_SPEC_WARLOCK_AFFLICTION)
         {
             color = "|cff9482C9";
             SPEC_ICON = "|TInterface\\icons\\spell_shadow_deathcoil:15|t|r";
             CLASS_ICON = "|TInterface\\icons\\Spell_Nature_FaerieFire:15|t|r";
             break;
         }
-        if (player->GetUInt32Value(PLAYER_FIELD_CURRENT_SPEC_ID) == TALENT_SPEC_WARLOCK_DEMONOLOGY)
+        if (player->GetPrimarySpecialization() == TALENT_SPEC_WARLOCK_DEMONOLOGY)
         {
             color = "|cff9482C9";
             SPEC_ICON = "|TInterface\\icons\\spell_shadow_metamorphosis:15|t|r";
             CLASS_ICON = "|TInterface\\icons\\Spell_Nature_FaerieFire:15|t|r";
             break;
         }
-        if (player->GetUInt32Value(PLAYER_FIELD_CURRENT_SPEC_ID) == TALENT_SPEC_WARLOCK_DESTRUCTION)
+        if (player->GetPrimarySpecialization() == TALENT_SPEC_WARLOCK_DESTRUCTION)
         {
             color = "|cff9482C9";
             SPEC_ICON = "|TInterface\\icons\\spell_shadow_rainoffire:15|t|r";
@@ -281,21 +281,21 @@ std::string GetNameLink(Player* player)
         }
         break;
 	case CLASS_WARRIOR:
-		if (player->GetUInt32Value(PLAYER_FIELD_CURRENT_SPEC_ID) == TALENT_SPEC_WARRIOR_ARMS)
+		if (player->GetPrimarySpecialization() == TALENT_SPEC_WARRIOR_ARMS)
 		{
 			color = "|cffC79C6E";
 			SPEC_ICON = "|TInterface\\icons\\ability_warrior_savageblow:15|t|r";
 			CLASS_ICON = "|TInterface\\icons\\INV_Sword_27.png:15|t|r";
 			break;
 		}
-		if (player->GetUInt32Value(PLAYER_FIELD_CURRENT_SPEC_ID) == TALENT_SPEC_WARRIOR_FURY)
+		if (player->GetPrimarySpecialization() == TALENT_SPEC_WARRIOR_FURY)
 		{
 			color = "|cffC79C6E";
 			SPEC_ICON = "|TInterface\\icons\\ability_warrior_innerrage:15|t|r";
 			CLASS_ICON = "|TInterface\\icons\\INV_Sword_27.png:15|t|r";
 			break;
 		}
-		if (player->GetUInt32Value(PLAYER_FIELD_CURRENT_SPEC_ID) == TALENT_SPEC_WARRIOR_PROTECTION)
+		if (player->GetPrimarySpecialization() == TALENT_SPEC_WARRIOR_PROTECTION)
 		{
 			color = "|cffC79C6E";
 			SPEC_ICON = "|TInterface\\icons\\ability_warrior_defensivestance:15|t|r";

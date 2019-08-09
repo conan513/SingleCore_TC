@@ -16,7 +16,7 @@ class gon_playerscripts : public PlayerScript
             uint32 GUILD_ID_ALLIANCE = sConfigMgr->GetIntDefault("StartGuild.Alliance", 0);
             uint32 GUILD_ID_HORDE = sConfigMgr->GetIntDefault("StartGuild.Horde", 0);
             Guild* guild = sGuildMgr->GetGuildById(player->GetTeam() == ALLIANCE ? GUILD_ID_ALLIANCE : GUILD_ID_HORDE);
-            SQLTransaction trans(nullptr);
+            CharacterDatabaseTransaction trans(nullptr);
             if (guild)
                 guild->AddMember(trans, player->GetGUID());
         }
