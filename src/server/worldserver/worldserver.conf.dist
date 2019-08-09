@@ -4769,14 +4769,14 @@ ModifierOnlineCharacters.MaxMoney = 200
 #            could cause slowdown due to constant disk writes.
 #
 
-KillDetailedLogging.enabled=true;
-KillDetailedLogging.dumpSize=10;
+KillDetailedLogging.enabled = true
+KillDetailedLogging.dumpSize = 10
 
-DeathDetailedLogging.enabled=true;
-DeathetailedLogging.dumpSize=10;
+DeathDetailedLogging.enabled = true
+DeathetailedLogging.dumpSize = 10
 
-ZoneAreaDetailedLogging.enabled=true;
-ZoneAreaDetailedLogging.dumpSize=10;
+ZoneAreaDetailedLogging.enabled = true
+ZoneAreaDetailedLogging.dumpSize = 10
 
 #
 ###################################################################################################
