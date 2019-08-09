@@ -6683,7 +6683,6 @@ bool Player::RewardHonor(Unit* victim, uint32 groupsize, int32 honor, bool pvpto
 
     ObjectGuid victim_guid;
     uint32 victim_rank = 0;
-    uint32 rank_diff = 0;
 
     // need call before fields update to have chance move yesterday data to appropriate fields before today data change.
     UpdateHonorFields();
@@ -6722,59 +6721,22 @@ bool Player::RewardHonor(Unit* victim, uint32 groupsize, int32 honor, bool pvpto
             //  [39+]    Nothing
             // this is all wrong, should be going off PvpTitle, not PlayerTitle
             uint32 victim_title = plrVictim->m_playerData->PlayerTitle;
-                                                        // Get Killer titles, CharTitlesEntry::bit_index
-            // Ranks:
-            //  title[1..14]  -> rank[5..18]
-            //  title[15..28] -> rank[5..18]
-            //  title[other]  -> 0
-                // PLAYER__FIELD_KNOWN_TITLES describe which titles player can use,
-                // so we must find biggest pvp title , even for killer to find extra honor value
-                uint32 vtitle = victim->GetUInt32Value(PLAYER__FIELD_KNOWN_TITLES);
-                //uint32 victim_title = 0;
-                uint32 ktitle = GetUInt32Value(PLAYER__FIELD_KNOWN_TITLES);
-                uint32 killer_title = 0;
-                if (PLAYER_TITLE_MASK_ALL_PVP & ktitle)
-                {
-                    for (int i = ((GetTeam() == ALLIANCE) ? 1:HKRANKMAX);i!=((GetTeam() == ALLIANCE) ? HKRANKMAX : (2*HKRANKMAX-1));i++)
-                    {
-                        if (ktitle & (1<<i))
-                            killer_title = i;
-                    }
-                }
-                if (PLAYER_TITLE_MASK_ALL_PVP & vtitle)
-                {
-                    for (int i = ((plrVictim->GetTeam() == ALLIANCE) ? 1:HKRANKMAX);i!=((plrVictim->GetTeam() == ALLIANCE) ? HKRANKMAX : (2*HKRANKMAX-1));i++)
-                    {
-                        if (vtitle & (1<<i))
-                            victim_title = i;
-                    }
-                }
+            // Get Killer titles, CharTitlesEntry::bit_index
+// Ranks:
+//  title[1..14]  -> rank[5..18]
+//  title[15..28] -> rank[5..18]
+//  title[other]  -> 0
+            if (victim_title == 0)
+                victim_guid.Clear();                     // Don't show HK: <rank> message, only log.
+            else if (victim_title < 15)
+                victim_rank = victim_title + 4;
+            else if (victim_title < 29)
+                victim_rank = victim_title - 14 + 4;
+            else
+                victim_guid.Clear();                     // Don't show HK: <rank> message, only log.
 
-                // Get Killer titles, CharTitlesEntry::bit_index
-                // Ranks:
-                //  title[1..14]  -> rank[5..18]
-                //  title[15..28] -> rank[5..18]
-                //  title[other]  -> 0
-                if (victim_title == 0)
-                    victim_guid.Clear();                        // Don't show HK: <rank> message, only log.
-                else if (victim_title < HKRANKMAX)
-                    victim_rank = victim_title + 4;
-                else if (victim_title < (2*HKRANKMAX-1))
-                    victim_rank = victim_title - (HKRANKMAX-1) + 4;
-                else
-                    victim_guid.Clear();                        // Don't show HK: <rank> message, only log.
+            honor_f = std::ceil(Trinity::Honor::hk_honor_at_level_f(k_level) * (v_level - k_grey) / (k_level - k_grey));
 
-                // now find rank difference
-                if (killer_title == 0 && victim_rank>4)
-                    rank_diff = victim_rank - 4;
-                else if (killer_title < HKRANKMAX)
-                    rank_diff = (victim_rank>(killer_title + 4))? (victim_rank - (killer_title + 4)) : 0;
-                else if (killer_title < (2*HKRANKMAX-1))
-                    rank_diff = (victim_rank>(killer_title - (HKRANKMAX-1) +4))? (victim_rank - (killer_title - (HKRANKMAX-1) + 4)) : 0;
-
-
-            honor_f = ceil(Trinity::Honor::hk_honor_at_level_f(k_level) * (v_level - k_grey) / (k_level - k_grey));
-            honor *= 1 + sWorld->getRate(RATE_PVP_RANK_EXTRA_HONOR)*(((float)rank_diff) / 10.0f);
             // count the number of playerkills in one day
             ApplyModUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::TodayHonorableKills), 1, true);
             // and those in a lifetime
@@ -6784,57 +6746,7 @@ bool Player::RewardHonor(Unit* victim, uint32 groupsize, int32 honor, bool pvpto
             UpdateCriteria(CRITERIA_TYPE_HK_RACE, victim->getRace());
             UpdateCriteria(CRITERIA_TYPE_HONORABLE_KILL_AT_AREA, GetAreaId());
             UpdateCriteria(CRITERIA_TYPE_HONORABLE_KILL, 1, 0, 0, victim);
-            UpdateKnownTitles();
         }
-		else if (sWorld->getBoolConfig(CONFIG_GAIN_HONOR_GUARD) && victim->ToCreature()->IsGuard())
-		{
-			uint8 k_level = getLevel();
-			uint8 k_grey = Trinity::XP::GetGrayLevel(k_level);
-			uint8 v_level = victim->getLevel();
-
-			if (v_level <= k_grey)
-				return false;
-
-			uint32 victim_title = 0;
-			victim_guid = ObjectGuid::Empty;
-
-			honor_f = ceil(Trinity::Honor::hk_honor_at_level_f(k_level) * (v_level - k_grey) / (k_level - k_grey));
-
-			// count the number of playerkills in one day
-			ApplyModUInt32Value(PLAYER_FIELD_KILLS, 1, true);
-			// and those in a lifetime
-			ApplyModUInt32Value(PLAYER_FIELD_LIFETIME_HONORABLE_KILLS, 1, true);
-			UpdateCriteria(CRITERIA_TYPE_EARN_HONORABLE_KILL);
-			UpdateCriteria(CRITERIA_TYPE_HK_CLASS, victim->getClass());
-			UpdateCriteria(CRITERIA_TYPE_HK_RACE, victim->getRace());
-			UpdateCriteria(CRITERIA_TYPE_HONORABLE_KILL_AT_AREA, GetAreaId());
-			UpdateCriteria(CRITERIA_TYPE_HONORABLE_KILL, 1, 0, 0, victim);
-            UpdateKnownTitles();
-		}
-		else if (sWorld->getBoolConfig(CONFIG_GAIN_HONOR_ELITE) && victim->ToCreature()->isElite())
-		{
-			uint8 k_level = getLevel();
-			uint8 k_grey = Trinity::XP::GetGrayLevel(k_level);
-			uint8 v_level = victim->getLevel();
-
-			if (v_level <= k_grey)
-				return false;
-
-			uint32 victim_title = 0;
-			victim_guid = ObjectGuid::Empty;
-			honor_f = ceil(Trinity::Honor::hk_honor_at_level_f(k_level) * (v_level - k_grey) / (k_level - k_grey));
-			// count the number of playerkills in one day
-			ApplyModUInt32Value(PLAYER_FIELD_KILLS, 1, true);
-
-			// and those in a lifetime
-			ApplyModUInt32Value(PLAYER_FIELD_LIFETIME_HONORABLE_KILLS, 1, true);
-			UpdateCriteria(CRITERIA_TYPE_EARN_HONORABLE_KILL);
-			UpdateCriteria(CRITERIA_TYPE_HK_CLASS, victim->getClass());
-			UpdateCriteria(CRITERIA_TYPE_HK_RACE, victim->getRace());
-			UpdateCriteria(CRITERIA_TYPE_HONORABLE_KILL_AT_AREA, GetAreaId());
-			UpdateCriteria(CRITERIA_TYPE_HONORABLE_KILL, 1, 0, 0, victim);
-            UpdateKnownTitles();
-		}
         else
         {
             if (!victim->ToCreature()->IsRacialLeader())
@@ -6907,7 +6819,7 @@ bool Player::RewardHonor(Unit* victim, uint32 groupsize, int32 honor, bool pvpto
     return true;
 }
 
-void Player::UpdateKnownTitles()
+/*void Player::UpdateKnownTitles()
 {
     uint32 new_title = 0;
     uint32 honor_kills = GetUInt32Value(PLAYER_FIELD_LIFETIME_HONORABLE_KILLS);
@@ -6929,7 +6841,7 @@ void Player::UpdateKnownTitles()
     SetFlag64(PLAYER__FIELD_KNOWN_TITLES,uint64(1) << new_title);
     if (old_title > 0 && old_title < (2*HKRANKMAX-1) && new_title > old_title)
         SetUInt32Value(PLAYER_CHOSEN_TITLE,new_title);
-}
+}*/
 
 void Player::ResetHonorStats()
 {
@@ -18116,7 +18028,7 @@ void Player::AutoQuestCompleteDisplayQuestGiver(uint32 p_questId)
 		Creature* questgiver = ObjectAccessor::GetCreatureOrPetOrVehicle(*this, *itr);
 		if (!questgiver || questgiver->IsHostileTo(this))
 			continue;
-		if (!questgiver->HasFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_QUESTGIVER))
+		if (!questgiver->HasNpcFlag(UNIT_NPC_FLAG_QUESTGIVER))
 			continue;
 		if (questgiver->GetEntry() == entry)
 			return; // Quest giver already exists on the same map than the player
