@@ -1,3 +1,0 @@
-DELETE FROM gameobject WHERE id=204345;
-INSERT INTO gameobject (guid,id,map,zoneId,areaId,spawnMask,phaseUseFlags,PhaseId,PhaseGroup,terrainSwapMap,position_x,position_y,position_z,orientation,rotation0,rotation1,rotation2,rotation3,spawntimesecs,animprogress,state,isActive,ScriptName,VerifiedBuild) VALUES
-(160072, 204345, 0, 44, 1002, 1, 0, 0, 0, -1, -9460.93, -1895.31, 82.4763, -3.08921, 0, 0, -0.999657, 0.0261883, 300, 100, 1, 0, '', 0);

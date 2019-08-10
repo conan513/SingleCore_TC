@@ -1,5 +1,5 @@
 DELETE FROM `creature_template` WHERE entry = 1000001;
-INSERT INTO `creature_template` (`entry`, `modelid1`, `name`, `femaleName`, `subname`, `minlevel`, `maxlevel`, `faction`, `npcflag`) VALUES ('1000001', '37719', 'Klarc March', '', 'Weapon seller', '110', '110', '35', '7');
+INSERT INTO `creature_template` (`entry`, `name`, `femaleName`, `subname`, `minlevel`, `maxlevel`, `faction`, `npcflag`) VALUES ('1000001', 'Klarc March', '', 'Weapon seller', '110', '110', '35', '7');
 UPDATE `creature_template` SET `HealthScalingExpansion` = '0' , `RequiredExpansion` = '6' , `npcflag` = '128' WHERE `entry` = '1000001';
 
 DELETE FROM `npc_vendor` WHERE entry = 1000001;

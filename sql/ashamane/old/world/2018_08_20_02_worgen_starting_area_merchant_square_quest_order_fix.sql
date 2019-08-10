@@ -1,9 +1,0 @@
--- fix - quest orders gilneas start area merchant square
-UPDATE quest_template SET RewardNextQuest = 14099 WHERE id = 14094;
-UPDATE quest_template SET RewardNextQuest = 0 WHERE id = 14093;
-UPDATE quest_template SET RewardNextQuest = 0 WHERE id = 14098;
-UPDATE quest_template_addon SET PrevQuestID = 14078 WHERE id = 14094;
-UPDATE quest_template_addon SET NextQuestID = 14099 WHERE id = 14094;
-UPDATE quest_template_addon SET NextQuestID = 0 WHERE id = 14093;
-UPDATE quest_template_addon SET NextQuestID = 0 WHERE id = 14098;
-UPDATE quest_template_addon SET PrevQuestID = 14094 WHERE id = 14099;
