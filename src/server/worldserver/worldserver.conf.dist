@@ -110,9 +110,9 @@ LogsDir = "Server\Logs"
 #    The username you choose must have permisions to create/alter/rename tables.
 
 LoginDatabaseInfo     = "127.0.0.1;3310;root;123456;realmd"
-WorldDatabaseInfo     = "127.0.0.1;3310;root;123456;world"
+WorldDatabaseInfo     = "127.0.0.1;3310;root;123456;ashamane_world"
 CharacterDatabaseInfo = "127.0.0.1;3310;root;123456;characters"
-HotfixDatabaseInfo    = "127.0.0.1;3310;root;123456;hotfixes"
+HotfixDatabaseInfo    = "127.0.0.1;3310;root;123456;ashamane_hotfixes"
 
 #
 #    LoginDatabase.WorkerThreads
@@ -407,7 +407,7 @@ DisconnectToleranceInterval = 0
 #        Default:     0 - (Disabled)
 #                     1 - (Enabled)
 
-mmap.enablePathFinding = 1
+mmap.enablePathFinding = 0
 
 #
 #    vmap.enableLOS
@@ -1093,7 +1093,6 @@ Guild.BankEventLogRecordsCount = 25
 #        Default:     250
 
 Guild.NewsLogRecordsCount = 250
-Guild.SaveInterval = 15
 
 #    Guild.SaveInterval
 #    Description: Time (in min) for Guild save interval.
@@ -3282,6 +3281,9 @@ GameObject.CheckInvalidPosition = 0
 
 LegacyBuffEnabled = 1
 
+# UNKNOWNS
+Azerite.Knowledge.Level = 1
+
 #
 ###################################################################################################
 
@@ -4199,6 +4201,14 @@ Custom.AttackSpeedForMobs = 1.0
 Custom.RespawnSpeed = 1.0
 
 #
+#     Custom.FastFishing
+#         Set to 1 if you want to speed up fishing
+#     Default : 0
+#
+
+Custom.FastFishing = 0
+
+#
 ###################################################################################################
 
 ###################################################################################################
@@ -4318,11 +4328,6 @@ TimeIsMoneyFriend.Money    = 0
 Dungeon.Checkpoints.Enable = 0
 
 #
-#     Congrats.Level // NOT WORKING ANYMORE, NEW SETTINGS CAN FIND BELOW
-
-Congrats.Level = 0
-
-#
 #    Skip pandaren starting area
 #        Enable this if you want to skip the Wandering Isle (pandaren starting area)
 #        You can choose faction instantly and Pandaren characters leveled up to 5 
@@ -4332,7 +4337,7 @@ Congrats.Level = 0
 #        Default:     1 (enabled)
 #                     0 (disabled)
 
-Skip.Pandaren.Enable = 1
+Skip.Pandaren.Enable = 0
 
 #
 #    Skip worgen starting area
@@ -4342,7 +4347,7 @@ Skip.Pandaren.Enable = 1
 #        Default:    1 (enabled)
 #                    0 (disabled)
 
-Skip.Worgen.Enable = 1
+Skip.Worgen.Enable = 0
 
 #
 #    Skip goblin starting area
@@ -4352,7 +4357,7 @@ Skip.Worgen.Enable = 1
 #        Default:    1 (enabled)
 #                    0 (disabled)
 
-Skip.Goblin.Enable = 1
+Skip.Goblin.Enable = 0
 
 #
 #    Disallow.Multiple.Client
@@ -4607,7 +4612,7 @@ ImmortalMode.PVP.Enable = 0
 #                     1+ (specified zone)
 
 ImmortalMode.PVE.ZoneID = 0
-ImmortalMode.PVE.ZoneID = 0
+ImmortalMode.PVP.ZoneID = 0
 
 #
 ###################################################################################################
@@ -4929,6 +4934,24 @@ Dynamic.XP.Rate.80-89 = 9
 Dynamic.XP.Rate.90-99 = 10
 Dynamic.XP.Rate.100-109 = 11
 Dynamic.XP.Rate.110 = 1
+
+#
+###################################################################################################
+
+###################################################################################################
+# Custom starting scripts #
+###########################
+#
+
+Force.Starting.Level = 0
+Force.Starting.Level.Value = 110
+
+Force.Teleport = 0
+Force.Teleport.Map = 0
+Force.Teleport.X = 0
+Force.Teleport.Y = 0
+Force.Teleport.Z = 0
+Force.Teleport.O = 0
 
 #
 ###################################################################################################
