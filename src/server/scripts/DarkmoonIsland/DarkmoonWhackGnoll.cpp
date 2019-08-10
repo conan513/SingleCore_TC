@@ -212,7 +212,7 @@ class npc_whack_gnoll_mola : public CreatureScript
                 player->PrepareQuestMenu(creature->GetGUID());
 
             if (player->GetQuestStatus(QUEST_WHACK_A_GNOLL) == QUEST_STATUS_INCOMPLETE)
-                AddGossipItemFor(player, GOSSIP_ICON_CHAT, "I want to play Cogne-Gnoll!", GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 1);
+                AddGossipItemFor(player, GOSSIP_ICON_CHAT, "Je souhaite jouer a Cogne-Gnoll !", GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 1);
 
             player->PlayerTalkClass->SendGossipMenu(player->GetGossipTextId(creature), creature->GetGUID());
             return true;
@@ -222,7 +222,7 @@ class npc_whack_gnoll_mola : public CreatureScript
         {
             if (!player->HasItemCount(ITEM_DARKMOON_TOKEN))
             {
-                creature->Whisper("You must own a Darkmoon Token to play Cogne-Gnoll!", LANG_UNIVERSAL, player);
+                creature->Whisper("Vous devez posseder un Jeton de Sombrelune pour jouer a Cogne-Gnoll !", LANG_UNIVERSAL, player);
                 return true;
             }
 

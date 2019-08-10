@@ -47,7 +47,7 @@ class npc_canon_maxima : public CreatureScript
                 player->PrepareQuestMenu(creature->GetGUID());
 
             if (player->GetQuestStatus(QUEST_HUMANOID_CANNONBALL) == QUEST_STATUS_INCOMPLETE)
-                AddGossipItemFor(player, GOSSIP_ICON_CHAT, "I wish to become a hot man!", GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 1);
+                AddGossipItemFor(player, GOSSIP_ICON_CHAT, "Je souhaite devenir un homme canon !", GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 1);
 
             SendGossipMenuFor(player, player->GetGossipTextId(creature), creature->GetGUID());
             return true;
@@ -57,7 +57,7 @@ class npc_canon_maxima : public CreatureScript
         {
             if (!player->HasItemCount(ITEM_DARKMOON_TOKEN))
             {
-                creature->Whisper("You must have a Darkmoon Game Token to use the canon!", LANG_UNIVERSAL, player);
+                creature->Whisper("Vous devez posseder un Jeton de Sombrelune pour utiliser le canon !", LANG_UNIVERSAL, player);
                 CloseGossipMenuFor(player);
                 return true;
             }
@@ -146,7 +146,7 @@ class npc_canon_fozlebub : public CreatureScript
                 player->PrepareQuestMenu(creature->GetGUID());
 
             if (player->GetQuestStatus(QUEST_HUMANOID_CANNONBALL) != QUEST_STATUS_NONE)
-                AddGossipItemFor(player, GOSSIP_ICON_CHAT, "Teleport me to the canon!", GOSSIP_SENDER_MAIN, 0, "Would you like to pay 30 pieces of silver?", 3000, false);
+                AddGossipItemFor(player, GOSSIP_ICON_CHAT, "Teleportez moi au canon !", GOSSIP_SENDER_MAIN, 0, "Souhaitez-vous payer 30 piece d'argent ?", 3000, false);
 
             player->PlayerTalkClass->SendGossipMenu(player->GetGossipTextId(creature), creature->GetGUID());
             return true;
