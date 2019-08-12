@@ -887,7 +887,7 @@ public:
     void SummonedCreatureDespawn(Creature* /*creature*/) override
     {
         // killcredit
-        for each (auto player in players)
+        for (auto player : players)
         {
             if (player && player->IsInWorld() && player->IsInRange2d(me->GetPositionX(), me->GetPositionY(), 0, 50))
                 player->KilledMonsterCredit(NPC_DEFEND_FIREBREAKER_KILLCREDIT);
@@ -898,7 +898,7 @@ public:
     void SummonedCreatureDies(Creature* /*creature*/, Unit* /*unit*/) override
     {
         // Fail the quest
-        for each (auto player in players)
+        for (auto player : players)
         {
             if (player && player->IsInWorld())
                 player->FailQuest(QUEST_BACKUP_WILL_I_PACK);
