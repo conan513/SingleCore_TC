@@ -6233,7 +6233,7 @@ void Spell::EffectScrapItem(SpellEffIndex /*effIndex*/)
     if (!itemTarget)
         return;
 
-    if (!(itemTarget->GetTemplate()->GetFlags4() & ITEM_FLAG4_SCRAPPABLE))
+    if (!(itemTarget->GetTemplate()->GetFlags4() & ITEM_FLAG4_SCRAPABLE))
         return;
 
     ItemScrappingLoot const* iSL = sObjectMgr->GetItemScrappingLoot(itemTarget);
