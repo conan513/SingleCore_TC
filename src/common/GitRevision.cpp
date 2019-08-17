@@ -95,7 +95,7 @@ char const* GitRevision::GetHotfixesDatabase()
 
 char const* GitRevision::GetFullVersion()
 {
-  return "SingleCore_Legion rev. " VER_PRODUCTVERSION_STR
+  return "SingleCore_BFA rev. " VER_PRODUCTVERSION_STR
     " (" TRINITY_PLATFORM_STR ", " _BUILD_DIRECTIVE ", " TRINITY_LINKAGE_TYPE_STR ")";
 }
 
