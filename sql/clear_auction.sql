@@ -1,0 +1,1 @@
+DELETE FROM auctionhouse WHERE itemowner=0;
