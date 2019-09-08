@@ -2582,3 +2582,5 @@ enum MovementEvent
 #define MANGOSBOT_ONE
 #define CMANGOS
 #endif
+
+#endif
