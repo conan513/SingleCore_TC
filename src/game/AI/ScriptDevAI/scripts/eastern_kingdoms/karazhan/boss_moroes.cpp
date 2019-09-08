@@ -75,20 +75,20 @@ enum MoroesActions
     MOROES_ACTION_GAROTTE,
 };
 
-struct boss_moroesAI : public ScriptedAI, public CombatTimerAI
+struct boss_moroesAI : public ScriptedAI, public CombatActions
 {
-    boss_moroesAI(Creature* pCreature) : ScriptedAI(pCreature), CombatTimerAI(MOROES_ACTION_MAX)
+    boss_moroesAI(Creature* pCreature) : ScriptedAI(pCreature), CombatActions(MOROES_ACTION_MAX)
     {
         m_pInstance  = (ScriptedInstance*)pCreature->GetInstanceData();
-        AddCombatAction(MOROES_ACTION_VANISH, 0);
-        AddCombatAction(MOROES_ACTION_BLIND, 0);
-        AddCombatAction(MOROES_ACTION_GOUGE, 0);
-        AddCombatAction(MOROES_ACTION_ENRAGE, 0);
-        AddCustomAction(MOROES_ACTION_GAROTTE, 0, [&]()
+        AddCombatAction(MOROES_ACTION_VANISH, 0u);
+        AddCombatAction(MOROES_ACTION_BLIND, 0u);
+        AddCombatAction(MOROES_ACTION_GOUGE, 0u);
+        AddCombatAction(MOROES_ACTION_ENRAGE, 0u);
+        AddCustomAction(MOROES_ACTION_GAROTTE, true, [&]()
         {
             if (m_creature->getVictim())
                 m_creature->getVictim()->CastSpell(nullptr, SPELL_GARROTE, TRIGGERED_OLD_TRIGGERED);
-        }, true);
+        });
         Reset();
     }
 
@@ -262,6 +262,8 @@ struct boss_moroesAI : public ScriptedAI, public CombatTimerAI
                         Unit* target = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0, SPELL_GARROTE, SELECT_FLAG_PLAYER | SELECT_FLAG_NOT_AURA);
                         if (!target) // if no target without garrote found - select any random
                             target = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0, nullptr, SELECT_FLAG_PLAYER);
+                        if (!target)
+                            break;
                         target->CastSpell(nullptr, SPELL_TAUNT, TRIGGERED_OLD_TRIGGERED); // TODO: Needs to send both packets
                         m_creature->SelectHostileTarget(); // apply taunt before vanish
                         DoCastSpellIfCan(nullptr, SPELL_VANISH);

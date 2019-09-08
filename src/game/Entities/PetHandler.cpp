@@ -265,18 +265,12 @@ void WorldSession::HandlePetAction(WorldPacket& recv_data)
             if (!petUnit->hasUnitState(UNIT_STAT_POSSESSED))
                 flags |= TRIGGERED_PET_CAST;
 
-            Spell* spell = new Spell(petUnit, spellInfo, flags);
-
-            SpellCastResult result = spell->CheckPetCast(unit_target);
-
             const SpellRangeEntry* sRange = sSpellRangeStore.LookupEntry(spellInfo->rangeIndex);
 
             if (unit_target && !(petUnit->IsWithinDistInMap(unit_target, sRange->maxRange) && petUnit->IsWithinLOSInMap(unit_target))
                     && petUnit->CanAttackNow(unit_target))
             {
                 charmInfo->SetSpellOpener(spellid, sRange->minRange, sRange->maxRange);
-                spell->finish(false);
-                delete spell;
 
                 petUnit->AttackStop();
 
@@ -297,38 +291,35 @@ void WorldSession::HandlePetAction(WorldPacket& recv_data)
                 return;
             }
 
-            // auto turn to target unless possessed
-            if (result == SPELL_FAILED_UNIT_NOT_INFRONT && !petUnit->hasUnitState(UNIT_STAT_POSSESSED))
+            Spell* spell = new Spell(petUnit, spellInfo, flags);
+            SpellCastTargets targets;
+            targets.setUnitTarget(unit_target);
+            SpellCastResult result = spell->SpellStart(&targets);
+            charmInfo->SetSpellOpener();
+            // send update about target to owner unless possessed
+            if (!petUnit->hasUnitState(UNIT_STAT_POSSESSED))
             {
                 if (unit_target)
                 {
-                    petUnit->SetInFront(unit_target);
                     if (unit_target->GetTypeId() == TYPEID_PLAYER)
                         petUnit->SendCreateUpdateToPlayer((Player*)unit_target);
                 }
-
+                else if (Unit* unit_target2 = spell->m_targets.getUnitTarget())
+                {
+                    if (unit_target2->GetTypeId() == TYPEID_PLAYER)
+                        petUnit->SendCreateUpdateToPlayer((Player*)unit_target2);
+                }
                 if (Unit* powner = petUnit->GetMaster())
                     if (powner->GetTypeId() == TYPEID_PLAYER)
                         petUnit->SendCreateUpdateToPlayer((Player*)powner);
-                result = SPELL_CAST_OK;
             }
-
             if (result == SPELL_CAST_OK)
             {
-                SpellCastTargets targets;
-                targets.setUnitTarget(unit_target);
-
-                charmInfo->SetSpellOpener();
-                spell->SpellStart(&targets);
-            }
-            else
-            {
-                if (creature && creature->IsSpellReady(*spellInfo))
-                    GetPlayer()->SendClearCooldown(spellid, petUnit);
-
-                charmInfo->SetSpellOpener();
-                spell->finish(false);
-                delete spell;
+                //10% chance to play special pet attack talk, else growl
+                //actually this only seems to happen on special spells, fire shield for imp, torment for voidwalker, but it's stupid to check every spell
+                if (petUnit->GetTypeId() == TYPEID_UNIT)
+                    if (static_cast<Creature*>(petUnit)->IsPet() && (static_cast<Pet*>(petUnit)->getPetType() == SUMMON_PET) && (petUnit != unit_target) && (urand(0, 100) < 10))
+                        petUnit->SendPetTalk((uint32)PET_TALK_SPECIAL_SPELL);
             }
             break;
         }
@@ -768,7 +759,6 @@ void WorldSession::HandlePetCastSpellOpcode(WorldPacket& recvPacket)
     if (!petUnit->IsSpellReady(*spellInfo))
         return;
 
-
     // do not cast not learned spells
     if (!petUnit->HasSpell(spellid) || IsPassiveSpell(spellInfo))
         return;
@@ -779,30 +769,17 @@ void WorldSession::HandlePetCastSpellOpcode(WorldPacket& recvPacket)
 
     petUnit->clearUnitState(UNIT_STAT_MOVING);
 
+    if (HasMissingTargetFromClient(spellInfo))
+        targets.setUnitTarget(petUnit->GetTarget());
     Spell* spell = new Spell(petUnit, spellInfo, TRIGGERED_PET_CAST);
-    spell->m_targets = targets;
-
-    SpellCastResult result = spell->CheckPetCast(nullptr);
-    if (result == SPELL_CAST_OK)
+    if (spell->SpellStart(&targets) == SPELL_CAST_OK)
     {
         if (pet)
             pet->CheckLearning(spellid);
-
-        spell->SpellStart(&(spell->m_targets));
-    }
-    else
-    {
-        Unit* owner = petCreature ? petCreature->GetMaster() : nullptr;
-        if (owner && owner->GetTypeId() == TYPEID_PLAYER)
-        {
-            Spell::SendCastResult((Player*)owner, spellInfo, 0, result, true);
-
-            if (petUnit->IsSpellReady(*spellInfo))
-                GetPlayer()->SendClearCooldown(spellid, petUnit);
-        }
-
-        spell->finish(false);
-        delete spell;
+        petUnit->SendPetAIReaction();
+        if (petUnit->GetTypeId() == TYPEID_UNIT)
+            if (static_cast<Creature*>(petUnit)->IsPet() && (static_cast<Pet*>(petUnit)->getPetType() == SUMMON_PET) && (petUnit != targets.getUnitTarget()) && (urand(0, 100) < 10))
+                petUnit->SendPetTalk((uint32)PET_TALK_SPECIAL_SPELL);
     }
 }
 

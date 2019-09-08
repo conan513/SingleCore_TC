@@ -30,6 +30,9 @@ EndContentData */
 #include "AI/ScriptDevAI/include/precompiled.h"
 #include "GameEvents/GameEventMgr.h"
 #include "AI/ScriptDevAI/base/TimerAI.h"
+#include "Entities/TemporarySpawn.h"
+#include "Grids/GridNotifiers.h"
+#include "Grids/GridNotifiersImpl.h"
 
 /*######
 ## go_ethereum_prison
@@ -105,11 +108,11 @@ const uint32 npcStasisEntry[] =
     22825, 20888, 22827, 22826, 22828
 };
 
-struct npc_ethereum_prisonerAI : public ScriptedAI, public CombatTimerAI
+struct npc_ethereum_prisonerAI : public ScriptedAI, public CombatActions
 {
-    npc_ethereum_prisonerAI(Creature* creature) : ScriptedAI(creature), CombatTimerAI(0)
+    npc_ethereum_prisonerAI(Creature* creature) : ScriptedAI(creature), CombatActions(0)
     {
-        AddCustomAction(PRISONER_ATTACK, 0, [&]
+        AddCustomAction(PRISONER_ATTACK, true, [&]
         {
             m_creature->SetImmuneToNPC(false);
             m_creature->SetImmuneToPlayer(false);
@@ -122,19 +125,19 @@ struct npc_ethereum_prisonerAI : public ScriptedAI, public CombatTimerAI
             }
             if (player)
                 AttackStart(player);
-        }, true);
-        AddCustomAction(PRISONER_TALK, 0, [&]
+        });
+        AddCustomAction(PRISONER_TALK, true, [&]
         {
             if (Player* player = m_creature->GetMap()->GetPlayer(m_playerGuid))
                 DoScriptText(GetTextId(), m_creature, player);
             ResetTimer(PRISONER_CAST, 6000);
-        }, true);
-        AddCustomAction(PRISONER_CAST, 0, [&]
+        });
+        AddCustomAction(PRISONER_CAST, true, [&]
         {
             if (Player* player = m_creature->GetMap()->GetPlayer(m_playerGuid))
                 DoCastSpellIfCan(player, GetSpellId());
             m_creature->ForcedDespawn(2000);
-        }, true);
+        });
         JustRespawned();
     }
 
@@ -888,6 +891,104 @@ GameObjectAI* GetAI_go_elemental_rift(GameObject* go)
 
 std::function<bool(Unit*)> function = &TrapTargetSearch;
 
+enum
+{
+    SPELL_BOMBING_RUN_DUMMY_SUMMON = 40181, // Bombing Run: Summon Bombing Run Target Dummy - missing serverside cast by GO
+    NPC_BOMBING_RUN_TARGET_BUNNY   = 23118,
+};
+
+// This script is a substitution of casting 40181 by this very GO
+struct go_fel_cannonball_stack_trap : public GameObjectAI
+{
+    go_fel_cannonball_stack_trap(GameObject* go) : GameObjectAI(go) {}
+
+    ObjectGuid m_bunny;
+
+    void JustSpawned() override
+    {
+        Creature* bunny = m_go->SummonCreature(NPC_BOMBING_RUN_TARGET_BUNNY, m_go->GetPositionX(), m_go->GetPositionY(), m_go->GetPositionZ(), m_go->GetOrientation(), TEMPSPAWN_MANUAL_DESPAWN, 0);
+        m_bunny = bunny->GetObjectGuid();
+    }
+
+    void JustDespawned() override
+    {
+        if (Creature* bunny = m_go->GetMap()->GetCreature(m_bunny))
+            static_cast<TemporarySpawn*>(bunny)->UnSummon();
+    }
+};
+
+GameObjectAI* GetAI_go_fel_cannonball_stack_trap(GameObject* go)
+{
+    return new go_fel_cannonball_stack_trap(go);
+}
+
+enum
+{
+    SPELL_RALLYING_CRY_OF_THE_DRAGONSLAYER = 22888,
+    
+    NPC_OVERLORD_RUNTHAK            = 14392,
+    NPC_MAJOR_MATTINGLY             = 14394,
+    NPC_HIGH_OVERLORD_SAURFANG      = 14720,
+    NPC_FIELD_MARSHAL_AFRASIABI     = 14721,
+
+    GO_ONYXIA_H                     = 179556,
+    GO_ONYXIA_A                     = 179558,
+    GO_NEFARIAN_H                   = 179881,
+    GO_NEFARIAN_A                   = 179882,
+};
+
+struct go_dragon_head : public GameObjectAI
+{
+    go_dragon_head(GameObject* go) : GameObjectAI(go) {}
+
+    void JustSpawned() override
+    {
+        uint32 npcEntry = 0;
+        switch (m_go->GetEntry())
+        {
+            case GO_ONYXIA_H: npcEntry = NPC_OVERLORD_RUNTHAK; break;
+            case GO_ONYXIA_A: npcEntry = NPC_MAJOR_MATTINGLY; break;
+            case GO_NEFARIAN_H: npcEntry = NPC_HIGH_OVERLORD_SAURFANG; break;
+            case GO_NEFARIAN_A: npcEntry = NPC_FIELD_MARSHAL_AFRASIABI; break;
+        }
+
+        Unit* caster = GetClosestCreatureWithEntry(m_go, npcEntry, 30.f);
+        if (caster)
+            caster->CastSpell(nullptr, SPELL_RALLYING_CRY_OF_THE_DRAGONSLAYER, TRIGGERED_OLD_TRIGGERED);
+    }
+};
+
+GameObjectAI* GetAI_go_dragon_head(GameObject* go)
+{
+    return new go_dragon_head(go);
+}
+
+enum
+{
+    SPELL_WARCHIEFS_BLESSING = 16609,
+
+    NPC_THRALL = 4949,
+};
+
+struct go_unadorned_spike : public GameObjectAI
+{
+    go_unadorned_spike(GameObject* go) : GameObjectAI(go) {}
+
+    void OnLootStateChange() override
+    {
+        if (m_go->GetLootState() != GO_ACTIVATED)
+            return;
+
+        if (Creature* thrall = GetClosestCreatureWithEntry(m_go, NPC_THRALL, 30.f))
+            thrall->CastSpell(nullptr, SPELL_WARCHIEFS_BLESSING, TRIGGERED_OLD_TRIGGERED);
+    }
+};
+
+GameObjectAI* GetAI_go_unadorned_spike(GameObject* go)
+{
+    return new go_unadorned_spike(go);
+}
+
 void AddSC_go_scripts()
 {
     Script* pNewScript = new Script;
@@ -953,5 +1054,20 @@ void AddSC_go_scripts()
     pNewScript = new Script;
     pNewScript->Name = "go_elemental_rift";
     pNewScript->GetGameObjectAI = &GetAI_go_elemental_rift;
+    pNewScript->RegisterSelf();
+
+    pNewScript = new Script;
+    pNewScript->Name = "go_fel_cannonball_stack_trap";
+    pNewScript->GetGameObjectAI = &GetAI_go_fel_cannonball_stack_trap;
+    pNewScript->RegisterSelf();
+
+    pNewScript = new Script;
+    pNewScript->Name = "go_dragon_head";
+    pNewScript->GetGameObjectAI = &GetAI_go_dragon_head;
+    pNewScript->RegisterSelf();
+
+    pNewScript = new Script;
+    pNewScript->Name = "go_unadorned_spike";
+    pNewScript->GetGameObjectAI = &GetAI_go_unadorned_spike;
     pNewScript->RegisterSelf();
 }

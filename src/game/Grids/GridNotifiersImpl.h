@@ -247,6 +247,9 @@ inline void MaNGOS::DynamicObjectUpdater::VisitHelper(Unit* target)
         }
     }
 
+    if (spellInfo->HasAttribute(SPELL_ATTR_EX3_TARGET_ONLY_PLAYER) && target->GetTypeId() != TYPEID_PLAYER)
+        return;
+
     // Check target immune to spell or aura
     if (target->IsImmuneToSpell(spellInfo, false, eff_index) || target->IsImmuneToSpellEffect(spellInfo, eff_index, false))
         return;
@@ -262,7 +265,7 @@ inline void MaNGOS::DynamicObjectUpdater::VisitHelper(Unit* target)
     {
         if (!holder->GetAuraByEffectIndex(eff_index))
         {
-            PersistentAreaAura* Aur = new PersistentAreaAura(spellInfo, eff_index, nullptr, holder, target, i_dynobject.GetCaster());
+            PersistentAreaAura* Aur = new PersistentAreaAura(spellInfo, eff_index, &i_dynobject.GetDamage(), &i_dynobject.GetBasePoints(), holder, target, caster);
             holder->AddAura(Aur, eff_index);
             target->AddAuraToModList(Aur);
             Aur->ApplyModifier(true, true);
@@ -275,8 +278,8 @@ inline void MaNGOS::DynamicObjectUpdater::VisitHelper(Unit* target)
     }
     else
     {
-        holder = CreateSpellAuraHolder(spellInfo, target, i_dynobject.GetCaster());
-        PersistentAreaAura* Aur = new PersistentAreaAura(spellInfo, eff_index, nullptr, holder, target, i_dynobject.GetCaster());
+        holder = CreateSpellAuraHolder(spellInfo, target, caster);
+        PersistentAreaAura* Aur = new PersistentAreaAura(spellInfo, eff_index, &i_dynobject.GetDamage(), &i_dynobject.GetBasePoints(), holder, target, caster);
         holder->AddAura(Aur, eff_index);
         if (!target->AddSpellAuraHolder(holder))
             delete holder;

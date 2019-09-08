@@ -20,6 +20,7 @@
 #define MANGOS_MOTIONMASTER_H
 
 #include "Common.h"
+#include "Globals/SharedDefines.h"
 #include <stack>
 #include <vector>
 
@@ -60,6 +61,12 @@ enum MMCleanFlag
     MMCF_NONE   = 0,
     MMCF_UPDATE = 1,                                        // Clear or Expire called from update
     MMCF_RESET  = 2                                         // Flag if need top()->Reset()
+};
+
+enum ForcedMovement
+{
+    FORCED_MOVEMENT_NONE,
+    FORCED_MOVEMENT_WALK,
 };
 
 class MotionMaster : private std::stack<MovementGenerator*>
@@ -104,9 +111,10 @@ class MotionMaster : private std::stack<MovementGenerator*>
         void MoveTargetedHome(bool runHome = true);
         void MoveFollow(Unit* target, float dist, float angle, bool asMain = false);
         void MoveChase(Unit* target, float dist = 0.0f, float angle = 0.0f, bool moveFurther = false, bool walk = false, bool combat = true);
+        void DistanceYourself(float dist);
         void MoveConfused();
         void MoveFleeing(Unit* enemy, uint32 time = 0);
-        void MovePoint(uint32 id, float x, float y, float z, bool generatePath = true);
+        void MovePoint(uint32 id, float x, float y, float z, bool generatePath = true, ForcedMovement forcedMovement = FORCED_MOVEMENT_NONE);
         void MoveSeekAssistance(float x, float y, float z);
         void MoveSeekAssistanceDistract(uint32 time);
         void MoveWaypoint(uint32 pathId = 0, uint32 source = 0, uint32 initialDelay = 0, uint32 overwriteEntry = 0);
@@ -114,6 +122,7 @@ class MotionMaster : private std::stack<MovementGenerator*>
         void MoveDistract(uint32 timer);
         void MoveFall();
         void MoveFlyOrLand(uint32 id, float x, float y, float z, bool liftOff);
+        void MoveCharge(float x, float y, float z, float speed, uint32 id = EVENT_CHARGE);
 
         MovementGeneratorType GetCurrentMovementGeneratorType() const;
 

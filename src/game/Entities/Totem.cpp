@@ -41,10 +41,8 @@ bool Totem::Create(uint32 guidlow, CreatureCreatePos& cPos, CreatureInfo const* 
 
     // special model selection case for totems
     if (owner->GetTypeId() == TYPEID_PLAYER)
-    {
         if (uint32 modelid_race = sObjectMgr.GetModelForRace(GetNativeDisplayId(), owner->getRaceMask()))
             SetDisplayId(modelid_race);
-    }
 
     cPos.SelectFinalPoint(this);
 
@@ -163,7 +161,7 @@ void Totem::SetTypeBySummonSpell(SpellEntry const* spellProto)
     if (totemSpell)
     {
         // If spell have cast time -> so its active totem
-        if (GetSpellCastTime(totemSpell))
+        if (GetSpellCastTime(totemSpell, this))
             m_type = TOTEM_ACTIVE;
     }
     if (spellProto->SpellIconID == 2056)

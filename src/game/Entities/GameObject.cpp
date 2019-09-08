@@ -99,8 +99,13 @@ void GameObject::AddToWorld()
     UpdateCollisionState();
 
     if (IsSpawned()) // need to prevent linked trap addition due to Pool system Map::Add abuse
+    {
         if (GameObject* linkedGO = SummonLinkedTrapIfAny())
             SetLinkedTrap(linkedGO);
+
+        if (AI())
+            AI()->JustSpawned();
+    }
 }
 
 void GameObject::RemoveFromWorld()
@@ -212,6 +217,10 @@ bool GameObject::Create(uint32 guidlow, uint32 name_id, Map* map, float x, float
     if (InstanceData* iData = map->GetInstanceData())
         iData->OnObjectCreate(this);
 
+    // Check if GameObject is Large
+    if (GetGOInfo()->IsLargeGameObject())
+        SetVisibilityDistanceOverride(VisibilityDistanceType::Large);
+
     return true;
 }
 
@@ -294,10 +303,6 @@ void GameObject::Update(const uint32 diff)
                 {
                     m_respawnTime = 0;
                     ClearAllUsesData();
-
-                    // If nearby linked trap exists, respawn it
-                    if (GameObject* linkedTrap = GetLinkedTrap())
-                        linkedTrap->SetLootState(GO_READY);
 
                     switch (GetGoType())
                     {
@@ -486,7 +491,10 @@ void GameObject::Update(const uint32 diff)
 
             // If nearby linked trap exists, despawn it
             if (GameObject* linkedTrap = GetLinkedTrap())
+            {
                 linkedTrap->SetLootState(GO_JUST_DEACTIVATED);
+                linkedTrap->Delete();
+            }
 
             switch (GetGoType())
             {
@@ -504,6 +512,7 @@ void GameObject::Update(const uint32 diff)
                     }
 
                     SetGoState(GO_STATE_READY);
+                    // research - 185861 needs to be able to despawn as well TODO: fixup
 
                     // any return here in case battleground traps
                     break;
@@ -564,6 +573,9 @@ void GameObject::Update(const uint32 diff)
             if (!m_respawnDelayTime)
                 return;
 
+            if (AI())
+                AI()->JustDespawned();
+
             // since pool system can fail to roll unspawned object, this one can remain spawned, so must set respawn nevertheless
             if (GameObjectData const* data = sObjectMgr.GetGOData(GetObjectGuid().GetCounter()))
                 m_respawnDelayTime = data->GetRandomRespawnTime();
@@ -576,14 +588,7 @@ void GameObject::Update(const uint32 diff)
 
             // if part of pool, let pool system schedule new spawn instead of just scheduling respawn
             if (uint16 poolid = sPoolMgr.IsPartOfAPool<GameObject>(GetGUIDLow()))
-            {
                 sPoolMgr.UpdatePool<GameObject>(*GetMap()->GetPersistentState(), poolid, GetGUIDLow());
-                if (GameObject* linkedTrap = GetLinkedTrap())
-                {
-                    linkedTrap->SetLootState(GO_JUST_DEACTIVATED);
-                    linkedTrap->Delete();
-                }
-            }
 
             // can be not in world at pool despawn
             if (IsInWorld())
@@ -634,6 +639,9 @@ void GameObject::Delete()
 
     SetGoState(GO_STATE_READY);
     SetUInt32Value(GAMEOBJECT_FLAGS, GetGOInfo()->flags);
+
+    if (AI())
+        AI()->JustDespawned();
 
     if (uint16 poolid = sPoolMgr.IsPartOfAPool<GameObject>(GetGUIDLow()))
         sPoolMgr.UpdatePool<GameObject>(*GetMap()->GetPersistentState(), poolid, GetGUIDLow());
@@ -863,7 +871,7 @@ void GameObject::SaveRespawnTime()
         GetMap()->GetPersistentState()->SaveGORespawnTime(GetGUIDLow(), m_respawnTime);
 }
 
-bool GameObject::isVisibleForInState(Player const* u, WorldObject const* viewPoint, bool inVisibleList) const
+bool GameObject::isVisibleForInState(Player const* u, WorldObject const* viewPoint, bool /*inVisibleList*/) const
 {
     // Not in world
     if (!IsInWorld() || !u->IsInWorld())
@@ -943,8 +951,7 @@ bool GameObject::isVisibleForInState(Player const* u, WorldObject const* viewPoi
     }
 
     // check distance
-    return IsWithinDistInMap(viewPoint, GetMap()->GetVisibilityDistance() +
-                             (inVisibleList ? World::GetVisibleObjectGreyDistance() : 0.0f), false);
+    return IsWithinDistInMap(viewPoint, GetVisibilityDistance(), false);
 }
 
 void GameObject::Respawn()
@@ -1060,8 +1067,8 @@ GameObject* GameObject::SummonLinkedTrapIfAny() const
         linkedGO->SetUInt32Value(GAMEOBJECT_LEVEL, GetUInt32Value(GAMEOBJECT_LEVEL));
     }
 
-    GetMap()->Add(linkedGO);
     linkedGO->AIM_Initialize();
+    GetMap()->Add(linkedGO);
 
     return linkedGO;
 }
@@ -1119,8 +1126,7 @@ bool GameObject::IsCollisionEnabled() const
     {
         case GAMEOBJECT_TYPE_DOOR:
         case GAMEOBJECT_TYPE_DESTRUCTIBLE_BUILDING:
-            return GetGoState() != GO_STATE_ACTIVE && GetGoState() != GO_STATE_ACTIVE_ALTERNATIVE;
-
+            return GetGoState() == GO_STATE_READY;
         default:
             return true;
     }

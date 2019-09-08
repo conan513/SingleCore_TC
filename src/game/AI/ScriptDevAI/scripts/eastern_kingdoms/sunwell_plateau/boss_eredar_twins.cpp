@@ -17,7 +17,7 @@
 /* ScriptData
 SDName: boss_eredar_twins
 SD%Complete: 75
-SDComment: A few spells are not working proper yet; Shadow image script needs improvement
+SDComment: A few spells are not working proper yet; Shadow image script needs improvement; Add invulnerability in phase transition
 SDCategory: Sunwell Plateau
 EndScriptData */
 
@@ -495,6 +495,7 @@ struct npc_shadow_imageAI : public ScriptedAI
         {
             if (m_uiSuicideTimer <= uiDiff)
             {
+                // confirmed suicide like this
                 m_creature->DealDamage(m_creature, m_creature->GetHealth(), nullptr, DIRECT_DAMAGE, SPELL_SCHOOL_MASK_NORMAL, nullptr, false);
             }
             else

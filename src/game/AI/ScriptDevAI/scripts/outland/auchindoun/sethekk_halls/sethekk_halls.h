@@ -21,7 +21,7 @@ enum
     NPC_INVIS_RAVEN_GOD_TARGET  = 23057,
     NPC_INVIS_RAVEN_GOD_CASTER  = 23058,
 
-    GO_IKISS_DOOR               = 177203,
+    GO_IKISS_SWING_DOOR         = 183398,
     GO_IKISS_CHEST              = 187372,
     GO_RAVENS_CLAW              = 185554,
     GO_MOONSTONE                = 185590,
@@ -50,7 +50,7 @@ class instance_sethekk_halls : public ScriptedInstance
         const char* Save() const override { return m_strInstData.c_str(); }
         void Load(const char* chrIn) override;
 
-        void Update(uint32 diff) override;
+        void Update(const uint32 diff) override;
         void StartAnzuIntro(Player* player);
         void FinishAnzuIntro();
     private:

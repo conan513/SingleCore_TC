@@ -93,7 +93,8 @@ Map::Map(uint32 id, time_t expiry, uint32 InstanceId, uint8 SpawnMode)
       m_VisibleDistance(DEFAULT_VISIBILITY_DISTANCE), m_persistentState(nullptr),
       m_activeNonPlayersIter(m_activeNonPlayers.end()), m_onEventNotifiedIter(m_onEventNotifiedObjects.end()),
       i_gridExpiry(expiry), m_TerrainData(sTerrainMgr.LoadTerrain(id)),
-      i_data(nullptr), i_script_id(0)
+      i_data(nullptr), i_script_id(0),
+      m_cycleCounter(0), m_updateTimeMin(INT_MAX), m_updateTimeMax(0), m_updateTimeTotal(0)
 {
     m_weatherSystem = new WeatherSystem(this);
 }
@@ -121,7 +122,7 @@ void Map::Initialize(bool loadInstanceData /*= true*/)
 
     CreateInstanceData(loadInstanceData);
 
-    m_persistentState = sMapPersistentStateMgr.AddPersistentState(i_mapEntry, GetInstanceId(), GetDifficulty(), 0, IsDungeon());
+    m_persistentState = sMapPersistentStateMgr.AddPersistentState(i_mapEntry, GetInstanceId(), GetDifficulty(), 0, IsDungeon(), false);
     m_persistentState->SetUsedByMapState(this);
     m_persistentState->InitPools();
 
@@ -227,8 +228,7 @@ void Map::DeleteFromWorld(Player* pl)
     delete pl;
 }
 
-void
-Map::EnsureGridCreated(const GridPair& p)
+void Map::EnsureGridCreated(const GridPair& p)
 {
     if (!getNGrid(p.x_coord, p.y_coord))
     {
@@ -249,8 +249,7 @@ Map::EnsureGridCreated(const GridPair& p)
     }
 }
 
-void
-Map::EnsureGridLoadedAtEnter(const Cell& cell, Player* player)
+void Map::EnsureGridLoadedAtEnter(const Cell& cell, Player* player)
 {
     NGridType* grid;
 
@@ -300,6 +299,16 @@ bool Map::EnsureGridLoaded(const Cell& cell)
     }
 
     return false;
+}
+
+uint32 Map::GetLoadedGridsCount()
+{
+    uint32 count = 0;
+    for (uint32 i = 0; i < MAX_NUMBER_OF_GRIDS; ++i)
+        for (uint32 k = 0; k < MAX_NUMBER_OF_GRIDS; ++k)
+            if (i_grids[i][k] && i_grids[i][k]->GetGridState() == GRID_STATE_ACTIVE)
+                ++count;
+    return count;
 }
 
 void Map::ForceLoadGrid(float x, float y)
@@ -475,14 +484,14 @@ void Map::MessageDistBroadcast(WorldObject const* obj, WorldPacket const& msg, f
     cell.Visit(p, message, *this, *obj, dist);
 }
 
-void Map::MessageMapBroadcast(WorldObject const* obj, WorldPacket const& msg)
+void Map::MessageMapBroadcast(WorldObject const* /*obj*/, WorldPacket const& msg)
 {
     Map::PlayerList const& pList = GetPlayers();
     for (const auto& itr : pList)
         itr.getSource()->SendDirectMessage(msg);
 }
 
-void Map::MessageMapBroadcastZone(WorldObject const* obj, WorldPacket const& msg, uint32 zoneId)
+void Map::MessageMapBroadcastZone(WorldObject const* /*obj*/, WorldPacket const& msg, uint32 zoneId)
 {
     Map::PlayerList const& pList = GetPlayers();
     for (const auto& itr : pList)
@@ -490,7 +499,7 @@ void Map::MessageMapBroadcastZone(WorldObject const* obj, WorldPacket const& msg
             itr.getSource()->SendDirectMessage(msg);
 }
 
-void Map::MessageMapBroadcastArea(WorldObject const* obj, WorldPacket const& msg, uint32 areaId)
+void Map::MessageMapBroadcastArea(WorldObject const* /*obj*/, WorldPacket const& msg, uint32 areaId)
 {
     Map::PlayerList const& pList = GetPlayers();
     for (const auto& itr : pList)
@@ -574,6 +583,8 @@ void Map::VisitNearbyCellsOf(WorldObject* obj, TypeContainerVisitor<MaNGOS::Obje
 
 void Map::Update(const uint32& t_diff)
 {
+    std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
+
     m_dyn_tree.update(t_diff);
 
     /// update worldsessions for existing players
@@ -585,7 +596,7 @@ void Map::Update(const uint32& t_diff)
             WorldSession* pSession = plr->GetSession();
             MapSessionFilter updater(pSession);
 
-            pSession->Update(updater);
+            pSession->Update(t_diff, updater);
         }
     }
 
@@ -694,6 +705,18 @@ void Map::Update(const uint32& t_diff)
 
     if (i_data)
         i_data->Update(t_diff);
+
+    std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
+    long long duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+    if (duration < m_updateTimeMin)
+        m_updateTimeMin = duration;
+
+    if (duration > m_updateTimeMax)
+        m_updateTimeMax = duration;
+
+    m_updateTimeTotal += duration;
+    ++m_cycleCounter;
 
     m_weatherSystem->UpdateWeathers(t_diff);
 }
@@ -985,7 +1008,7 @@ void Map::SendInitSelf(Player* player) const
 {
     DETAIL_LOG("Creating player data for himself %u", player->GetGUIDLow());
 
-    UpdateData data;
+    UpdateData updateData;
 
     bool hasTransport = false;
 
@@ -993,11 +1016,11 @@ void Map::SendInitSelf(Player* player) const
     if (Transport* transport = player->GetTransport())
     {
         hasTransport = true;
-        transport->BuildCreateUpdateBlockForPlayer(&data, player);
+        transport->BuildCreateUpdateBlockForPlayer(&updateData, player);
     }
 
     // build data for self presence in world at own client (one time for map)
-    player->BuildCreateUpdateBlockForPlayer(&data, player);
+    player->BuildCreateUpdateBlockForPlayer(&updateData, player);
 
     // build other passengers at transport also (they always visible and marked as visible and will not send at visibility update at add to map
     if (Transport* transport = player->GetTransport())
@@ -1007,14 +1030,16 @@ void Map::SendInitSelf(Player* player) const
             if (player != itr && player->HaveAtClient(itr))
             {
                 hasTransport = true;
-                itr->BuildCreateUpdateBlockForPlayer(&data, player);
+                itr->BuildCreateUpdateBlockForPlayer(&updateData, player);
             }
         }
     }
 
-    WorldPacket packet;
-    data.BuildPacket(packet, hasTransport);
-    player->GetSession()->SendPacket(packet);
+    for (size_t i = 0; i < updateData.GetPacketCount(); ++i)
+    {
+        WorldPacket packet = updateData.BuildPacket(i, hasTransport);
+        player->GetSession()->SendPacket(packet);
+    }
 }
 
 void Map::SendInitTransports(Player* player) const
@@ -1026,7 +1051,7 @@ void Map::SendInitTransports(Player* player) const
     if (tmap.find(player->GetMapId()) == tmap.end())
         return;
 
-    UpdateData transData;
+    UpdateData updateData;
 
     MapManager::TransportSet& tset = tmap[player->GetMapId()];
 
@@ -1038,13 +1063,15 @@ void Map::SendInitTransports(Player* player) const
         if (i != player->GetTransport() && i->GetMapId() == i_id)
         {
             hasTransport = true;
-            i->BuildCreateUpdateBlockForPlayer(&transData, player);
+            i->BuildCreateUpdateBlockForPlayer(&updateData, player);
         }
     }
 
-    WorldPacket packet;
-    transData.BuildPacket(packet, hasTransport);
-    player->GetSession()->SendPacket(packet);
+    for (size_t i = 0; i < updateData.GetPacketCount(); ++i)
+    {
+        WorldPacket packet = updateData.BuildPacket(i, hasTransport);
+        player->GetSession()->SendPacket(packet);
+    }
 }
 
 void Map::SendRemoveTransports(Player* player) const
@@ -1056,18 +1083,20 @@ void Map::SendRemoveTransports(Player* player) const
     if (tmap.find(player->GetMapId()) == tmap.end())
         return;
 
-    UpdateData transData;
+    UpdateData updateData;
 
     MapManager::TransportSet& tset = tmap[player->GetMapId()];
 
     // except used transport
     for (auto i : tset)
         if (i != player->GetTransport() && i->GetMapId() != i_id)
-            i->BuildOutOfRangeUpdateBlock(&transData);
+            i->BuildOutOfRangeUpdateBlock(&updateData);
 
-    WorldPacket packet;
-    transData.BuildPacket(packet);
-    player->GetSession()->SendPacket(packet);
+    for (size_t i = 0; i < updateData.GetPacketCount(); ++i)
+    {
+        WorldPacket packet = updateData.BuildPacket(i);
+        player->GetSession()->SendPacket(packet);
+    }
 }
 
 inline void Map::setNGrid(NGridType* grid, uint32 x, uint32 y)
@@ -1983,12 +2012,13 @@ void Map::SendObjectUpdates()
         obj->BuildUpdateData(update_players);
     }
 
-    WorldPacket packet;                                     // here we allocate a std::vector with a size of 0x10000
     for (auto& update_player : update_players)
     {
-        update_player.second.BuildPacket(packet);
-        update_player.first->GetSession()->SendPacket(packet);
-        packet.clear();                                     // clean the string
+        for (size_t i = 0; i < update_player.second.GetPacketCount(); ++i)
+        {
+            WorldPacket packet = update_player.second.BuildPacket(i);
+            update_player.first->GetSession()->SendPacket(packet);
+        }
     }
 }
 

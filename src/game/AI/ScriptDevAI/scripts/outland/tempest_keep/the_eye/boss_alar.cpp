@@ -122,7 +122,6 @@ struct boss_alarAI : public ScriptedAI
 
     bool m_bCanSummonEmber;
     bool m_bForcePlatformMove;
-    bool m_bInvulnerability;
     bool m_canMelee;
 
     uint32 m_lastRebirthResult;
@@ -148,7 +147,7 @@ struct boss_alarAI : public ScriptedAI
 
         m_bCanSummonEmber       = true;
         m_bForcePlatformMove    = false;
-        m_bInvulnerability      = false;
+        SetDeathPrevention(true);
 
         m_creature->SetIgnoreRangedTargets(true);
 
@@ -206,7 +205,7 @@ struct boss_alarAI : public ScriptedAI
         }
     }
     
-    // UNCOMMENT THIS AREA WHEN PATCH 2.1 HITS
+    // UNCOMMENT THIS AREA WHEN PATCH 2.1 HITS - should be done through serverside 41910
     /* void SummonedCreatureJustDied(Creature* pSummoned) override
     {
         // drain 2% of boss health when the ember dies
@@ -277,6 +276,7 @@ struct boss_alarAI : public ScriptedAI
                 }
                 else if (m_uiPhase == PHASE_DIVE_BOMB)
                 {
+                    SetDeathPrevention(false);
                     if (DoCastSpellIfCan(m_creature, SPELL_DIVE_BOMB_VISUAL) == CAST_OK)
                         m_uiDiveBombTimer = 5000;
                 }
@@ -285,6 +285,7 @@ struct boss_alarAI : public ScriptedAI
                 // When we reach the platform we start the range check and we can summon the embers
                 m_bCanSummonEmber = true;
                 m_canMelee = true;
+                SetDeathPrevention(true);
                 break;
             case POINT_ID_RESSURRECT:
                 // remove the invisibility aura
@@ -296,26 +297,16 @@ struct boss_alarAI : public ScriptedAI
         }
     }
 
-    void DamageTaken(Unit* /*pKiller*/, uint32& uiDamage, DamageEffectType /*damagetype*/) override
+    void JustPreventedDeath(Unit* /*attacker*/) override
     {
-        if (m_bInvulnerability)
-        {
-            uiDamage = 0;
-            return;
-        }
-
         // Only init fake in phase one
-        if (m_uiPhase != PHASE_ONE)
-            return;
-
-        if (uiDamage < m_creature->GetHealth())
+        if (m_uiPhase != PHASE_ONE || !m_canMelee)
             return;
 
         m_creature->AttackStop();
         m_creature->InterruptNonMeleeSpells(true);
         m_creature->RemoveAurasDueToSpell(SPELL_FLAME_QUILLS);
         // We set the health to 1 in order to avoid the forced death stand flag - this way we can have the ressurrect animation
-        m_creature->SetHealth(1);
         m_creature->StopMoving();
         m_creature->ClearComboPointHolders();
         m_creature->RemoveAllAurasOnDeath();
@@ -327,11 +318,8 @@ struct boss_alarAI : public ScriptedAI
         m_creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
         m_creature->SetStandState(UNIT_STAND_STATE_DEAD);
 
-        m_bInvulnerability = true;
         m_creature->SetIgnoreRangedTargets(false);
-
-        // Stop damage and stop checking for flame buffet.
-        uiDamage = 0;
+        SetCombatScriptStatus(true);
 
         if (DoCastSpellIfCan(m_creature, SPELL_EMBER_BLAST) == CAST_OK)
         {
@@ -344,7 +332,7 @@ struct boss_alarAI : public ScriptedAI
     void SpellHit(Unit* /*pCaster*/, const SpellEntry* pSpell) override
     {
         if (pSpell->Id == SPELL_REBIRTH)
-            m_bInvulnerability = false;
+            SetDeathPrevention(false);
         else if (pSpell->Id == SPELL_DIVE_BOMB_VISUAL)
             m_creature->SetDisplayId(14501);
     }
@@ -416,6 +404,7 @@ struct boss_alarAI : public ScriptedAI
                 if (m_uiPhaseTransitionTimer <= uiDiff)
                 {
                     m_uiPhaseTransitionTimer = 0;
+                    SetCombatScriptStatus(false);
                     m_creature->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
                     m_creature->SetStandState(UNIT_STAND_STATE_STAND);
 
@@ -483,6 +472,7 @@ struct boss_alarAI : public ScriptedAI
                     m_uiChargeTimer = urand(25000, 30000);
                     SetCombatMovement(false);
                     m_creature->GetMotionMaster()->MovePoint(POINT_ID_QUILLS, aCenterLocation[0].m_fX, aCenterLocation[0].m_fY, aCenterLocation[0].m_fZ);
+                    SetDeathPrevention(true);
                     m_uiPhase = PHASE_DIVE_BOMB;
                     m_uiDiveBombTimer = 0;
                 }

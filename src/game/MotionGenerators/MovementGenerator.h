@@ -23,6 +23,7 @@
 #include "Dynamic/FactoryHolder.h"
 #include "MotionGenerators/MotionMaster.h"
 #include "Timer.h"
+#include "Globals/SharedDefines.h"
 
 class Unit;
 class Creature;
@@ -48,13 +49,15 @@ class MovementGenerator
         virtual MovementGeneratorType GetMovementGeneratorType() const = 0;
         virtual Unit* GetCurrentTarget() const { return nullptr; }
 
-        virtual void unitSpeedChanged() { }
+        virtual void UnitSpeedChanged() { }
 
         // used by Evade code for select point to evade with expected restart default movement
-        virtual bool GetResetPosition(Unit&, float& /*x*/, float& /*y*/, float& /*z*/, float& o) const { return false; }
+        virtual bool GetResetPosition(Unit&, float& /*x*/, float& /*y*/, float& /*z*/, float& /*o*/) const { return false; }
 
         // given destination unreachable? due to pathfinsing or other
         virtual bool IsReachable() const { return true; }
+
+        virtual bool IsRemovedOnDirectExpire() const { return false; }
 
         // used for check from Update call is movegen still be active (top movement generator)
         // after some not safe for this calls
@@ -96,15 +99,21 @@ class MovementGeneratorMedium : public MovementGenerator
             return (static_cast<D const*>(this))->GetResetPosition(*((T*)&u), x, y, z, o);
         }
     public:
-        // Will not link if not overridden in the generators
-        void Initialize(T& u);
-        void Finalize(T& u);
-        void Interrupt(T& u);
-        void Reset(T& u);
-        bool Update(T& u, const uint32& time_diff);
+        // Will not link if not overridden in the generators - also not generate for T==Unit
+        template <class U = T, typename std::enable_if<false == std::is_same<U, Unit>::value, U>::type* = nullptr>
+        void Initialize(U& u);
+        template <class U = T, typename std::enable_if<false == std::is_same<U, Unit>::value, U>::type* = nullptr>
+        void Finalize(U& u);
+        template <class U = T, typename std::enable_if<false == std::is_same<U, Unit>::value, U>::type* = nullptr>
+        void Interrupt(U& u);
+        template <class U = T, typename std::enable_if<false == std::is_same<U, Unit>::value, U>::type* = nullptr>
+        void Reset(U& u);
+        template <class U = T, typename std::enable_if<false == std::is_same<U, Unit>::value, U>::type* = nullptr>
+        bool Update(U& u, const uint32& time_diff);
 
         // not need always overwrites
-        bool GetResetPosition(T& /*u*/, float& /*x*/, float& /*y*/, float& /*z*/, float& /*o*/) const { return false; }
+        template <class U = T, typename std::enable_if<false == std::is_same<U, Unit>::value, U>::type* = nullptr>
+        bool GetResetPosition(U& /*u*/, float& /*x*/, float& /*y*/, float& /*z*/, float& /*o*/) const { return false; }
 };
 
 struct SelectableMovement : public FactoryHolder<MovementGenerator, MovementGeneratorType>

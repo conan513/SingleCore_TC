@@ -38,7 +38,7 @@ enum
     EMOTE_BIRD_STONE    = -1556020,
 
     // Intro spells
-    SPELL_SHADOWFORM = 37816,
+    SPELL_SHADOWFORM    = 37816,
 
     // combat spells
     SPELL_FLESH_RIP     = 40199,
@@ -99,31 +99,31 @@ enum AnzuActions
     ANZU_BROOD_ATTACK,
 };
 
-struct boss_anzuAI : public ScriptedAI, public CombatTimerAI
+struct boss_anzuAI : public ScriptedAI, public CombatActions
 {
-    boss_anzuAI(Creature* pCreature) : ScriptedAI(pCreature), CombatTimerAI(ANZU_COMBAT_ACTION_MAX)
+    boss_anzuAI(Creature* pCreature) : ScriptedAI(pCreature), CombatActions(ANZU_COMBAT_ACTION_MAX)
     {
         m_instance = (instance_sethekk_halls*)pCreature->GetInstanceData();
-        AddCustomAction(ANZU_INTRO_TALK, 0, [&]
+        AddCustomAction(ANZU_INTRO_TALK, true, [&]
         {
             DoScriptText(SAY_ANZU_INTRO_2, m_creature); // is sent to despawned NPC_INVIS_RAVEN_GOD_TARGET in sniff
-        }, true);
-        AddCustomAction(ANZU_INTRO_FLAGS, 0, [&]
+        });
+        AddCustomAction(ANZU_INTRO_FLAGS, true, [&]
         {
             m_creature->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE_TO_PLAYER | UNIT_FLAG_IMMUNE_TO_NPC);
             m_creature->RemoveAurasDueToSpell(SPELL_SHADOWFORM);
-        }, true);
-        AddCustomAction(ANZU_BROOD_ATTACK, 0, [&]
+        });
+        AddCustomAction(ANZU_BROOD_ATTACK, true, [&]
         {
             for (ObjectGuid guid : m_broodGuidList)
                 if (Creature* brood = m_creature->GetMap()->GetCreature(guid))
                     brood->AI()->SetReactState(REACT_AGGRESSIVE);
-        }, true);
-        AddCombatAction(ANZU_ACTION_FLESH_RIP, 0);
-        AddCombatAction(ANZU_ACTION_SCREECH, 0);
-        AddCombatAction(ANZU_ACTION_SPELL_BOMB, 0);
-        AddCombatAction(ANZU_ACTION_CYCLONE, 0);
-        AddCombatAction(ANZU_ACTION_DIVE, 0);
+        });
+        AddCombatAction(ANZU_ACTION_FLESH_RIP, 0u);
+        AddCombatAction(ANZU_ACTION_SCREECH, 0u);
+        AddCombatAction(ANZU_ACTION_SPELL_BOMB, 0u);
+        AddCombatAction(ANZU_ACTION_CYCLONE, 0u);
+        AddCombatAction(ANZU_ACTION_DIVE, 0u);
         Reset();
     }
 
@@ -278,6 +278,12 @@ struct boss_anzuAI : public ScriptedAI, public CombatTimerAI
         }
     }
 
+    void ReceiveAIEvent(AIEventType eventType, Unit* /*sender*/, Unit* /*invoker*/, uint32 /*miscValue*/) override
+    {
+        if (eventType == AI_EVENT_CUSTOM_A) // end of banish
+            SetMeleeEnabled(true);
+    }
+
     void ExecuteActions() override
     {
         if (!CanExecuteCombatAction())
@@ -327,15 +333,15 @@ struct boss_anzuAI : public ScriptedAI, public CombatTimerAI
                     }
                     continue;
                 case ANZU_ACTION_SPELL_BOMB:
-                    if (Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0, nullptr, SELECT_FLAG_PLAYER | SELECT_FLAG_POWER_MANA))
+                    if (Unit* target = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0, nullptr, SELECT_FLAG_PLAYER | SELECT_FLAG_POWER_MANA))
                     {
-                        if (DoCastSpellIfCan(pTarget, SPELL_SPELL_BOMB) == CAST_OK)
+                        if (DoCastSpellIfCan(target, SPELL_SPELL_BOMB) == CAST_OK)
                         {
                             switch (urand(0, 2))
                             {
-                                case 0: DoScriptText(SAY_WHISPER_MAGIC_1, m_creature, pTarget); break;
-                                case 1: DoScriptText(SAY_WHISPER_MAGIC_2, m_creature, pTarget); break;
-                                case 2: DoScriptText(SAY_WHISPER_MAGIC_3, m_creature, pTarget); break;
+                                case 0: DoScriptText(SAY_WHISPER_MAGIC_1, m_creature, target); break;
+                                case 1: DoScriptText(SAY_WHISPER_MAGIC_2, m_creature, target); break;
+                                case 2: DoScriptText(SAY_WHISPER_MAGIC_3, m_creature, target); break;
                             }
                             SetActionReadyStatus(i, false);
                             ResetTimer(i, GetSubsequentActionTimer(AnzuActions(i)));
@@ -344,9 +350,9 @@ struct boss_anzuAI : public ScriptedAI, public CombatTimerAI
                     }
                     continue;
                 case ANZU_ACTION_CYCLONE:
-                    if (Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 1, nullptr, SELECT_FLAG_PLAYER))
+                    if (Unit* target = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 1, nullptr, SELECT_FLAG_PLAYER))
                     {
-                        if (DoCastSpellIfCan(pTarget, SPELL_CYCLONE) == CAST_OK)
+                        if (DoCastSpellIfCan(target, SPELL_CYCLONE) == CAST_OK)
                         {
                             SetActionReadyStatus(i, false);
                             ResetTimer(i, GetSubsequentActionTimer(AnzuActions(i)));
@@ -355,9 +361,9 @@ struct boss_anzuAI : public ScriptedAI, public CombatTimerAI
                     }
                     continue;
                 case ANZU_ACTION_DIVE:
-                    if (Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 1, nullptr, SELECT_FLAG_PLAYER))
+                    if (Unit* target = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 1, nullptr, SELECT_FLAG_PLAYER))
                     {
-                        if (DoCastSpellIfCan(pTarget, SPELL_DIVE) == CAST_OK)
+                        if (DoCastSpellIfCan(target, SPELL_DIVE) == CAST_OK)
                         {
                             SetActionReadyStatus(i, false);
                             ResetTimer(i, GetSubsequentActionTimer(AnzuActions(i)));

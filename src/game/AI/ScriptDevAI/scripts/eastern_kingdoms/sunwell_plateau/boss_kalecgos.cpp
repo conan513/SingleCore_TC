@@ -65,9 +65,11 @@ enum
     SPELL_CORRUPTING_STRIKE         = 45029,
     SPELL_CURSE_OF_BOUNDLESS_AGONY  = 45032,
     SPELL_SHADOW_BOLT_VOLLEY        = 45031,
+    // SPELL_TELEPORT_NORMAL_REALM     = 46020,
 
     // Misc
-    SPELL_BANISH                    = 44836
+    SPELL_BANISH                    = 44836,
+    SPELL_INSTAKILL_SELF            = 29878,
 };
 
 static const uint32 aWildMagicSpells[6] = {44978, 45001, 45002, 45004, 45006, 45010};
@@ -82,6 +84,7 @@ struct boss_kalecgosAI : public ScriptedAI
     boss_kalecgosAI(Creature* pCreature) : ScriptedAI(pCreature)
     {
         m_pInstance = (instance_sunwell_plateau*)pCreature->GetInstanceData();
+        SetDeathPrevention(true);
         Reset();
     }
 
@@ -147,21 +150,16 @@ struct boss_kalecgosAI : public ScriptedAI
             m_pInstance->SetData(TYPE_KALECGOS, IN_PROGRESS);
     }
 
-    void DamageTaken(Unit* /*pDoneBy*/, uint32& uiDamage, DamageEffectType /*damagetype*/) override
+    void JustPreventedDeath(Unit* /*attacker*/) override
     {
-        if (uiDamage > m_creature->GetHealth())
+        // If Sathrovarr is not banished yet, then banish the boss
+        if (!m_bIsUncorrupted)
         {
-            uiDamage = 0;
-
-            // If Sathrovarr is not banished yet, then banish the boss
-            if (!m_bIsUncorrupted)
-            {
-                if (DoCastSpellIfCan(m_creature, SPELL_BANISH, CAST_TRIGGERED) == CAST_OK)
-                    m_bIsBanished = true;
-            }
-            else
-                DoStartOutro();
+            if (DoCastSpellIfCan(m_creature, SPELL_BANISH, CAST_TRIGGERED) == CAST_OK)
+                m_bIsBanished = true;
         }
+        else
+            DoStartOutro();
     }
 
     void KilledUnit(Unit* /*pVictim*/) override
@@ -178,8 +176,8 @@ struct boss_kalecgosAI : public ScriptedAI
         if (Creature* pSathrovarr = m_pInstance->GetSingleCreatureFromStorage(NPC_SATHROVARR))
         {
             // The teleport spell doesn't work right for this, so we need to teleport him manually
-            pSathrovarr->NearTeleportTo(1704.34f, 928.17f, 53.08f, 0);
-            pSathrovarr->DealDamage(pSathrovarr, pSathrovarr->GetHealth(), nullptr, DIRECT_DAMAGE, SPELL_SCHOOL_MASK_NORMAL, nullptr, false);
+            pSathrovarr->CastSpell(nullptr, SPELL_TELEPORT_NORMAL_REALM, TRIGGERED_OLD_TRIGGERED);
+            pSathrovarr->CastSpell(nullptr, SPELL_INSTAKILL_SELF, TRIGGERED_OLD_TRIGGERED);
         }
 
         if (Creature* pKalec = m_pInstance->GetSingleCreatureFromStorage(NPC_KALECGOS_HUMAN))
@@ -323,6 +321,7 @@ struct boss_sathrovarrAI : public ScriptedAI
     boss_sathrovarrAI(Creature* pCreature) : ScriptedAI(pCreature)
     {
         m_pInstance = (instance_sunwell_plateau*)pCreature->GetInstanceData();
+        SetDeathPrevention(true);
         Reset();
     }
 
@@ -358,30 +357,25 @@ struct boss_sathrovarrAI : public ScriptedAI
         m_creature->SummonCreature(NPC_KALECGOS_HUMAN, aKalecHumanLoc[0], aKalecHumanLoc[1], aKalecHumanLoc[2], aKalecHumanLoc[3], TEMPSPAWN_DEAD_DESPAWN, 0, true);
     }
 
-    void DamageTaken(Unit* /*pDoneBy*/, uint32& uiDamage, DamageEffectType /*damagetype*/) override
+    void JustPreventedDeath(Unit* /*attacker*/) override
     {
-        if (uiDamage > m_creature->GetHealth())
+        if (m_bIsBanished)
+            return;
+
+        // banish Sathrovarr and eject the players
+        if (DoCastSpellIfCan(m_creature, SPELL_BANISH, CAST_TRIGGERED) == CAST_OK)
+            m_bIsBanished = true;
+
+        if (!m_pInstance)
+            return;
+
+        if (Creature* pKalecgos = m_pInstance->GetSingleCreatureFromStorage(NPC_KALECGOS_DRAGON))
         {
-            uiDamage = 0;
-
-            if (m_bIsBanished)
-                return;
-
-            // banish Sathrovarr and eject the players
-            if (DoCastSpellIfCan(m_creature, SPELL_BANISH, CAST_TRIGGERED) == CAST_OK)
-                m_bIsBanished = true;
-
-            if (!m_pInstance)
-                return;
-
-            if (Creature* pKalecgos = m_pInstance->GetSingleCreatureFromStorage(NPC_KALECGOS_DRAGON))
-            {
-                if (boss_kalecgosAI* pKalecgosAI = dynamic_cast<boss_kalecgosAI*>(pKalecgos->AI()))
-                    pKalecgosAI->m_bIsUncorrupted = true;
-            }
-
-            m_pInstance->DoEjectSpectralPlayers();
+            if (boss_kalecgosAI* pKalecgosAI = dynamic_cast<boss_kalecgosAI*>(pKalecgos->AI()))
+                pKalecgosAI->m_bIsUncorrupted = true;
         }
+
+        m_pInstance->DoEjectSpectralPlayers();
     }
 
     void KilledUnit(Unit* pVictim) override

@@ -30,6 +30,10 @@ enum
     NPC_IRESPEAKER              = 24999,
     NPC_UNLEASHED_HELLION       = 25002,
 
+    // Quest 10594 - Gauging the Resonant Frequency
+    NPC_WYRM_FROM_BEYOND = 21796,
+    NPC_OSCILLATING_FREQUENCY_SCANNER_BUNNY = 21760,
+
     // Quest 10998
     NPC_VIMGOL_VISUAL_BUNNY     = 23040,
 
@@ -52,7 +56,6 @@ enum
     NPC_SQUIBBY_OVERSPECK       = 12137,
 
     // Quest 8868
-    TYPE_OMEN                   = 0,
     NPC_MINION_OMEN             = 15466,
     NPC_OMEN                    = 15467,
     GO_ROCKET_CLUSTER           = 180875,
@@ -79,9 +82,27 @@ enum
     TYPE_SHARTUUL               = 2,
 
     // Quest 1126
-    TYPE_HIVE                   = 1,
-    MAX_ENCOUNTER               = 2,
     NPC_HIVE_ASHI_DRONES        = 13136,
+
+    // Bashir
+    SPELL_SPIRIT_SPAWN_IN       = 17321,
+    SPELL_ETHEREAL_TELEPORT     = 34427,
+    MOUNT_NETHER_RAY_DISPLAY_ID = 21156,
+
+    // Ogri'la Four Dragons
+    NPC_OBSIDIA = 23282,
+    NPC_RIVENDARK = 23061,
+    NPC_FURYWING = 23261,
+    NPC_INSIDION = 23281,
+};
+
+enum Encounters
+{
+    TYPE_OMEN   = 0, // Quest 8868
+    TYPE_HIVE   = 1,
+    TYPE_TETHYR = 2, // Quest 11198
+    TYPE_BASHIR = 3,
+    MAX_ENCOUNTER
 };
 
 enum ElementalInvasionIndexes

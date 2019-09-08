@@ -27,7 +27,7 @@ EndScriptData
 #include "Globals/ObjectMgr.h"
 #include "GameEvents/GameEventMgr.h"
 #include "Entities/TemporarySpawn.h"
-#include "AI/ScriptDevAI/base/TimerAI.h"
+#include "AI/ScriptDevAI/base/CombatAI.h"
 
 /* ContentData
 npc_air_force_bots       80%    support for misc (invisible) guard bots in areas where player allowed to fly. Summon guards after a preset time if tagged by spell
@@ -41,6 +41,7 @@ npc_innkeeper            25%    ScriptName not assigned. Innkeepers in general.
 npc_redemption_target   100%    Used for the paladin quests: 1779,1781,9600,9685
 npc_burster_worm        100%    Used for the crust burster worms in Outland. Npc entries: 16844, 16857, 16968, 17075, 18678, 21380, 21849, 22038, 22466, 22482, 23285
 npc_aoe_damage_trigger 75% Used for passive aoe damage triggers in various encounters with overlapping usage of entries: 16697, 17471, 20570, 18370, 20598
+npc_mojo
 EndContentData */
 
 /*########
@@ -1557,7 +1558,7 @@ struct npc_aoe_damage_triggerAI : public Scripted_NoMovementAI
 
     void AttackStart(Unit* /*pWho*/) override { }
     void MoveInLineOfSight(Unit* /*pWho*/) override { }
-    void UpdateAI(const uint32 uiDiff) override {}
+    void UpdateAI(const uint32 /*uiDiff*/) override {}
 };
 
 UnitAI* GetAI_npc_aoe_damage_trigger(Creature* pCreature)
@@ -1586,7 +1587,7 @@ struct npc_the_cleanerAI : public ScriptedAI
         m_uiDespawnTimer = 3000;
     }
 
-    void Aggro(Unit* pWho) override
+    void Aggro(Unit* /*pWho*/) override
     {
         DoScriptText(SAY_CLEANER_AGGRO, m_creature);
     }
@@ -1820,24 +1821,13 @@ enum RayActions
     RAY_ACTION_MAX,
 };
 
-struct npc_nether_rayAI : public ScriptedAI, public CombatTimerAI
+struct npc_nether_rayAI : public CombatAI
 {
-    npc_nether_rayAI(Creature* creature) : ScriptedAI(creature), CombatTimerAI(RAY_ACTION_MAX)
+    npc_nether_rayAI(Creature* creature) : CombatAI(creature, RAY_ACTION_MAX)
     {
-        AddCombatAction(RAY_ACTION_DRAIN_MANA, 0);
-        AddCombatAction(RAY_ACTION_TAIL_STING, 0);
-        AddCombatAction(RAY_ACTION_NETHER_SHOCK, 0);
-    }
-
-    uint32 GetInitialActionTimer(RayActions id)
-    {
-        switch (id)
-        {
-            case RAY_ACTION_DRAIN_MANA: return 2000;
-            case RAY_ACTION_TAIL_STING: return 2000;
-            case RAY_ACTION_NETHER_SHOCK: return 0;
-            default: return 0;
-        }
+        AddCombatAction(RAY_ACTION_DRAIN_MANA, 2000u);
+        AddCombatAction(RAY_ACTION_TAIL_STING, 2000u);
+        AddCombatAction(RAY_ACTION_NETHER_SHOCK, 0u);
     }
 
     uint32 GetSubsequentActionTimer(RayActions id)
@@ -1851,78 +1841,401 @@ struct npc_nether_rayAI : public ScriptedAI, public CombatTimerAI
         }
     }
 
-    void Reset() override
+    void OnSpellCooldownAdded(SpellEntry const* spellInfo) // spells should only reset their action timer on success
     {
-        for (uint32 i = 0; i < RAY_ACTION_MAX; ++i)
-            SetActionReadyStatus(i, false);
-
-        ResetTimer(RAY_ACTION_DRAIN_MANA, GetInitialActionTimer(RAY_ACTION_DRAIN_MANA));
-        ResetTimer(RAY_ACTION_TAIL_STING, GetInitialActionTimer(RAY_ACTION_TAIL_STING));
-        ResetTimer(RAY_ACTION_NETHER_SHOCK, GetInitialActionTimer(RAY_ACTION_NETHER_SHOCK));
-    }
-
-    void ExecuteActions() override
-    {
-        if (!CanExecuteCombatAction())
-            return;
-
-        for (uint32 i = 0; i < RAY_ACTION_MAX; ++i)
+        switch (spellInfo->Id)
         {
-            if (!GetActionReadyStatus(i))
-                continue;
-
-            switch (i)
-            {
-                case RAY_ACTION_DRAIN_MANA:
-                    if (!m_creature->getVictim() || !m_creature->getVictim()->HasMana())
-                        continue;
-                    if (DoCastSpellIfCan(m_creature->getVictim(), SPELL_DRAIN_MANA) == CAST_OK)
-                    {
-                        SetActionReadyStatus(i, false);
-                        ResetTimer(i, GetSubsequentActionTimer(RayActions(i)));
-                        return;
-                    }
-                    continue;
-                case RAY_ACTION_TAIL_STING:
-                    if (!m_creature->getVictim() || m_creature->getVictim()->HasMana())
-                        continue;
-                    if (DoCastSpellIfCan(m_creature->getVictim(), SPELL_TAIL_STING) == CAST_OK)
-                    {
-                        SetActionReadyStatus(i, false);
-                        ResetTimer(i, GetSubsequentActionTimer(RayActions(i)));
-                        return;
-                    }
-                    continue;
-                case RAY_ACTION_NETHER_SHOCK:
-                    if (!m_creature->getVictim())
-                        continue;
-                    if (DoCastSpellIfCan(m_creature->getVictim(), SPELL_NETHER_SHOCK) == CAST_OK)
-                    {
-                        SetActionReadyStatus(i, false);
-                        ResetTimer(i, GetSubsequentActionTimer(RayActions(i)));
-                        return;
-                    }
-                    continue;
-            }
+            case SPELL_DRAIN_MANA:
+                ResetCombatAction(RAY_ACTION_DRAIN_MANA, GetSubsequentActionTimer(RayActions(RAY_ACTION_DRAIN_MANA)));
+                break;
+            case SPELL_TAIL_STING:
+                ResetCombatAction(RAY_ACTION_TAIL_STING, GetSubsequentActionTimer(RayActions(RAY_ACTION_TAIL_STING)));
+                break;
+            case SPELL_NETHER_SHOCK:
+                ResetCombatAction(RAY_ACTION_NETHER_SHOCK, GetSubsequentActionTimer(RayActions(RAY_ACTION_NETHER_SHOCK)));
+                break;
         }
     }
 
-    void UpdateAI(const uint32 diff)
+    void ExecuteAction(uint32 action) override
     {
-        UpdateTimers(diff, m_creature->isInCombat());
-
-        if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
-            return;
-
-        ExecuteActions();
-
-        DoMeleeAttackIfReady();
+        switch (action)
+        {
+            case RAY_ACTION_DRAIN_MANA:
+                if (!m_creature->getVictim() || !m_creature->getVictim()->HasMana())
+                    return;
+                DoCastSpellIfCan(m_creature->getVictim(), SPELL_DRAIN_MANA);
+                return;
+            case RAY_ACTION_TAIL_STING:
+                if (!m_creature->getVictim() || m_creature->getVictim()->HasMana())
+                    return;
+                DoCastSpellIfCan(m_creature->getVictim(), SPELL_TAIL_STING);
+                return;
+            case RAY_ACTION_NETHER_SHOCK:
+                if (!m_creature->getVictim())
+                    return;
+                DoCastSpellIfCan(m_creature->getVictim(), SPELL_NETHER_SHOCK);
+                return;
+        }
     }
 };
 
 UnitAI* GetAI_npc_nether_ray(Creature* creature)
 {
     return new npc_nether_rayAI(creature);
+}
+
+/*########
+# npc_mojo
+#########*/
+
+enum
+{
+    SPELL_FEELING_FROGGY    = 43906,
+    SPELL_HEARTS            = 20372,   // wrong?
+    MOJO_WHISPS_COUNT       = 8
+};
+
+struct npc_mojoAI : public ScriptedAI
+{
+    npc_mojoAI(Creature* creature) : ScriptedAI(creature) { Reset(); }
+
+    uint32 heartsResetTimer;
+    bool hearts;
+
+    void Reset() override
+    {
+        heartsResetTimer = 15000;
+        hearts = false;
+        m_creature->GetMotionMaster()->MoveFollow(m_creature->GetOwner(), 2.0f, M_PI_F / 2.0f);
+    }
+
+    void SpellHit(Unit* /*caster*/, const SpellEntry* spell) override
+    {
+        if (spell->Id == SPELL_HEARTS)
+        {
+            hearts = true;
+            heartsResetTimer = 15000;
+        }
+    }
+
+    void UpdateAI(const uint32 diff) override
+    {
+        if (hearts)
+        {
+            if (heartsResetTimer <= diff)
+            {
+                m_creature->RemoveAurasDueToSpell(SPELL_HEARTS);
+                hearts = false;
+                m_creature->GetMotionMaster()->MoveFollow(m_creature->GetOwner(), 2.0f, M_PI_F / 2.0f);
+                m_creature->SetTarget(nullptr);
+            }
+            else
+                heartsResetTimer -= diff;
+        }
+    }
+
+    void ReceiveEmote(Player* player, uint32 uiEmote) override
+    {
+        if (uiEmote == TEXTEMOTE_KISS)
+        {
+            if (!m_creature->HasAura(SPELL_HEARTS))
+            {
+                // affect only the same faction
+                if (player->GetTeam() == ((Player*)m_creature->GetOwner())->GetTeam())
+                {
+                    player->CastSpell(player, SPELL_FEELING_FROGGY, TRIGGERED_NONE);
+                    m_creature->CastSpell(m_creature, SPELL_HEARTS, TRIGGERED_NONE);
+                    m_creature->SetSelectionGuid(player->GetObjectGuid());
+
+                    m_creature->GetMotionMaster()->MoveFollow(player, 1.0f, 0.0f);
+
+                    const char* text;
+
+                    switch (urand(0, MOJO_WHISPS_COUNT))
+                    {
+                        case 0:
+                            text = "Now that's what I call froggy-style!"; // 23478
+                            break;
+                        case 1:
+                            text = "Your lily pad or mine?"; // 23483
+                            break;
+                        case 2:
+                            text = "This won't take long, did it?"; // 23479
+                            break;
+                        case 3:
+                            text = "I thought you'd never ask!"; // 23477
+                            break;
+                        case 4:
+                            text = "I promise not to give you warts..."; // 23480
+                            break;
+                        case 5:
+                            text = "Feelin' a little froggy, are ya?"; // 23484
+                            break;
+                        case 6:
+                            text = "Listen, $n, I know of a little swamp not too far from here...."; // 23482
+                            break;
+                        default:
+                            text = "There's just never enough Mojo to go around..."; // 23481
+                            break;
+                    }
+
+                    m_creature->MonsterWhisper(text, player, false);
+                }
+            }
+        }
+    }
+};
+
+UnitAI* GetAI_npc_mojo(Creature *pCreature)
+{
+    return new npc_mojoAI(pCreature);
+}
+
+enum
+{
+    SPELL_FIRE_NOVA_TOTEM_1 = 32062,
+    SPELL_FIRE_NOVA_1       = 32167,
+    SPELL_FIRE_NOVA_TOTEM_2 = 43436,
+    SPELL_FIRE_NOVA_2       = 43464,
+    SPELL_FIRE_NOVA_TOTEM_3 = 44257,
+    SPELL_FIRE_NOVA_3       = 46551,
+};
+
+struct npc_fire_nova_totemAI : public ScriptedAI, public TimerManager
+{
+    npc_fire_nova_totemAI(Creature* creature) : ScriptedAI(creature), m_fireNovaSpell(0), m_fireNovaTimer(0)
+    {
+        AddCustomAction(1, true, [&]()
+        {
+            m_creature->CastSpell(nullptr, m_fireNovaSpell, TRIGGERED_NONE);
+            m_creature->ForcedDespawn(1000); // TODO: possibly instakill spell
+        });
+        SetCombatMovement(false);
+        SetMeleeEnabled(false);
+    }
+
+    uint32 m_fireNovaSpell;
+    uint32 m_fireNovaTimer;
+
+    void Reset() override
+    {
+
+    }
+
+    void JustRespawned() override
+    {
+        switch (m_creature->GetUInt32Value(UNIT_CREATED_BY_SPELL))
+        {
+            case SPELL_FIRE_NOVA_TOTEM_1: m_fireNovaSpell = SPELL_FIRE_NOVA_1; m_fireNovaTimer = 4000; break;
+            case SPELL_FIRE_NOVA_TOTEM_2: m_fireNovaSpell = SPELL_FIRE_NOVA_2; m_fireNovaTimer = 6000; break;
+            case SPELL_FIRE_NOVA_TOTEM_3: m_fireNovaSpell = SPELL_FIRE_NOVA_3; m_fireNovaTimer = 4000; break;
+        }
+        ResetTimer(1, m_fireNovaTimer);
+    }
+
+    void UpdateAI(const uint32 diff) override
+    {
+        UpdateTimers(diff);
+    }
+};
+
+UnitAI* GetAI_npc_fire_nova_totem(Creature* pCreature)
+{
+    return new npc_fire_nova_totemAI(pCreature);
+}
+
+/*######
+## mob_phoenix
+######*/
+
+enum
+{
+    // Common
+    SPELL_FULL_HEAL                     = 17683,
+
+    // Phoenix spell - TK
+    SPELL_BURN_TK                       = 36720,
+    SPELL_EMBER_BLAST_TK                = 34341,
+    SPELL_REBIRTH_SPAWN_TK              = 35369,
+    SPELL_REBIRTH_RESPAWN_TK            = 41587,
+    SPELL_PHOENIX_EGG_TK                = 36724,
+
+    // Mgt
+    SPELL_BURN_MGT                      = 44197,
+    SPELL_EMBER_BLAST_MGT               = 44199,                    // On Phoenix death
+    SPELL_REBIRTH_SPAWN_MGT             = 44196,                    // Used on spawn
+    SPELL_REBIRTH_RESPAWN_MGT           = 44200,                    // Used on respawn
+    SPELL_PHOENIX_EGG_MGT               = 44195,
+
+    NPC_PHOENIX_TK                      = 21362,
+    NPC_PHOENIX_MGT                     = 24674,
+};
+
+struct mob_phoenix_tkAI : public ScriptedAI
+{
+    mob_phoenix_tkAI(Creature* creature) : ScriptedAI(creature)
+    {
+        bool tk = m_creature->GetEntry() == NPC_PHOENIX_TK;
+        if (tk)
+        {
+            m_burnSpellId = SPELL_BURN_TK;
+            m_emberBlastSpellId = SPELL_EMBER_BLAST_TK;
+            m_rebirthSpawnSpellId = SPELL_REBIRTH_SPAWN_TK;
+            m_rebirthRespawnSpellId = SPELL_REBIRTH_RESPAWN_TK;
+            m_phoenixEggSpellId = SPELL_PHOENIX_EGG_TK;
+        }
+        else
+        {
+            m_burnSpellId = SPELL_BURN_MGT;
+            m_emberBlastSpellId = SPELL_EMBER_BLAST_MGT;
+            m_rebirthSpawnSpellId = SPELL_REBIRTH_SPAWN_MGT;
+            m_rebirthRespawnSpellId = SPELL_REBIRTH_RESPAWN_MGT;
+            m_phoenixEggSpellId = SPELL_PHOENIX_EGG_MGT;
+        }
+        SetDeathPrevention(true);
+        Reset();
+    }
+
+    uint32 m_burnSpellId;
+    uint32 m_emberBlastSpellId;
+    uint32 m_rebirthSpawnSpellId;
+    uint32 m_rebirthRespawnSpellId;
+    uint32 m_phoenixEggSpellId;
+
+    uint32 m_emberDelayTimer;
+    uint32 m_phoenixRebirthTimer;
+    ObjectGuid m_eggGuid;
+
+    void Reset() override
+    {
+        m_emberDelayTimer = 0;
+        m_phoenixRebirthTimer = 0;
+    }
+
+    void Aggro(Unit* /*pWho*/) override
+    {
+        DoCastSpellIfCan(nullptr, m_burnSpellId);
+    }
+
+    void JustPreventedDeath(Unit* /*attacker*/) override
+    {
+        DoSetFakeDeath();
+    }
+
+    void DoSetFakeDeath()
+    {
+        m_creature->InterruptNonMeleeSpells(false);
+        m_creature->StopMoving();
+        m_creature->ClearComboPointHolders();
+        m_creature->RemoveAllAurasOnDeath();
+        m_creature->ModifyAuraState(AURA_STATE_HEALTHLESS_20_PERCENT, false);
+        m_creature->ModifyAuraState(AURA_STATE_HEALTHLESS_35_PERCENT, false);
+        m_creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
+        m_creature->ClearAllReactives();
+        m_creature->SetTarget(nullptr);
+        m_creature->SetStandState(UNIT_STAND_STATE_DEAD);
+        SetCombatMovement(false);
+        SetMeleeEnabled(false);
+        SetCombatScriptStatus(true);
+
+        m_emberDelayTimer = 1000;
+    }
+
+    void JustRespawned() override
+    {
+        DoCastSpellIfCan(nullptr, m_rebirthSpawnSpellId);
+    }
+
+    void JustSummoned(Creature* summoned) override
+    {
+        m_eggGuid = summoned->GetObjectGuid();
+        summoned->SetCorpseDelay(5); // egg should despawn after 5 seconds when killed
+        summoned->SetImmobilizedState(true); // rooted by default
+        summoned->AI()->SetReactState(REACT_PASSIVE);
+    }
+
+    void DoRebirth()
+    {
+        if (m_creature->isAlive())
+        {
+            // Remove fake death if the egg despawns after 15 secs
+            m_creature->RemoveAurasDueToSpell(m_emberBlastSpellId);
+            m_creature->RemoveAurasDueToSpell(m_phoenixEggSpellId);
+            m_creature->SetStandState(UNIT_STAND_STATE_STAND);
+
+            DoCastSpellIfCan(nullptr, m_rebirthRespawnSpellId);
+        }
+    }
+
+    void SpellHit(Unit* /*caster*/, const SpellEntry* spellInfo) override
+    {
+        if (spellInfo->Id == m_rebirthRespawnSpellId)
+        {
+            m_creature->CastSpell(nullptr, SPELL_FULL_HEAL, TRIGGERED_OLD_TRIGGERED);
+            SetCombatMovement(true);
+            SetMeleeEnabled(true);
+            DoStartMovement(m_creature->getVictim());
+            SetCombatScriptStatus(false);
+            m_creature->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
+
+            DoCastSpellIfCan(nullptr, m_burnSpellId, CAST_TRIGGERED);
+        }
+    }
+
+    void SummonedCreatureJustDied(Creature* /*summoned*/) override
+    {
+        // Self kill if the egg is killed
+        m_creature->ForcedDespawn();
+    }
+
+    void ReceiveAIEvent(AIEventType eventType, Unit* /*sender*/, Unit* /*invoker*/, uint32 /*miscValue*/) override
+    {
+        if (eventType == AI_EVENT_CUSTOM_A)
+            if (Creature* egg = m_creature->GetMap()->GetCreature(m_eggGuid))
+                egg->ForcedDespawn();
+    }
+
+    void UpdateAI(const uint32 diff) override
+    {
+        if (m_emberDelayTimer)
+        {
+            if (m_emberDelayTimer <= diff)
+            {
+                m_emberDelayTimer = 0;
+                // Spawn egg and make invisible
+                DoCastSpellIfCan(nullptr, m_emberBlastSpellId, CAST_TRIGGERED);
+                DoCastSpellIfCan(nullptr, m_phoenixEggSpellId, CAST_TRIGGERED);
+                m_phoenixRebirthTimer = m_creature->GetEntry() == NPC_PHOENIX_TK ? 15000 : 10000;
+            }
+            else
+                m_emberDelayTimer -= diff;
+        }
+
+        if (m_phoenixRebirthTimer)
+        {
+            if (m_phoenixRebirthTimer <= diff)
+            {
+                m_phoenixRebirthTimer = 0;
+                if (Creature* egg = m_creature->GetMap()->GetCreature(m_eggGuid))
+                    egg->ForcedDespawn();
+
+                DoRebirth();
+            }
+            else
+                m_phoenixRebirthTimer -= diff;
+        }
+
+        if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
+            return;
+
+        DoMeleeAttackIfReady();
+    }
+};
+
+UnitAI* GetAI_mob_phoenix_tk(Creature* pCreature)
+{
+    return new mob_phoenix_tkAI(pCreature);
 }
 
 void AddSC_npcs_special()
@@ -2008,5 +2321,20 @@ void AddSC_npcs_special()
     pNewScript = new Script;
     pNewScript->Name = "npc_aoe_damage_trigger";
     pNewScript->GetAI = &GetAI_npc_aoe_damage_trigger;
+    pNewScript->RegisterSelf();
+
+    pNewScript = new Script;
+    pNewScript->Name = "npc_mojo";
+    pNewScript->GetAI = &GetAI_npc_mojo;
+    pNewScript->RegisterSelf();
+
+    pNewScript = new Script;
+    pNewScript->Name = "npc_fire_nova_totem";
+    pNewScript->GetAI = &GetAI_npc_fire_nova_totem;
+    pNewScript->RegisterSelf();
+
+    pNewScript = new Script;
+    pNewScript->Name = "mob_phoenix";
+    pNewScript->GetAI = &GetAI_mob_phoenix_tk;
     pNewScript->RegisterSelf();
 }

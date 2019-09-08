@@ -52,11 +52,11 @@ struct npc_bartlebyAI : public ScriptedAI
 
     void Reset() override {}
 
-    void DamageTaken(Unit* pDoneBy, uint32& uiDamage, DamageEffectType /*damagetype*/) override
+    void DamageTaken(Unit* pDoneBy, uint32& damage, DamageEffectType /*damagetype*/, SpellEntry const* /*spellInfo*/) override
     {
-        if (uiDamage > m_creature->GetHealth() || ((m_creature->GetHealth() - uiDamage) * 100 / m_creature->GetMaxHealth() < 15))
+        if (damage > m_creature->GetHealth() || ((m_creature->GetHealth() - damage) * 100 / m_creature->GetMaxHealth() < 15))
         {
-            uiDamage = 0;
+            damage = std::min(damage, m_creature->GetHealth() - 1);
 
             if (pDoneBy->GetTypeId() == TYPEID_PLAYER)
                 ((Player*)pDoneBy)->AreaExploredOrEventHappens(QUEST_BEAT);
@@ -114,11 +114,11 @@ struct npc_dashel_stonefistAI : public ScriptedAI
         m_creature->SetFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_QUESTGIVER);
     }
 
-    void DamageTaken(Unit* pDoneBy, uint32& uiDamage, DamageEffectType /*damagetype*/) override
+    void DamageTaken(Unit* /*doneBy*/, uint32& damage, DamageEffectType /*damagetype*/, SpellEntry const* /*spellInfo*/) override
     {
-        if (uiDamage > m_creature->GetHealth() || ((m_creature->GetHealth() - uiDamage) * 100 / m_creature->GetMaxHealth() < 15))
+        if (damage > m_creature->GetHealth() || ((m_creature->GetHealth() - damage) * 100 / m_creature->GetMaxHealth() < 15))
         {
-            uiDamage = 0;
+            damage = std::min(damage, m_creature->GetHealth() - 1);
             DoScriptText(SAY_STONEFIST_2, m_creature);
             m_uiEndEventTimer = 5000;
             EnterEvadeMode();
@@ -135,7 +135,7 @@ struct npc_dashel_stonefistAI : public ScriptedAI
     {
         if (m_uiStartEventTimer)
         {
-            if (m_uiStartEventTimer < uiDiff)
+            if (m_uiStartEventTimer <= uiDiff)
             {
                 if (Player* pPlayer = m_creature->GetMap()->GetPlayer(m_playerGuid))
                 {
@@ -156,7 +156,7 @@ struct npc_dashel_stonefistAI : public ScriptedAI
 
         if (m_uiEndEventTimer)
         {
-            if (m_uiEndEventTimer < uiDiff)
+            if (m_uiEndEventTimer <= uiDiff)
             {
                 DoScriptText(SAY_STONEFIST_3, m_creature);
 

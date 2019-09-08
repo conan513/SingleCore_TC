@@ -111,7 +111,7 @@ struct boss_grand_warlock_nethekurseAI : public ScriptedAI
         m_uiCleaveTimer = 5000;
     }
 
-    void DoYellForPeonAggro(Unit* pWho)
+    void DoYellForPeonAggro()
     {
         switch (urand(0, 3))
         {
@@ -206,7 +206,7 @@ struct boss_grand_warlock_nethekurseAI : public ScriptedAI
         ScriptedAI::MoveInLineOfSight(pWho);
     }
 
-    void Aggro(Unit* pWho) override
+    void Aggro(Unit* /*pWho*/) override
     {
         m_bIsIntroEvent = false;
         m_bIsMainEvent = true;
@@ -288,7 +288,7 @@ struct boss_grand_warlock_nethekurseAI : public ScriptedAI
 
             if (m_uiDeathCoilTimer < uiDiff)
             {
-                if (Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_TOPAGGRO, 0, nullptr))
+                if (Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0, nullptr, SELECT_FLAG_PLAYER))
                     DoCastSpellIfCan(pTarget, SPELL_DEATH_COIL);
                 m_uiDeathCoilTimer = urand(15000, 20000);
             }
@@ -338,7 +338,7 @@ struct mob_fel_orc_convertAI : public ScriptedAI
         ScriptedAI::AttackedBy(pWho);
     }
 
-    void Aggro(Unit* pWho) override
+    void Aggro(Unit* /*pWho*/) override
     {
         if (m_pInstance)
         {
@@ -346,7 +346,7 @@ struct mob_fel_orc_convertAI : public ScriptedAI
             if (pKurse && m_creature->IsWithinDist(pKurse, 45.0f))
             {
                 if (boss_grand_warlock_nethekurseAI* pKurseAI = dynamic_cast<boss_grand_warlock_nethekurseAI*>(pKurse->AI()))
-                    pKurseAI->DoYellForPeonAggro(pWho);
+                    pKurseAI->DoYellForPeonAggro();
 
                 if (m_pInstance->GetData(TYPE_NETHEKURSE) == IN_PROGRESS)
                     return;

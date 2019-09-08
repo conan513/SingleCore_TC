@@ -29,14 +29,13 @@ instance_dark_portal::instance_dark_portal(Map* pMap) : ScriptedInstance(pMap),
     m_uiWorldStateRiftCount(0),
     m_uiWorldStateShieldCount(100),
     m_uiSummonedCrystalCount(0),
-
     m_bHasIntroYelled(false),
     m_uiMedivhYellCount(1),
     m_uiNextPortalTimer(0),
-    m_uiPostEventTimer(0),
-    m_uiPostEventStep(0),
     m_uiSummonCrystalTimer(0),
-    m_uiCurrentRiftId(0)
+    m_uiCurrentRiftId(0),
+    m_uiPostEventTimer(0),
+    m_uiPostEventStep(0)
 {
     Initialize();
 }
@@ -558,7 +557,7 @@ bool instance_dark_portal::CheckConditionCriteriaMeet(Player const* pPlayer, uin
         }
     }
 
-    script_error_log("instance_mount_hyjal::CheckConditionCriteriaMeet called with unsupported Id %u. Called with param plr %s, src %s, condition source type %u",
+    script_error_log("instance_dark_portal::CheckConditionCriteriaMeet called with unsupported Id %u. Called with param plr %s, src %s, condition source type %u",
         uiInstanceConditionId, pPlayer ? pPlayer->GetGuidStr().c_str() : "nullptr", pConditionSource ? pConditionSource->GetGuidStr().c_str() : "nullptr", conditionSourceType);
     return false;
 }
