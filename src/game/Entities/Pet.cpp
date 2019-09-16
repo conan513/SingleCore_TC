@@ -1310,7 +1310,7 @@ void Pet::InitStatsForLevel(uint32 petlevel)
                     float minDmg = (cCLS->BaseDamage * cInfo->DamageVariance + (cCLS->BaseMeleeAttackPower / 14) * (cInfo->MeleeBaseAttackTime / 1000)) * cInfo->DamageMultiplier;
 
                     // Apply custom damage setting (from config)
-                    minDmg *= _GetDamageMod(cInfo->Rank);
+                    minDmg *= _GetDamageMod(cInfo->Rank, GetMap());
 
                     SetBaseWeaponDamage(BASE_ATTACK, MINDAMAGE, float(minDmg));
                     SetBaseWeaponDamage(BASE_ATTACK, MAXDAMAGE, float(minDmg * 1.5));
@@ -1369,7 +1369,7 @@ void Pet::InitStatsForLevel(uint32 petlevel)
         }
 
         // Apply custom health setting (from config)
-        health *= _GetHealthMod(cInfo->Rank);
+        health *= _GetHealthMod(cInfo->Rank, GetMap());
 
         // A pet cannot not have health
         if (health < 1)

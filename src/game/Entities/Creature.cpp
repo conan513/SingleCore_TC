@@ -1242,7 +1242,7 @@ void Creature::SelectLevel(uint32 forcedLevel /*= USE_DEFAULT_DATABASE_LEVEL*/)
     float meleeAttackPwr = 0.f;
     float rangedAttackPwr = 0.f;
 
-    float damageMod = _GetDamageMod(rank);
+    float damageMod = _GetDamageMod(rank, GetMap());
     float damageMulti = cinfo->DamageMultiplier * damageMod;
     bool usedDamageMulti = false;
 
@@ -1321,7 +1321,7 @@ void Creature::SelectLevel(uint32 forcedLevel /*= USE_DEFAULT_DATABASE_LEVEL*/)
         }
     }
 
-    health *= _GetHealthMod(rank); // Apply custom config setting
+    health *= _GetHealthMod(rank, GetMap()); // Apply custom config setting
     if (health < 1)
         health = 1;
 
@@ -1381,7 +1381,7 @@ void Creature::SelectLevel(uint32 forcedLevel /*= USE_DEFAULT_DATABASE_LEVEL*/)
     SetModifierValue(UNIT_MOD_ATTACK_POWER_RANGED, BASE_VALUE, rangedAttackPwr * damageMod);
 }
 
-float Creature::_GetHealthMod(int32 Rank)
+float Creature::_GetHealthMod(int32 Rank, Map* currMap)
 {
 
 	if (currMap->IsRaid())
@@ -1408,7 +1408,7 @@ float Creature::_GetHealthMod(int32 Rank)
     }
 }
 
-float Creature::_GetDamageMod(int32 Rank)
+float Creature::_GetDamageMod(int32 Rank, Map* currMap)
 {
 
 	if (currMap->IsRaid())
@@ -1435,7 +1435,7 @@ float Creature::_GetDamageMod(int32 Rank)
     }
 }
 
-float Creature::_GetSpellDamageMod(int32 Rank)
+float Creature::_GetSpellDamageMod(int32 Rank, Map* currMap)
 {
 
 	if (currMap->IsRaid())

@@ -414,10 +414,10 @@ void World::LoadConfigSettings(bool reload)
 	setConfigPos(CONFIG_FLOAT_RATE_CREATURE_DUNGEON_SCALE_STRAT, "Rate.Creature.Dungeon.Scale.Strat", 1.0f);
 	setConfigPos(CONFIG_FLOAT_RATE_CREATURE_DUNGEON_SCALE_DIREMAUL, "Rate.Creature.Dungeon.Scale.Diremaul", 1.0f);
 	setConfigPos(CONFIG_FLOAT_RATE_CREATURE_DUNGEON_SCALE_SCHOLO, "Rate.Creature.Dungeon.Scale.Scholo", 1.0f);
-	setConfigPos(CONFIG_FLOAT_RATE_CREATURE_DUNGEON_SCALE_1, "Rate.Creature.Dungeon.Scale.1", 1.0f);
-	setConfigPos(CONFIG_FLOAT_RATE_CREATURE_DUNGEON_SCALE_2, "Rate.Creature.Dungeon.Scale.2", 1.0f);
-	setConfigPos(CONFIG_FLOAT_RATE_CREATURE_DUNGEON_SCALE_3, "Rate.Creature.Dungeon.Scale.3", 1.0f);
-	setConfigPos(CONFIG_FLOAT_RATE_CREATURE_DUNGEON_SCALE_4, "Rate.Creature.Dungeon.Scale.4", 1.0f);
+	setConfigPos(CONFIG_FLOAT_RATE_CREATURE_DUNGEON_SCALE_1, "Rate.Creature.Dungeon.Scale.1", 0.2f);
+	setConfigPos(CONFIG_FLOAT_RATE_CREATURE_DUNGEON_SCALE_2, "Rate.Creature.Dungeon.Scale.2", 0.4f);
+	setConfigPos(CONFIG_FLOAT_RATE_CREATURE_DUNGEON_SCALE_3, "Rate.Creature.Dungeon.Scale.3", 0.6f);
+	setConfigPos(CONFIG_FLOAT_RATE_CREATURE_DUNGEON_SCALE_4, "Rate.Creature.Dungeon.Scale.4", 0.8f);
 	setConfigPos(CONFIG_FLOAT_RATE_CREATURE_DUNGEON_SCALE_5, "Rate.Creature.Dungeon.Scale.5", 1.0f);
 	setConfigPos(CONFIG_FLOAT_RATE_CREATURE_RAID_HP, "Rate.Creature.Raid.HP", 1.0f);
 	setConfigPos(CONFIG_FLOAT_RATE_CREATURE_RAID_DAMAGE, "Rate.Creature.Raid.Damage", 1.0f);
