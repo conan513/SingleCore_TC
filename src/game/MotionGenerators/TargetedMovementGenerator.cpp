@@ -74,7 +74,7 @@ void TargetedMovementGeneratorMedium<T, D>::_setTargetLocation(T& owner, bool up
             float ori;
             if (this->GetMovementGeneratorType() == CHASE_MOTION_TYPE)
             {
-                if (i_angle == 0.f || i_target->getVictim() && i_target->getVictim() == &owner)
+                if (i_angle == 0.f || (i_target->getVictim() && i_target->getVictim() == &owner))
                     ori = i_target->GetAngle(&owner); // Need to avoid readjustment when target is attacking owner
                 else
                     ori = i_target->GetOrientation() + i_angle;
@@ -298,7 +298,7 @@ void ChaseMovementGenerator::HandleTargetedMovement(Unit& owner, const uint32& t
             if (targetMoved || !this->i_path)
             {
                 float ori;
-                if (this->i_angle == 0.f || this->i_target->getVictim() && this->i_target->getVictim() == &owner)
+                if (this->i_angle == 0.f || (this->i_target->getVictim() && this->i_target->getVictim() == &owner))
                     ori = this->i_target->GetAngle(&owner); // Need to avoid readjustment when target is attacking owner
                 else
                     ori = this->i_target->GetOrientation() + i_angle;
