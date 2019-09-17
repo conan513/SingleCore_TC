@@ -1363,7 +1363,7 @@ void Pet::InitStatsForLevel(uint32 petlevel)
                 float minDmg = (cCLS->BaseDamage * cInfo->DamageVariance + (cCLS->BaseMeleeAttackPower / 14) * (cInfo->MeleeBaseAttackTime / 1000)) * cInfo->DamageMultiplier;
 
                 // Get custom setting
-                minDmg *= _GetDamageMod(cInfo->Rank);
+                minDmg *= _GetDamageMod(cInfo->Rank, GetMap());
 
                 // If the damage value is not passed on as float it will result in damage = 1; but only for guardian type pets, though...
                 SetBaseWeaponDamage(BASE_ATTACK, MINDAMAGE, float(minDmg));
@@ -1373,7 +1373,7 @@ void Pet::InitStatsForLevel(uint32 petlevel)
                 minDmg = (cCLS->BaseDamage * cInfo->DamageVariance + (cCLS->BaseRangedAttackPower / 14) * (cInfo->RangedBaseAttackTime / 1000)) * cInfo->DamageMultiplier;
 
                 // Get custom setting
-                minDmg *= _GetDamageMod(cInfo->Rank);
+                minDmg *= _GetDamageMod(cInfo->Rank, GetMap());
 				
                 SetBaseWeaponDamage(RANGED_ATTACK, MINDAMAGE, float(minDmg));
                 SetBaseWeaponDamage(RANGED_ATTACK, MAXDAMAGE, float(minDmg * 1.5));
