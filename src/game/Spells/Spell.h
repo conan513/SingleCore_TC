@@ -779,10 +779,10 @@ namespace MaNGOS
         SpellTargets i_TargetType;
         WorldObject* i_originalCaster;
         WorldObject* i_castingObject;
-        bool i_playerControlled;
-        float i_centerX;
-        float i_centerY;
-        float i_centerZ;
+        bool i_playerControlled = false;
+        float i_centerX = 0;
+        float i_centerY = 0;
+        float i_centerZ = 0;
 
         float GetCenterX() const { return i_centerX; }
         float GetCenterY() const { return i_centerY; }
