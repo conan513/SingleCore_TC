@@ -119,6 +119,12 @@ namespace UF
     {
         setter.Clear();
     }
+
+    template<typename T>
+    inline void RemoveOptionalUpdateFieldValue(OptionalUpdateFieldSetter<T>& setter)
+    {
+        setter.RemoveValue();
+    }
 }
 
 class TC_GAME_API Object
@@ -269,6 +275,13 @@ class TC_GAME_API Object
         {
             AddToObjectUpdateIfNeeded();
             UF::ClearDynamicUpdateFieldValues(setter);
+        }
+
+        template<typename T>
+        void RemoveOptionalUpdateFieldValue(UF::OptionalUpdateFieldSetter<T> setter)
+        {
+            AddToObjectUpdateIfNeeded();
+            UF::RemoveOptionalUpdateFieldValue(setter);
         }
 
         // stat system helpers
