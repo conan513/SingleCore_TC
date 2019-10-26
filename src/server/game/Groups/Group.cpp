@@ -1449,6 +1449,46 @@ GroupJoinBattlegroundResult Group::CanJoinBattlegroundQueue(Battleground const* 
     return ERR_BATTLEGROUND_NONE;
 }
 
+//===================================================
+//============== Roll ===============================
+//===================================================
+
+void Roll::targetObjectBuildLink()
+{
+    // called from link()
+    getTarget()->addLootValidatorRef(this);
+}
+
+void Roll::FillPacket(WorldPackets::Loot::LootItemData& lootItem) const
+{
+    lootItem.UIType = (totalPlayersRolling > totalNeed + totalGreed + totalPass) ? LOOT_SLOT_TYPE_ROLL_ONGOING : LOOT_SLOT_TYPE_ALLOW_LOOT;
+    lootItem.Quantity = itemCount;
+    lootItem.LootListID = itemSlot + 1;
+    if (LootItem const* lootItemInSlot = (*this)->GetItemInSlot(itemSlot))
+    {
+        lootItem.CanTradeToTapList = lootItemInSlot->allowedGUIDs.size() > 1;
+        lootItem.Loot.Initialize(*lootItemInSlot);
+    }
+}
+
+ItemDisenchantLootEntry const* Roll::GetItemDisenchantLoot(Player const* player) const
+{
+    if (LootItem const* lootItemInSlot = (*this)->GetItemInSlot(itemSlot))
+    {
+        WorldPackets::Item::ItemInstance itemInstance;
+        itemInstance.Initialize(*lootItemInSlot);
+
+        BonusData bonusData;
+        bonusData.Initialize(itemInstance);
+
+        ItemTemplate const* itemTemplate = sObjectMgr->GetItemTemplate(itemid);
+        uint32 itemLevel = Item::GetItemLevel(itemTemplate, bonusData, player->getLevel(), 0, lootItemInSlot->upgradeId, 0, 0, 0, false);
+        return Item::GetDisenchantLoot(itemTemplate, bonusData.Quality, itemLevel);
+    }
+
+    return nullptr;
+}
+
 void Group::SetDungeonDifficultyID(Difficulty difficulty)
 {
     m_dungeonDifficulty = difficulty;
