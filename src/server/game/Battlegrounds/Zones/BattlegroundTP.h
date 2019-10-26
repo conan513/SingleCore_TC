@@ -200,8 +200,8 @@ struct BattlegroundTPScore final : public BattlegroundScore
         {
             BattlegroundScore::BuildPvPLogPlayerDataPacket(playerData);
 
-            playerData.Stats.push_back(FlagCaptures);
-            playerData.Stats.push_back(FlagReturns);
+            playerData.Stats.emplace_back(BG_TP_FLAG_CAPTURES, FlagCaptures);
+            playerData.Stats.emplace_back(BG_TP_FLAG_RETURNS, FlagReturns);
         }
 
         uint32 GetAttr1() const final override { return FlagCaptures; }
