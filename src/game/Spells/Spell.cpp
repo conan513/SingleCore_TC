@@ -66,6 +66,7 @@ SpellCastTargets::SpellCastTargets()
     m_unitTarget = nullptr;
     m_itemTarget = nullptr;
     m_GOTarget   = nullptr;
+	m_CorpseTarget = nullptr;
 
     m_itemTargetEntry  = 0;
 
@@ -5633,7 +5634,7 @@ std::pair<float, float> Spell::GetMinMaxRange(bool strict)
             minRange = GetSpellMinRange(spellRange) + meleeRange;
             maxRange = GetSpellMaxRange(spellRange);
 
-            if (target || m_targets.getCorpseTargetGuid())
+            if (target || m_targets.getCorpseTarget())
             {
                 rangeMod = m_caster->GetCombatReach() + (target ? target->GetCombatReach() : m_caster->GetCombatReach());
 
