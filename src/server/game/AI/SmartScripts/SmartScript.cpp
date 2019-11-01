@@ -4799,3 +4799,9 @@ Unit* SmartScript::GetLastInvoker(Unit* invoker)
 
     return nullptr;
 }
+
+void SmartScript::IncPhase(uint32 p)
+{
+    // protect phase from overflowing
+    mEventPhase = std::min<uint32>(SMART_EVENT_PHASE_12, mEventPhase + p);
+}
