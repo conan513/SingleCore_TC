@@ -1244,7 +1244,7 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         /// return presence related currency
         bool HasCurrency(uint32 id, uint32 count) const;
         /// initialize currency count for custom initialization at create character
-        void SetCurrency(uint32 id, uint32 count, bool printLog = true);
+        void SetCreateCurrency(uint32 id, uint32 count, bool printLog = true);
         void ResetCurrencyWeekCap();
         uint32 CalculateCurrencyWeekCap(uint32 id) const;
 
