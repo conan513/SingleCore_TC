@@ -561,7 +561,7 @@ enum AuraType : uint32
     SPELL_AURA_PROFIL_CAMERA                                = 482,
     SPELL_AURA_SUPPRESS_TRANSFORMS                          = 483,  // NYI
     SPELL_AURA_484                                          = 484,  // NYI Aura interrupted by spell MiscValue
-    SPELL_AURA_MOD_MOVEMENT_FORCES_SPEED_PCT                = 485,
+    SPELL_AURA_MOD_MOVEMENT_FORCE_MAGNITUDE                 = 485,
     SPELL_AURA_486                                          = 486,
     SPELL_AURA_487                                          = 487,  // Not used in 7.3.5
     SPELL_AURA_488                                          = 488,

@@ -1387,7 +1387,7 @@ public:
                 origin.Relocate((float)atof(originX), (float)atof(originY), (float)atof(originZ));
         }
 
-        unit->ApplyMovementForce(player->GetGUID(), magnitude, direction, origin);
+        //unit->ApplyMovementForce(player->GetGUID(), magnitude, direction, origin);
         return true;
     }
 

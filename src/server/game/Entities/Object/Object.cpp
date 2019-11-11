@@ -372,15 +372,23 @@ void Object::BuildMovementUpdate(ByteBuffer* data, CreateObjectBits flags) const
         *data << float(unit->GetSpeed(MOVE_TURN_RATE));
         *data << float(unit->GetSpeed(MOVE_PITCH_RATE));
 
-        *data << uint32(unit->GetMovementForces().size());
-
-        *data << float(1.0f);                                           // MovementForcesModMagnitude
+        if (MovementForces const* movementForces = unit->GetMovementForces())
+        {
+            *data << uint32(movementForces->GetForces()->size());
+            *data << float(movementForces->GetModMagnitude());          // MovementForcesModMagnitude
+        }
+        else
+        {
+            *data << uint32(0);
+            *data << float(1.0f);                                       // MovementForcesModMagnitude
+        }
 
         data->WriteBit(HasSpline);
         data->FlushBits();
 
-        for (auto const& itr : unit->GetMovementForces())
-            *data << itr.second;
+        if (MovementForces const* movementForces = unit->GetMovementForces())
+            for (MovementForce const& force : *movementForces->GetForces())
+                WorldPackets::Movement::CommonMovement::WriteMovementForceWithDirection(force, *data, unit);
 
         if (HasSpline)
             WorldPackets::Movement::CommonMovement::WriteCreateObjectSplineDataBlock(*unit->movespline, *data);

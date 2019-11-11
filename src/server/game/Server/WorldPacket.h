@@ -21,7 +21,6 @@
 
 #include "ByteBuffer.h"
 #include "Opcodes.h"
-#include <chrono>
 
 class WorldPacket : public ByteBuffer
 {
@@ -35,10 +34,6 @@ class WorldPacket : public ByteBuffer
             m_opcode(opcode), _connection(connection) { }
 
         WorldPacket(WorldPacket&& packet) : ByteBuffer(std::move(packet)), m_opcode(packet.m_opcode), _connection(packet._connection)
-        {
-        }
-
-        WorldPacket(WorldPacket&& packet, std::chrono::steady_clock::time_point receivedTime) : ByteBuffer(std::move(packet)), m_opcode(packet.m_opcode), m_receivedTime(receivedTime)
         {
         }
 
@@ -85,12 +80,9 @@ class WorldPacket : public ByteBuffer
 
         ConnectionType GetConnection() const { return _connection; }
 
-        std::chrono::steady_clock::time_point GetReceivedTime() const { return m_receivedTime; }
-
     protected:
         uint32 m_opcode;
         ConnectionType _connection;
-        std::chrono::steady_clock::time_point m_receivedTime; // only set for a specific set of opcodes, for performance reasons.
 };
 
 #endif

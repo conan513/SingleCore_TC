@@ -88,26 +88,26 @@ struct npc_aqualing : public ScriptedAI
 
 // Spell 264144
 // AT 17427
-struct at_aquasirr_undertow : AreaTriggerAI
-{
-    at_aquasirr_undertow(AreaTrigger* areatrigger) : AreaTriggerAI(areatrigger) { }
-
-    void OnUnitEnter(Unit* unit) override
-    {
-        if (unit->HasAura(SPELL_UNDERTOW, at->GetCasterGuid()))
-            unit->ApplyMovementForce(at->GetGUID(), -5.f, *at->GetCaster());
-    }
-
-    void OnUnitExit(Unit* unit) override
-    {
-        unit->RemoveMovementForce(at->GetGUID());
-    }
-};
-
+//struct at_aquasirr_undertow : AreaTriggerAI
+//{
+//    at_aquasirr_undertow(AreaTrigger* areatrigger) : AreaTriggerAI(areatrigger) { }
+//
+//    void OnUnitEnter(Unit* unit) override
+//    {
+//        if (unit->HasAura(SPELL_UNDERTOW, at->GetCasterGuid()))
+//            unit->ApplyMovementForce(at->GetGUID(), -5.f, *at->GetCaster());
+//    }
+//
+//    void OnUnitExit(Unit* unit) override
+//    {
+//        unit->RemoveMovementForce(at->GetGUID());
+//    }
+//};
+//
 void AddSC_boss_aqusirr()
 {
     RegisterCreatureAI(boss_aquasirr);
     RegisterCreatureAI(npc_aqualing);
 
-    RegisterAreaTriggerAI(at_aquasirr_undertow);
+    //RegisterAreaTriggerAI(at_aquasirr_undertow);
 }

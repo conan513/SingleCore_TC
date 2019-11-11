@@ -31,9 +31,7 @@
 #include "QueryCallbackProcessor.h"
 #include "SharedDefines.h"
 #include <array>
-#include <map>
 #include <unordered_map>
-#include <boost/circular_buffer.hpp>
 #include <unordered_set>
 
 class BattlePetMgr;
@@ -523,7 +521,9 @@ namespace WorldPackets
         class MoveTimeSkipped;
         class SummonResponse;
         class MoveSplineDone;
-        class SuspendTokenResponse;
+        class SuspendTokenResponse;\
+        class MoveApplyMovementForceAck;
+        class MoveRemoveMovementForceAck;
     }
 
     namespace NPC
@@ -1135,6 +1135,7 @@ class TC_GAME_API WorldSession
 
         uint32 GetLatency() const { return m_latency; }
         void SetLatency(uint32 latency) { m_latency = latency; }
+        void ResetClientTimeDelay() { m_clientTimeDelay = 0; }
 
         std::atomic<int32> m_timeOutTime;
 
@@ -1153,10 +1154,6 @@ class TC_GAME_API WorldSession
         // Recruit-A-Friend Handling
         uint32 GetRecruiterId() const { return recruiterId; }
         bool IsARecruiter() const { return isRecruiter; }
-
-        // Time Synchronisation
-        void ResetTimeSync();
-        void SendTimeSync();
 
         // Battle Pets
         BattlePetMgr* GetBattlePetMgr() const { return _battlePetMgr.get(); }
@@ -1228,6 +1225,11 @@ class TC_GAME_API WorldSession
         void HandleMoveTeleportAck(WorldPackets::Movement::MoveTeleportAck& packet);
         void HandleForceSpeedChangeAck(WorldPackets::Movement::MovementSpeedAck& packet);
         void HandleSetCollisionHeightAck(WorldPackets::Movement::MoveSetCollisionHeightAck& setCollisionHeightAck);
+
+        // Movement forces
+        void HandleMoveApplyMovementForceAck(WorldPackets::Movement::MoveApplyMovementForceAck& moveApplyMovementForceAck);
+        void HandleMoveRemoveMovementForceAck(WorldPackets::Movement::MoveRemoveMovementForceAck& moveRemoveMovementForceAck);
+        void HandleMoveSetModMovementForceMagnitudeAck(WorldPackets::Movement::MovementSpeedAck& setModMovementForceMagnitudeAck);
 
         void HandleRepopRequest(WorldPackets::Misc::RepopRequest& packet);
         void HandleAutostoreLootItemOpcode(WorldPackets::Loot::LootItem& packet);
@@ -1928,6 +1930,7 @@ class TC_GAME_API WorldSession
         LocaleConstant m_sessionDbcLocale;
         LocaleConstant m_sessionDbLocaleIndex;
         std::atomic<uint32> m_latency;
+        std::atomic<uint32> m_clientTimeDelay;
         AccountData _accountData[NUM_ACCOUNT_DATA_TYPES];
         uint32 _tutorials[MAX_ACCOUNT_TUTORIAL_VALUES];
         uint8 _tutorialsChanged;
@@ -1940,14 +1943,6 @@ class TC_GAME_API WorldSession
         uint32 expireTime;
         bool forceExit;
         ObjectGuid m_currentBankerGUID;
-
-        boost::circular_buffer<std::pair<int64, uint32>> _timeSyncClockDeltaQueue; // first member: clockDelta. Second member: latency of the packet exchange that was used to compute that clockDelta.
-        int64 _timeSyncClockDelta;
-        void ComputeNewClockDelta();
-
-        std::map<uint32, uint32> _pendingTimeSyncRequests; // key: counter. value: server time when packet with that counter was sent.
-        uint32 _timeSyncNextCounter;
-        uint32 _timeSyncTimer;
 
         std::unique_ptr<BattlePetMgr> _battlePetMgr;
 

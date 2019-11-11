@@ -201,28 +201,28 @@ class aura_eoa_violent_winds_broadcast : public AuraScript
 };
 
 // 191797
-class aura_eoa_violent_winds_force_move : public AuraScript
-{
-    PrepareAuraScript(aura_eoa_violent_winds_force_move);
-
-    void ApplyForceMove(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
-    {
-        Unit* target = GetTarget();
-        target->ApplyMovementForce(target->GetGUID(), 2.0f, Position(-3486.264f, 4386.87f, -3.580416f));
-    }
-
-    void RemoveForceMove(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
-    {
-        Unit* target = GetTarget();
-        target->RemoveMovementForce(target->GetGUID());
-    }
-
-    void Register() override
-    {
-        OnEffectApply += AuraEffectApplyFn(aura_eoa_violent_winds_force_move::ApplyForceMove, EFFECT_0, SPELL_AURA_DUMMY, AURA_EFFECT_HANDLE_REAL);
-        OnEffectRemove += AuraEffectRemoveFn(aura_eoa_violent_winds_force_move::RemoveForceMove, EFFECT_0, SPELL_AURA_DUMMY, AURA_EFFECT_HANDLE_REAL);
-    }
-};
+//class aura_eoa_violent_winds_force_move : public AuraScript
+//{
+//    PrepareAuraScript(aura_eoa_violent_winds_force_move);
+//
+//    void ApplyForceMove(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
+//    {
+//        Unit* target = GetTarget();
+//        target->ApplyMovementForce(target->GetGUID(), 2.0f, Position(-3486.264f, 4386.87f, -3.580416f));
+//    }
+//
+//    void RemoveForceMove(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
+//    {
+//        Unit* target = GetTarget();
+//        target->RemoveMovementForce(target->GetGUID());
+//    }
+//
+//    void Register() override
+//    {
+//        OnEffectApply += AuraEffectApplyFn(aura_eoa_violent_winds_force_move::ApplyForceMove, EFFECT_0, SPELL_AURA_DUMMY, AURA_EFFECT_HANDLE_REAL);
+//        OnEffectRemove += AuraEffectRemoveFn(aura_eoa_violent_winds_force_move::RemoveForceMove, EFFECT_0, SPELL_AURA_DUMMY, AURA_EFFECT_HANDLE_REAL);
+//    }
+//};
 
 // 192737
 class aura_eoa_lightning_strikes : public AuraScript
@@ -287,7 +287,7 @@ void AddSC_eye_of_azshara()
     RegisterAuraScript(aura_hatecoil_wavebinder_bubble_shield);
     RegisterAuraScript(aura_makrana_hardshell_armorshell);
     RegisterAuraScript(aura_eoa_violent_winds_broadcast);
-    RegisterAuraScript(aura_eoa_violent_winds_force_move);
+    //RegisterAuraScript(aura_eoa_violent_winds_force_move);
     RegisterAuraScript(aura_eoa_lightning_strikes);
 
     RegisterAreaTriggerAI(at_animated_storm_water_spout);

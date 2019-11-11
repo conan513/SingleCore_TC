@@ -219,11 +219,11 @@ class boss_tayak : public CreatureScript
 
                         Position pos = { me->GetPositionX(), me->GetPositionY(), me->GetPositionZ(), 0.0f };
 
-                        for (Player* player : playerList)
+                        /*for (Player* player : playerList)
                         {
                             if (player->IsAlive() && !player->HasMovementForce(me->GetGUID()))
                                 player->ApplyMovementForce(me->GetGUID(), 3.f, pos);
-                        }
+                        }*/
 
                         // Won't reach the event until 6-7 secs as Ta'yak has UNIT_STATE_CASTING
                         events.ScheduleEvent(EVENT_TAYAK_BT_END, 100);
@@ -1009,8 +1009,8 @@ class mob_gale_winds_stalker : public CreatureScript
                                 std::list<Player*> playerList;
                                 GetPlayerListInGrid(playerList, me, 200.0f);
 
-                                for (Player* player : playerList)
-                                    player->RemoveAllMovementForces();
+                                /*for (Player* player : playerList)
+                                    player->RemoveAllMovementForces();*/
                             }
 
                             isActive = false;
@@ -1035,7 +1035,7 @@ class mob_gale_winds_stalker : public CreatureScript
                     std::list<Player*> playerList;
                     GetPlayerListInGrid(playerList, me, 20.0f);
 
-                    for (Player* player : playerList)
+                    /*for (Player* player : playerList)
                     {
                         // if player is in wind gale
                         if (player->GetPositionX() > -2109.51f || player->GetPositionX() < -2129.05f)
@@ -1052,7 +1052,7 @@ class mob_gale_winds_stalker : public CreatureScript
                         {
                             player->RemoveAllMovementForces();
                         }
-                    }
+                    }*/
                 }
             }
         };

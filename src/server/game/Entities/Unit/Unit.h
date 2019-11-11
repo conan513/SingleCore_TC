@@ -1408,13 +1408,11 @@ class TC_GAME_API Unit : public WorldObject
         void SendSetVehicleRecId(uint32 vehicleId);
         bool IsInAir();
 
-        bool HasMovementForce(ObjectGuid source);
-        void ApplyMovementForce(ObjectGuid source, float magnitude, Position direction, Position origin = Position());
-        void RemoveMovementForce(ObjectGuid source);
-        void RemoveAllMovementForces();
-        void ReApplyAllMovementForces();
-        std::unordered_map<ObjectGuid, WorldPackets::Movement::MovementForce>& GetMovementForces() { return _movementForces; }
-        std::unordered_map<ObjectGuid, WorldPackets::Movement::MovementForce> const& GetMovementForces() const { return _movementForces; }
+        MovementForces const* GetMovementForces() const { return _movementForces.get(); }
+        void ApplyMovementForce(ObjectGuid id, Position origin, float magnitude, uint8 type, Position direction = {}, ObjectGuid transportGuid = ObjectGuid::Empty);
+        void RemoveMovementForce(ObjectGuid id);
+        bool SetIgnoreMovementForces(bool ignore);
+        void UpdateMovementForcesModMagnitude();
 
         void SetInFront(WorldObject const* target);
         void SetFacingTo(float ori, bool force = false);
@@ -2214,11 +2212,11 @@ class TC_GAME_API Unit : public WorldObject
 
         SpellHistory* _spellHistory;
 
+        std::unique_ptr<MovementForces> _movementForces;
+
         TaskScheduler _scheduler;
 
         uint32 _lastUpdatePower[MAX_POWERS_PER_CLASS];
-
-        std::unordered_map<ObjectGuid, WorldPackets::Movement::MovementForce> _movementForces;
 
         uint32 m_currentPetBattleId;
 

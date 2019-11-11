@@ -51,7 +51,7 @@ enum
     NPC_ESTABLISH_YOUR_GARRISON_KILL_CREDIT = 79757,
 };
 
-// 79206 - Prophète Velen - Shadowmoon start
+// 79206 - Proph?te Velen - Shadowmoon start
 class npc_velen_shadowmoon_begin : public CreatureScript
 {
 public:
@@ -120,7 +120,7 @@ public:
     };
 };
 
-// 79206 - Prophète Velen - Shadowmoon start
+// 79206 - Proph?te Velen - Shadowmoon start
 class npc_velen_shadowmoon_follower : public CreatureScript
 {
 public:
@@ -364,26 +364,26 @@ public:
 };
 
 /// Submerge - 172189
-struct areatrigger_aqualir_submerge : AreaTriggerAI
-{
-    areatrigger_aqualir_submerge(AreaTrigger* areatrigger) : AreaTriggerAI(areatrigger) { }
+//struct areatrigger_aqualir_submerge : AreaTriggerAI
+//{
+//    areatrigger_aqualir_submerge(AreaTrigger* areatrigger) : AreaTriggerAI(areatrigger) { }
+//
+//    Position bottom = { -867.21f, -1133.19f, 81.22f, 1.75f };
+//
+//    void OnUnitEnter(Unit* unit) override
+//    {
+//        if (unit->IsPlayer())
+//            unit->ApplyMovementForce(at->GetGUID(), bottom, 7.0f);
+//    }
+//
+//    void OnUnitExit(Unit* unit) override
+//    {
+//        if (unit->IsPlayer())
+//            unit->RemoveMovementForce(at->GetGUID());
+//    }
+//};
 
-    Position bottom = { -867.21f, -1133.19f, 81.22f, 1.75f };
-
-    void OnUnitEnter(Unit* unit) override
-    {
-        if (unit->IsPlayer())
-            unit->ApplyMovementForce(at->GetGUID(), 7.0f, bottom);
-    }
-
-    void OnUnitExit(Unit* unit) override
-    {
-        if (unit->IsPlayer())
-            unit->RemoveMovementForce(at->GetGUID());
-    }
-};
-
-//## Gara - suite de quêtes cachées chasseur
+//## Gara - suite de qu?tes cach?es chasseur
 
 enum GaraQuestLineEnum
 {
@@ -783,7 +783,7 @@ Position VoidRealmEventPos[] =
 #define SAY_OMRA_11 "She is being swallowed by the void! You must help her! There is only one way, tame her, now! Maybe you can find a way to reverse the process, and put her soul at rest, as you have done mine !"
 #define SAY_OMRA_12 "You've done it... thank you. Goodbye, Gara, my soul is at peace now. I hope... that you find this peace some day, too. I am so sorry, my dearest Gara."
 
-// 88707 - Gara invoquée dans le vide
+// 88707 - Gara invoqu?e dans le vide
 class npc_void_gara : public CreatureScript
 {
 public:
@@ -1156,7 +1156,7 @@ void AddSC_shadowmoon_draenor()
 
     new spell_shadowmoon_claiming();
 
-    RegisterAreaTriggerAI(areatrigger_aqualir_submerge);
+    //RegisterAreaTriggerAI(areatrigger_aqualir_submerge);
 
     new npc_gara();
     new spell_use_effigy();

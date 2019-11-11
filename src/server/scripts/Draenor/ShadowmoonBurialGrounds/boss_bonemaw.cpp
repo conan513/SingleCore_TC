@@ -245,7 +245,7 @@ public:
                                 itr->CastSpell(itr, eBoneMawSpells::SpellInhaleDamage);
                             }
 
-                            if (itr->IsWithinDist(l_BonemawMouth, 100.0f, true))
+                            /*if (itr->IsWithinDist(l_BonemawMouth, 100.0f, true))
                             {
                                 if (itr->IsAlive() && !itr->HasMovementForce(l_BonemawMouth->GetGUID()))
                                     itr->ApplyMovementForce(l_BonemawMouth->GetGUID(), 3.0f, position);
@@ -253,7 +253,7 @@ public:
                                     itr->RemoveMovementForce(l_BonemawMouth->GetGUID());
                             }
                             else if (itr->HasMovementForce(l_BonemawMouth->GetGUID()))
-                                itr->RemoveMovementForce(l_BonemawMouth->GetGUID());
+                                itr->RemoveMovementForce(l_BonemawMouth->GetGUID());*/
                         }
                     }
 

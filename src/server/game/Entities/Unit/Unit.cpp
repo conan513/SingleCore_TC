@@ -13718,10 +13718,9 @@ void Unit::SendTeleportPacket(Position const& pos)
 
     WorldPackets::Movement::MoveUpdateTeleport moveUpdateTeleport;
     moveUpdateTeleport.Status = &m_movementInfo;
+    if (_movementForces)
+        moveUpdateTeleport.MovementForces = _movementForces->GetForces();
     Unit* broadcastSource = this;
-
-    for (auto itr : _movementForces)
-        moveUpdateTeleport.MovementForces.push_back(itr.second);
 
     if (Player* playerMover = GetPlayerBeingMoved())
     {
@@ -14505,67 +14504,130 @@ bool Unit::SetCanDoubleJump(bool enable)
     return true;
 }
 
-bool Unit::HasMovementForce(ObjectGuid source)
+void Unit::ApplyMovementForce(ObjectGuid id, Position origin, float magnitude, uint8 type, Position direction /*= {}*/, ObjectGuid transportGuid /*= ObjectGuid::Empty*/)
 {
-    return _movementForces.find(source) != _movementForces.end();
+    if (!_movementForces)
+        _movementForces = Trinity::make_unique<MovementForces>();
+
+    MovementForce force;
+    force.ID = id;
+    force.Origin = origin;
+    force.Direction = direction;
+    if (transportGuid.IsMOTransport())
+        force.TransportID = transportGuid.GetCounter();
+
+    force.Magnitude = magnitude;
+    force.Type = type;
+
+    if (_movementForces->Add(force))
+    {
+        if (Player const* movingPlayer = GetPlayerMovingMe())
+        {
+            WorldPackets::Movement::MoveApplyMovementForce applyMovementForce;
+            applyMovementForce.MoverGUID = GetGUID();
+            applyMovementForce.SequenceIndex = m_movementCounter++;
+            applyMovementForce.Force = &force;
+            movingPlayer->SendDirectMessage(applyMovementForce.Write());
+        }
+        else
+        {
+            WorldPackets::Movement::MoveUpdateApplyMovementForce updateApplyMovementForce;
+            updateApplyMovementForce.Status = &m_movementInfo;
+            updateApplyMovementForce.Force = &force;
+            SendMessageToSet(updateApplyMovementForce.Write(), true);
+        }
+    }
 }
 
-void Unit::ApplyMovementForce(ObjectGuid source, float magnitude, Position direction, Position origin /*= Position()*/)
+void Unit::RemoveMovementForce(ObjectGuid id)
 {
-    // Can't have two movement force from same source
-    if (HasMovementForce(source))
+    if (!_movementForces)
         return;
 
-    WorldPackets::Movement::MoveApplyMovementForce moveApplyMovementForce;
+    if (_movementForces->Remove(id))
+    {
+        if (Player const* movingPlayer = GetPlayerMovingMe())
+        {
+            WorldPackets::Movement::MoveRemoveMovementForce moveRemoveMovementForce;
+            moveRemoveMovementForce.MoverGUID = GetGUID();
+            moveRemoveMovementForce.SequenceIndex = m_movementCounter++;
+            moveRemoveMovementForce.ID = id;
+            movingPlayer->SendDirectMessage(moveRemoveMovementForce.Write());
+        }
+        else
+        {
+            WorldPackets::Movement::MoveUpdateRemoveMovementForce updateRemoveMovementForce;
+            updateRemoveMovementForce.Status = &m_movementInfo;
+            updateRemoveMovementForce.TriggerGUID = id;
+            SendMessageToSet(updateRemoveMovementForce.Write(), true);
+        }
+    }
 
-    moveApplyMovementForce.MoverGUID = GetGUID();
-    moveApplyMovementForce.SequenceIndex = m_movementCounter++;
-
-    moveApplyMovementForce.Force.ID             = source;
-    moveApplyMovementForce.Force.Magnitude      = magnitude * GetTotalAuraMultiplier(SPELL_AURA_MOD_MOVEMENT_FORCES_SPEED_PCT);
-    moveApplyMovementForce.Force.Origin         = origin;
-    moveApplyMovementForce.Force.Direction      = direction;
-    moveApplyMovementForce.Force.TransportID    = GetTransport() ? GetTransport()->GetEntry() : 0;
-    moveApplyMovementForce.Force.Type           = 1;
-
-    _movementForces[source] = moveApplyMovementForce.Force;
-
-    SendMessageToSet(moveApplyMovementForce.Write(), true);
+    if (_movementForces->IsEmpty())
+        _movementForces.reset();
 }
 
-void Unit::RemoveMovementForce(ObjectGuid source)
+bool Unit::SetIgnoreMovementForces(bool ignore)
 {
-    if (!HasMovementForce(source))
-        return;
+    if (ignore == HasExtraUnitMovementFlag(MOVEMENTFLAG2_IGNORE_MOVEMENT_FORCES))
+        return false;
 
-    _movementForces.erase(source);
+    if (ignore)
+        AddExtraUnitMovementFlag(MOVEMENTFLAG2_IGNORE_MOVEMENT_FORCES);
+    else
+        RemoveExtraUnitMovementFlag(MOVEMENTFLAG2_IGNORE_MOVEMENT_FORCES);
 
-    WorldPackets::Movement::MoveRemoveMovementForce moveRemoveMovementForce;
-    moveRemoveMovementForce.MoverGUID       = GetGUID();
-    moveRemoveMovementForce.SequenceIndex   = m_movementCounter++;
-    moveRemoveMovementForce.ID              = source;
-    SendMessageToSet(moveRemoveMovementForce.Write(), true);
+    static OpcodeServer const ignoreMovementForcesOpcodeTable[2] =
+    {
+        SMSG_MOVE_UNSET_IGNORE_MOVEMENT_FORCES,
+        SMSG_MOVE_SET_IGNORE_MOVEMENT_FORCES
+    };
+
+    if (Player const* movingPlayer = GetPlayerMovingMe())
+    {
+        WorldPackets::Movement::MoveSetFlag packet(ignoreMovementForcesOpcodeTable[ignore]);
+        packet.MoverGUID = GetGUID();
+        packet.SequenceIndex = m_movementCounter++;
+        movingPlayer->SendDirectMessage(packet.Write());
+
+        WorldPackets::Movement::MoveUpdate moveUpdate;
+        moveUpdate.Status = &m_movementInfo;
+        SendMessageToSet(moveUpdate.Write(), movingPlayer);
+    }
+
+    return true;
 }
 
-void Unit::RemoveAllMovementForces()
+void Unit::UpdateMovementForcesModMagnitude()
 {
-    // We need to copy the map because RemoveMovementForce method will delete from original map
-    std::unordered_map<ObjectGuid, WorldPackets::Movement::MovementForce> movementForcesCopy = _movementForces;
+    float modMagnitude = GetTotalAuraMultiplier(SPELL_AURA_MOD_MOVEMENT_FORCE_MAGNITUDE);
 
-    for (auto itr: movementForcesCopy)
-        RemoveMovementForce(itr.first);
-}
+    if (Player* movingPlayer = GetPlayerMovingMe())
+    {
+        WorldPackets::Movement::MoveSetSpeed setModMovementForceMagnitude(SMSG_MOVE_SET_MOD_MOVEMENT_FORCE_MAGNITUDE);
+        setModMovementForceMagnitude.MoverGUID = GetGUID();
+        setModMovementForceMagnitude.SequenceIndex = m_movementCounter++;
+        setModMovementForceMagnitude.Speed = modMagnitude;
+        movingPlayer->SendDirectMessage(setModMovementForceMagnitude.Write());
+        ++movingPlayer->m_movementForceModMagnitudeChanges;
+    }
+    else
+    {
+        WorldPackets::Movement::MoveUpdateSpeed updateModMovementForceMagnitude(SMSG_MOVE_UPDATE_MOD_MOVEMENT_FORCE_MAGNITUDE);
+        updateModMovementForceMagnitude.Status = &m_movementInfo;
+        updateModMovementForceMagnitude.Speed = modMagnitude;
+        SendMessageToSet(updateModMovementForceMagnitude.Write(), true);
+    }
 
-void Unit::ReApplyAllMovementForces()
-{
-    // We need to copy the map because RemoveMovementForce method will delete from original map
-    std::unordered_map<ObjectGuid, WorldPackets::Movement::MovementForce> movementForcesCopy = _movementForces;
+    if (modMagnitude != 1.0f && !_movementForces)
+        _movementForces = Trinity::make_unique<MovementForces>();
 
-    for (auto itr : movementForcesCopy)
-        RemoveMovementForce(itr.first);
-
-    for (auto itr : movementForcesCopy)
-        ApplyMovementForce(itr.first, itr.second.Magnitude, itr.second.Direction, itr.second.Origin);
+    if (_movementForces)
+    {
+        _movementForces->SetModMagnitude(modMagnitude);
+        if (_movementForces->IsEmpty())
+            _movementForces.reset();
+    }
 }
 
 void Unit::SendSetVehicleRecId(uint32 vehicleId)

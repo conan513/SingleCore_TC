@@ -755,33 +755,33 @@ public:
     }
 };
 
-class areatrigger_black_hole : public AreaTriggerAI
-{
-public:
-    areatrigger_black_hole(AreaTrigger* areatrigger) : AreaTriggerAI(areatrigger) { }
-
-        void OnCreate() override
-        {
-            //at->SetCustomRadius(1.0f);
-            directionForce = { at->GetPositionX(), at->GetPositionY(), at->GetPositionZ(), at->GetOrientation() };
-        }
-
-        void OnUnitEnter(Unit* unit) override
-        {
-            if (Player* player = unit->ToPlayer())
-                if (!player->HasMovementForce(at->GetGUID()))
-                    player->ApplyMovementForce(at->GetGUID(), 3.0f, directionForce);
-        }
-
-        void OnUnitExit(Unit* unit) override
-        {
-            if (Player* player = unit->ToPlayer())
-                player->RemoveMovementForce(at->GetGUID());
-        }
-
-    private:
-        Position directionForce;
-};
+//class areatrigger_black_hole : public AreaTriggerAI
+//{
+//public:
+//    areatrigger_black_hole(AreaTrigger* areatrigger) : AreaTriggerAI(areatrigger) { }
+//
+//        void OnCreate() override
+//        {
+//            //at->SetCustomRadius(1.0f);
+//            directionForce = { at->GetPositionX(), at->GetPositionY(), at->GetPositionZ(), at->GetOrientation() };
+//        }
+//
+//        void OnUnitEnter(Unit* unit) override
+//        {
+//            if (Player* player = unit->ToPlayer())
+//                if (!player->HasMovementForce(at->GetGUID()))
+//                    player->ApplyMovementForce(at->GetGUID(), 3.0f, directionForce);
+//        }
+//
+//        void OnUnitExit(Unit* unit) override
+//        {
+//            if (Player* player = unit->ToPlayer())
+//                player->RemoveMovementForce(at->GetGUID());
+//        }
+//
+//    private:
+//        Position directionForce;
+//};
 
 class spell_frozen_snap : public SpellScriptLoader
 {
@@ -1001,7 +1001,7 @@ void AddSC_the_everbloom()
     new spell_choking_vines();
     new spell_spore_breath();
     new spell_black_hole();
-    RegisterAreaTriggerAI(areatrigger_black_hole);
+    //RegisterAreaTriggerAI(areatrigger_black_hole);
     new spell_frozen_snap();
     new aura_glowbulb_pollen();
     new aura_barrier();

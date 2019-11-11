@@ -26,7 +26,6 @@
 #include "InstanceSaveMgr.h"
 #include "Log.h"
 #include "MapManager.h"
-#include "MiscPackets.h"
 #include "MovementPackets.h"
 #include "ObjectMgr.h"
 #include "Opcodes.h"
@@ -37,9 +36,7 @@
 #include "WaypointMovementGenerator.h"
 #include "SpellMgr.h"
 
-#include <boost/accumulators/statistics/variance.hpp>
-#include <boost/accumulators/accumulators.hpp>
-#include <boost/accumulators/statistics.hpp>
+#define MOVEMENT_PACKET_TIME_DELAY 0
 
 void WorldSession::HandleMoveWorldportAckOpcode(WorldPackets::Movement::WorldPortResponse& /*packet*/)
 {
@@ -396,17 +393,13 @@ void WorldSession::HandleMovementOpcode(OpcodeClient opcode, MovementInfo& movem
         plrMover->SetInWater(!plrMover->IsInWater() || plrMover->GetMap()->IsUnderWater(plrMover->GetPhaseShift(), movementInfo.pos.GetPositionX(), movementInfo.pos.GetPositionY(), movementInfo.pos.GetPositionZ()));
     }
 
+    uint32 mstime = GameTime::GetGameTimeMS();
+    /*----------------------*/
+    if (m_clientTimeDelay == 0)
+        m_clientTimeDelay = mstime - movementInfo.time;
+
     /* process position-change */
-    int64 movementTime = (int64)movementInfo.time + _timeSyncClockDelta;
-    if (_timeSyncClockDelta == 0 || movementTime < 0 || movementTime > 0xFFFFFFFF)
-    {
-        TC_LOG_WARN("misc", "The computed movement time using clockDelta is erronous. Using fallback instead");
-        movementInfo.time = GameTime::GetGameTimeMS();
-    }
-    else
-    {
-        movementInfo.time = (uint32)movementTime;
-    }
+    movementInfo.time = movementInfo.time + m_clientTimeDelay + MOVEMENT_PACKET_TIME_DELAY;
 
     movementInfo.guid = mover->GetGUID();
     mover->m_movementInfo = movementInfo;
@@ -599,100 +592,94 @@ void WorldSession::HandleSetCollisionHeightAck(WorldPackets::Movement::MoveSetCo
     GetPlayer()->ValidateMovementInfo(&setCollisionHeightAck.Data.Status);
 }
 
-void WorldSession::HandleMoveTimeSkippedOpcode(WorldPackets::Movement::MoveTimeSkipped& moveTimeSkipped)
+void WorldSession::HandleMoveApplyMovementForceAck(WorldPackets::Movement::MoveApplyMovementForceAck& moveApplyMovementForceAck)
 {
-    TC_LOG_DEBUG("network", "WORLD: Received CMSG_MOVE_TIME_SKIPPED");
-
-    Unit* mover = GetPlayer()->m_unitMovedByMe;
-
-    if (!mover)
-    {
-        TC_LOG_WARN("entities.player", "WorldSession::HandleMoveTimeSkippedOpcode wrong mover state from the unit moved by the player %s", GetPlayer()->GetGUID().ToString().c_str());
-        return;
-    }
+    Unit* mover = _player->m_unitMovedByMe;
+    ASSERT(mover != nullptr);
+    _player->ValidateMovementInfo(&moveApplyMovementForceAck.Ack.Status);
 
     // prevent tampered movement data
-    if (moveTimeSkipped.MoverGUID != mover->GetGUID())
+    if (moveApplyMovementForceAck.Ack.Status.guid != mover->GetGUID())
     {
-        TC_LOG_WARN("entities.player", "WorldSession::HandleMoveTimeSkippedOpcode wrong guid from the unit moved by the player %s", GetPlayer()->GetGUID().ToString().c_str());
+        TC_LOG_ERROR("network", "HandleMoveApplyMovementForceAck: guid error, expected %s, got %s",
+            mover->GetGUID().ToString().c_str(), moveApplyMovementForceAck.Ack.Status.guid.ToString().c_str());
         return;
     }
 
-    mover->m_movementInfo.time += moveTimeSkipped.TimeSkipped;
+    moveApplyMovementForceAck.Ack.Status.time += m_clientTimeDelay + MOVEMENT_PACKET_TIME_DELAY;
 
-    WorldPackets::Movement::MoveSkipTime moveSkipTime;
-    moveSkipTime.MoverGuid = moveTimeSkipped.MoverGUID;
-    moveSkipTime.TimeSkipped = moveTimeSkipped.TimeSkipped;
-    GetPlayer()->SendMessageToSet(moveSkipTime.Write(), false);
+    WorldPackets::Movement::MoveUpdateApplyMovementForce updateApplyMovementForce;
+    updateApplyMovementForce.Status = &moveApplyMovementForceAck.Ack.Status;
+    updateApplyMovementForce.Force = &moveApplyMovementForceAck.Force;
+    mover->SendMessageToSet(updateApplyMovementForce.Write(), false);
 }
 
-void WorldSession::HandleTimeSyncResponse(WorldPackets::Misc::TimeSyncResponse& packet)
+void WorldSession::HandleMoveRemoveMovementForceAck(WorldPackets::Movement::MoveRemoveMovementForceAck& moveRemoveMovementForceAck)
 {
-    TC_LOG_DEBUG("network", "CMSG_TIME_SYNC_RESP");
+    Unit* mover = _player->m_unitMovedByMe;
+    ASSERT(mover != nullptr);
+    _player->ValidateMovementInfo(&moveRemoveMovementForceAck.Ack.Status);
 
-    if (_pendingTimeSyncRequests.count(packet.SequenceIndex) == 0)
-        return;
-
-    uint32 serverTimeAtSent = _pendingTimeSyncRequests.at(packet.SequenceIndex);
-    _pendingTimeSyncRequests.erase(packet.SequenceIndex);
-
-    // time it took for the request to travel to the client, for the client to process it and reply and for response to travel back to the server.
-    // we are going to make 2 assumptions:
-    // 1) we assume that the request processing time equals 0.
-    // 2) we assume that the packet took as much time to travel from server to client than it took to travel from client to server.
-    uint32 roundTripDuration = getMSTimeDiff(serverTimeAtSent, packet.GetRawPacket()->GetReceivedTime());
-    uint32 lagDelay = roundTripDuration / 2;
-
-    /*
-    clockDelta = serverTime - clientTime
-    where
-    serverTime: time that was displayed on the clock of the SERVER at the moment when the client processed the SMSG_TIME_SYNC_REQUEST packet.
-    clientTime:  time that was displayed on the clock of the CLIENT at the moment when the client processed the SMSG_TIME_SYNC_REQUEST packet.
-    Once clockDelta has been computed, we can compute the time of an event on server clock when we know the time of that same event on the client clock,
-    using the following relation:
-    serverTime = clockDelta + clientTime
-    */
-    int64 clockDelta = (int64)(serverTimeAtSent + lagDelay) - (int64)packet.ClientTime;
-    _timeSyncClockDeltaQueue.push_back(std::pair<int64, uint32>(clockDelta, roundTripDuration));
-    ComputeNewClockDelta();
-}
-
-void WorldSession::ComputeNewClockDelta()
-{
-    // implementation of the technique described here: https://web.archive.org/web/20180430214420/http://www.mine-control.com/zack/timesync/timesync.html
-    // to reduce the skew induced by dropped TCP packets that get resent.
-
-    using namespace boost::accumulators;
-
-    accumulator_set<uint32, features<tag::mean, tag::median, tag::variance(lazy)> > latencyAccumulator;
-
-    for (auto pair : _timeSyncClockDeltaQueue)
-        latencyAccumulator(pair.second);
-
-    uint32 latencyMedian = static_cast<uint32>(std::round(median(latencyAccumulator)));
-    uint32 latencyStandardDeviation = static_cast<uint32>(std::round(sqrt(variance(latencyAccumulator))));
-
-    accumulator_set<int64, features<tag::mean> > clockDeltasAfterFiltering;
-    uint32 sampleSizeAfterFiltering = 0;
-    for (auto pair : _timeSyncClockDeltaQueue)
+    // prevent tampered movement data
+    if (moveRemoveMovementForceAck.Ack.Status.guid != mover->GetGUID())
     {
-        if (pair.second < latencyStandardDeviation + latencyMedian) {
-            clockDeltasAfterFiltering(pair.first);
-            sampleSizeAfterFiltering++;
+        TC_LOG_ERROR("network", "HandleMoveRemoveMovementForceAck: guid error, expected %s, got %s",
+            mover->GetGUID().ToString().c_str(), moveRemoveMovementForceAck.Ack.Status.guid.ToString().c_str());
+        return;
+    }
+
+    moveRemoveMovementForceAck.Ack.Status.time += m_clientTimeDelay + MOVEMENT_PACKET_TIME_DELAY;
+
+    WorldPackets::Movement::MoveUpdateRemoveMovementForce updateRemoveMovementForce;
+    updateRemoveMovementForce.Status = &moveRemoveMovementForceAck.Ack.Status;
+    updateRemoveMovementForce.TriggerGUID = moveRemoveMovementForceAck.ID;
+    mover->SendMessageToSet(updateRemoveMovementForce.Write(), false);
+}
+
+void WorldSession::HandleMoveSetModMovementForceMagnitudeAck(WorldPackets::Movement::MovementSpeedAck& setModMovementForceMagnitudeAck)
+{
+    Unit* mover = _player->m_unitMovedByMe;
+    ASSERT(mover != nullptr);                      // there must always be a mover
+    _player->ValidateMovementInfo(&setModMovementForceMagnitudeAck.Ack.Status);
+
+    // prevent tampered movement data
+    if (setModMovementForceMagnitudeAck.Ack.Status.guid != mover->GetGUID())
+    {
+        TC_LOG_ERROR("network", "HandleSetModMovementForceMagnitudeAck: guid error, expected %s, got %s",
+            mover->GetGUID().ToString().c_str(), setModMovementForceMagnitudeAck.Ack.Status.guid.ToString().c_str());
+        return;
+    }
+
+    // skip all except last
+    if (_player->m_movementForceModMagnitudeChanges > 0)
+    {
+        --_player->m_movementForceModMagnitudeChanges;
+        if (!_player->m_movementForceModMagnitudeChanges)
+        {
+            float expectedModMagnitude = 1.0f;
+            if (MovementForces const* movementForces = mover->GetMovementForces())
+                expectedModMagnitude = movementForces->GetModMagnitude();
+
+            if (std::fabs(expectedModMagnitude - setModMovementForceMagnitudeAck.Speed) > 0.01f)
+            {
+                TC_LOG_DEBUG("misc", "Player %s from account id %u kicked for incorrect movement force magnitude (must be %f instead %f)",
+                    _player->GetName().c_str(), _player->GetSession()->GetAccountId(), expectedModMagnitude, setModMovementForceMagnitudeAck.Speed);
+                _player->GetSession()->KickPlayer();
+                return;
+            }
         }
     }
 
-    if (sampleSizeAfterFiltering != 0)
-    {
-        int64 meanClockDelta = static_cast<int64>(std::round(mean(clockDeltasAfterFiltering)));
-        if (std::abs(meanClockDelta - _timeSyncClockDelta) > 25)
-            _timeSyncClockDelta = meanClockDelta;
-    }
-    else if (_timeSyncClockDelta == 0)
-    {
-        std::pair<int64, uint32> back = _timeSyncClockDeltaQueue.back();
-        _timeSyncClockDelta = back.first;
-    }
+    setModMovementForceMagnitudeAck.Ack.Status.time += m_clientTimeDelay + MOVEMENT_PACKET_TIME_DELAY;
+
+    WorldPackets::Movement::MoveUpdateSpeed updateModMovementForceMagnitude(SMSG_MOVE_UPDATE_MOD_MOVEMENT_FORCE_MAGNITUDE);
+    updateModMovementForceMagnitude.Status = &setModMovementForceMagnitudeAck.Ack.Status;
+    updateModMovementForceMagnitude.Speed = setModMovementForceMagnitudeAck.Speed;
+    mover->SendMessageToSet(updateModMovementForceMagnitude.Write(), false);
+}
+
+void WorldSession::HandleMoveTimeSkippedOpcode(WorldPackets::Movement::MoveTimeSkipped& moveTimeSkipped)
+{
 }
 
 void WorldSession::HandleMoveSplineDoneOpcode(WorldPackets::Movement::MoveSplineDone& moveSplineDone)
