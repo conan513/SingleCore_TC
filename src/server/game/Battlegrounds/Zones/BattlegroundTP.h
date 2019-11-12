@@ -168,14 +168,6 @@ enum BG_TP_CarrierDebuffs
     TP_SPELL_BRUTAL_ASSAULT    = 46393
 };
 
-
-enum BG_TP_Objectives
-{
-    TP_OBJECTIVE_CAPTURE_FLAG   = 290,
-    TP_OBJECTIVE_RETURN_FLAG    = 291
-};
-
-
 #define TP_EVENT_START_BATTLE   8563
 
 
