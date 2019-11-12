@@ -21,6 +21,12 @@
 #include "Battleground.h"
 #include "BattlegroundScore.h"
 
+enum BG_TP_Objectives
+{
+    BG_TP_FLAG_CAPTURES = 290,
+    BG_TP_FLAG_RETURNS  = 291
+};
+
 enum BG_TP_TimerOrScore
 {
     BG_TP_MAX_TEAM_SCORE        = 3,
