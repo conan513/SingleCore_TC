@@ -2678,8 +2678,6 @@ struct RewardPackXItemEntry
     int32 RewardPackID;
 };
 
-};
-
 struct QuestPOIBlobEntry
 {
     uint32      ID;

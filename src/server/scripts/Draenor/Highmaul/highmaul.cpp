@@ -21,6 +21,7 @@
 #include "Group.h"
 #include "ScriptedGossip.h"
 #include "Chat.h"
+#include "ObjectMgr.h"
 
 /// Gharg positions
 Position const g_GhargFirstPos = { 3466.11f, 7577.58f, 15.203f, 0.8954f };
@@ -3664,8 +3665,8 @@ class go_highmaul_instance_portal : public GameObjectScript
                         std::list<Player*> playerList;
                         go->GetPlayerListInGrid(playerList, 5.0f);
 
-                        auto entry = sWorldSafeLocsStore.LookupEntry(ExitTarget);
-                        Position pos = { entry->Loc.X, entry->Loc.Y, entry->Loc.Z };
+                        auto entry = sObjectMgr->GetWorldSafeLoc(ExitTarget);
+                        Position pos = { entry->Loc.GetPositionX(), entry->Loc.GetPositionY(), entry->Loc.GetPositionZ() };
 
                         for (Player* player : playerList)
                             player->TeleportTo(MAP_DRAENOR, pos);
