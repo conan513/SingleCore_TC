@@ -35,6 +35,7 @@
 #include "WarCampaign.h"
 #include "WodGarrison.h"
 #include "World.h"
+#include "WorldSession.h"
 
 bool CriteriaData::IsValid(Criteria const* criteria)
 {
