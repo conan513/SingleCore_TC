@@ -2728,6 +2728,8 @@ struct ResearchSiteEntry
     int16 MapId;
     int32 QuestPoiBlobId;
     uint32 AreaPOIIconEnum;
+};
+
 struct ScalingStatDistributionEntry
 {
     uint32 ID;

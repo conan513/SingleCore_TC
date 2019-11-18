@@ -1188,8 +1188,8 @@ void InstanceScript::StartChallengeMode(uint8 level)
 
     // Tp back all players to begin
     Position entranceLocation;
-    if (WorldSafeLocsEntry const* entranceSafeLocEntry = sWorldSafeLocsStore.LookupEntry(GetEntranceLocation()))
-        entranceLocation.Relocate(entranceSafeLocEntry->Loc.X, entranceSafeLocEntry->Loc.Y, entranceSafeLocEntry->Loc.Z, entranceSafeLocEntry->Facing);
+    if (WorldSafeLocsEntry const* entranceSafeLocEntry = sObjectMgr->GetWorldSafeLoc(GetEntranceLocation()))
+        entranceLocation.Relocate(entranceSafeLocEntry->Loc);
     else if (AreaTriggerTeleportStruct const* areaTrigger = sObjectMgr->GetMapEntranceTrigger(instance->GetId()))
         entranceLocation.Relocate(areaTrigger->target_X, areaTrigger->target_Y, areaTrigger->target_Z, areaTrigger->target_Orientation);
     DoNearTeleportPlayers(entranceLocation);

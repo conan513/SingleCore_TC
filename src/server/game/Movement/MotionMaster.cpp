@@ -22,6 +22,7 @@
 #include "ScriptSystem.h"
 #include "Log.h"
 #include "Map.h"
+#include "ObjectMgr.h"
 #include "ConfusedMovementGenerator.h"
 #include "FleeingMovementGenerator.h"
 #include "HomeMovementGenerator.h"
@@ -466,7 +467,7 @@ void MotionMaster::MoveJumpTo(float angle, float speedXY, float speedZ)
 
 void MotionMaster::MoveJump(uint32 locEntry, float speedXY, float speedZ, uint32 id /*= EVENT_JUMP*/)
 {
-    WorldSafeLocsEntry const* safeLoc = sWorldSafeLocsStore.LookupEntry(locEntry);
+    WorldSafeLocsEntry const* safeLoc = sObjectMgr->GetWorldSafeLoc(locEntry);
     if (safeLoc == nullptr)
         return;
 

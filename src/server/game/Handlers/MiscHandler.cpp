@@ -87,8 +87,8 @@ void WorldSession::HandleRepopRequest(WorldPackets::Misc::RepopRequest& /*packet
             {
                 Position resurectPosition;
 
-                if (WorldSafeLocsEntry const* entranceLocation = sWorldSafeLocsStore.LookupEntry(instanceScript->GetEntranceLocation()))
-                    resurectPosition.Relocate(entranceLocation->Loc.X, entranceLocation->Loc.Y, entranceLocation->Loc.Z, entranceLocation->Facing);
+                if (WorldSafeLocsEntry const* entranceLocation = sObjectMgr->GetWorldSafeLoc(instanceScript->GetEntranceLocation()))
+                    resurectPosition.Relocate(entranceLocation->Loc);
                 else if (AreaTriggerTeleportStruct const* areaTrigger = sObjectMgr->GetMapEntranceTrigger(GetPlayer()->GetMapId()))
                     resurectPosition.Relocate(areaTrigger->target_X, areaTrigger->target_Y, areaTrigger->target_Z, areaTrigger->target_Orientation);
 

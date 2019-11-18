@@ -13704,11 +13704,11 @@ void Unit::NearTeleportTo(Position const& pos, bool casting /*= false*/)
 
 void Unit::NearTeleportTo(uint32 worldSafeLocId, bool casting /*= false*/)
 {
-    WorldSafeLocsEntry const* safeLoc = sWorldSafeLocsStore.LookupEntry(worldSafeLocId);
+    WorldSafeLocsEntry const* safeLoc = sObjectMgr->GetWorldSafeLoc(worldSafeLocId);
     if (safeLoc == nullptr)
         return;
 
-    NearTeleportTo(safeLoc->Loc.X, safeLoc->Loc.Y, safeLoc->Loc.Z, safeLoc->Facing, casting);
+    NearTeleportTo(safeLoc->Loc, casting);
 }
 
 void Unit::SendTeleportPacket(Position const& pos)
