@@ -48,7 +48,6 @@ LootItem::LootItem(LootStoreItem const& li)
         freeforall = false;
         needs_quest = false;
         follow_loot_rules = false;
-        upgradeId = 0;
     }
     else
     {
@@ -57,8 +56,6 @@ LootItem::LootItem(LootStoreItem const& li)
         follow_loot_rules = proto && (proto->FlagsCu & ITEM_FLAGS_CU_FOLLOW_LOOT_RULES);
 
         needs_quest = li.needs_quest;
-
-        upgradeId = sDB2Manager.GetRulesetItemUpgrade(itemid);
     }
 
     randomBonusListId = GenerateItemRandomBonusListId(itemid);
