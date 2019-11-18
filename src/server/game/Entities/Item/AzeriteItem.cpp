@@ -88,7 +88,7 @@ void AzeriteItem::SetLevel(uint32 level, bool loading /*= false*/)
     if (!loading)
     {
         _level = level;
-        GetOwner()->UpdateCriteria(CRITERIA_TREE_HEART_OF_AZEROTH_LEVEL_REACHED, _level);
+        GetOwner()->UpdateCriteria(CRITERIA_TYPE_HEART_OF_AZEROTH_LEVEL_REACHED, _level);
 
         auto const itemModifiers = sObjectMgr->GetItemBonusTree(GetEntry(), AsUnderlyingType(ItemContext::Quest_Reward), GetOwner()->getLevel(), 0, levelToItemLevelEntry->ItemLevel);
         for (auto const& bonusId : itemModifiers)
@@ -126,7 +126,7 @@ void AzeriteItem::AddExperience(uint32 value)
     packet.Item = GetGUID();
     GetOwner()->SendDirectMessage(packet.Write());
 
-    GetOwner()->UpdateCriteria(CRITERIA_TREE_HEART_OF_AZEROTH_ARTIFACT_POWER_EARNED, value);
+    GetOwner()->UpdateCriteria(CRITERIA_TYPE_HEART_OF_AZEROTH_ARTIFACT_POWER_EARNED, value);
 }
 
 void AzeriteItem::BuildUpdate(UpdateDataMapType& data_map)

@@ -553,7 +553,7 @@ void Item::SaveToDB(CharacterDatabaseTransaction& trans)
                 ITEM_MODIFIER_CHALLENGE_KEYSTONE_AFFIX_ID_1,
                 ITEM_MODIFIER_CHALLENGE_KEYSTONE_AFFIX_ID_2,
                 ITEM_MODIFIER_CHALLENGE_KEYSTONE_AFFIX_ID_3,
-                ITEM_MODIFIER_CHALLENGE_KEYSTONE_IS_CHARGED
+                ITEM_MODIFIER_CHALLENGE_KEYSTONE_AFFIX_ID_4
             };
 
             stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_ITEM_INSTANCE_MODIFIERS);
@@ -571,7 +571,7 @@ void Item::SaveToDB(CharacterDatabaseTransaction& trans)
                 stmt->setUInt32(5, GetModifier(ITEM_MODIFIER_CHALLENGE_KEYSTONE_AFFIX_ID_1));
                 stmt->setUInt32(6, GetModifier(ITEM_MODIFIER_CHALLENGE_KEYSTONE_AFFIX_ID_2));
                 stmt->setUInt32(7, GetModifier(ITEM_MODIFIER_CHALLENGE_KEYSTONE_AFFIX_ID_3));
-                stmt->setUInt32(8, GetModifier(ITEM_MODIFIER_CHALLENGE_KEYSTONE_IS_CHARGED));
+                stmt->setUInt32(8, GetModifier(ITEM_MODIFIER_CHALLENGE_KEYSTONE_AFFIX_ID_4));
                 trans->Append(stmt);
             }
 
@@ -765,7 +765,7 @@ bool Item::LoadFromDB(ObjectGuid::LowType guid, ObjectGuid ownerGuid, Field* fie
     SetModifier(ITEM_MODIFIER_CHALLENGE_KEYSTONE_AFFIX_ID_1,    fields[47].GetUInt32());
     SetModifier(ITEM_MODIFIER_CHALLENGE_KEYSTONE_AFFIX_ID_2,    fields[48].GetUInt32());
     SetModifier(ITEM_MODIFIER_CHALLENGE_KEYSTONE_AFFIX_ID_3,    fields[49].GetUInt32());
-    SetModifier(ITEM_MODIFIER_CHALLENGE_KEYSTONE_IS_CHARGED,    fields[50].GetUInt32());
+    SetModifier(ITEM_MODIFIER_CHALLENGE_KEYSTONE_AFFIX_ID_4,    fields[50].GetUInt32());
 
     // Enchants must be loaded after all other bonus/scaling data
     Tokenizer enchantmentTokens(fields[8].GetString(), ' ');
@@ -2146,11 +2146,11 @@ void Item::ItemContainerDeleteLootMoneyAndLootItemsFromDB()
 
 uint32 Item::GetItemLevel(Player const* owner) const
 {
-    uint32 minItemLevel = owner ? owner->m_unitData->MinItemLevel : 0;
-    uint32 minItemLevelCutoff = owner ? owner->m_unitData->MinItemLevelCutoff : 0;
-    uint32 maxItemLevel = GetTemplate()->GetFlags3() & ITEM_FLAG3_IGNORE_ITEM_LEVEL_CAP_IN_PVP ? 0 : owner ? owner->m_unitData->MaxItemLevel : 0;
-    bool pvpBonus = owner ? owner->IsUsingPvpItemLevels() : false;
-    return Item::GetItemLevel(GetTemplate(), _bonusData, owner ? owner->getLevel(), GetModifier(ITEM_MODIFIER_TIMEWALKER_LEVEL),
+    uint32 minItemLevel = owner->m_unitData->MinItemLevel : 0;
+    uint32 minItemLevelCutoff = owner->m_unitData->MinItemLevelCutoff : 0;
+    uint32 maxItemLevel = GetTemplate()->GetFlags3() & ITEM_FLAG3_IGNORE_ITEM_LEVEL_CAP_IN_PVP ? 0 : owner->m_unitData->MaxItemLevel : 0;
+    bool pvpBonus = owner->IsUsingPvpItemLevels() : false;
+    return Item::GetItemLevel(GetTemplate(), _bonusData, owner->getLevel(), GetModifier(ITEM_MODIFIER_TIMEWALKER_LEVEL),
         minItemLevel, minItemLevelCutoff, maxItemLevel, pvpBonus);
 }
 

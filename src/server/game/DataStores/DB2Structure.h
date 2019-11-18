@@ -977,7 +977,7 @@ struct CriteriaEntry
         // CRITERIA_TYPE_REACH_ACCOUNT_HONOR_LEVEL = 213
         int32 AccountHonorLevel;
 
-        // CRITERIA_TREE_HEART_OF_AZEROTH_LEVEL_REACHED = 215
+        // CRITERIA_TYPE_HEART_OF_AZEROTH_LEVEL_REACHED = 215
         int32 HeartOfAzerothLevel;
     } Asset;
     uint32 ModifierTreeId;
