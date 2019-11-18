@@ -6696,7 +6696,7 @@ Trinity::IteratorPair<std::unordered_map<uint32, WorldSafeLocsEntry>::const_iter
     return std::make_pair(_worldSafeLocs.begin(), _worldSafeLocs.end());
 }
 
-AreaTriggerStruct const* ObjectMgr::GetAreaTrigger(uint32 trigger) const
+AreaTriggerTeleportStruct const* ObjectMgr::GetAreaTrigger(int64 trigger) const
 {
     AreaTriggerTeleportContainer::const_iterator itr = _areaTriggerTeleportStore.find(trigger);
     if (itr != _areaTriggerTeleportStore.end())

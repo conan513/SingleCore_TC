@@ -471,7 +471,7 @@ void MotionMaster::MoveJump(uint32 locEntry, float speedXY, float speedZ, uint32
     if (safeLoc == nullptr)
         return;
 
-    MoveJump(safeLoc->Loc.X, safeLoc->Loc.Y, safeLoc->Loc.Z, speedXY, speedZ, safeLoc->Facing, id);
+    MoveJump(safeLoc->Loc, speedXY, speedZ, id);
 }
 
 void MotionMaster::MoveJump(float x, float y, float z, float o, float speedXY, float speedZ, uint32 id /*= EVENT_JUMP*/, bool hasOrientation /* = false*/,
