@@ -29,11 +29,11 @@ class TC_GAME_API AzeriteItem : public Item
 public:
     AzeriteItem();
 
-    virtual bool Create(ObjectGuid::LowType guidlow, uint32 itemId, Player const* owner);
+    bool Create(ObjectGuid::LowType guidlow, uint32 itemId, Player const* owner) override;
 
-    virtual void SaveToDB(CharacterDatabaseTransaction& trans);
-    virtual bool LoadFromDB(ObjectGuid::LowType guid, ObjectGuid ownerGuid, Field* fields, uint32 entry, Player const* owner = nullptr);
-    virtual void DeleteFromDB(CharacterDatabaseTransaction& trans);
+    void SaveToDB(CharacterDatabaseTransaction& trans) override;
+    bool LoadFromDB(ObjectGuid::LowType guid, ObjectGuid ownerGuid, Field* fields, uint32 entry, Player const* owner = nullptr) override;
+    void DeleteFromDB(CharacterDatabaseTransaction& trans) override;
 
     uint32 GetItemLevel(Player const* owner) const override;
 
