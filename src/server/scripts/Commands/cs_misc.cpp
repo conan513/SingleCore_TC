@@ -1270,7 +1270,6 @@ public:
             return false;
 
         uint32 itemId = 0;
-        uint32 itemLevel = 0;
 
         if (args[0] == '[')                                        // [name] manual form
         {
@@ -1332,7 +1331,7 @@ public:
         char const* context = strtok(NULL, " ");
         if (context)
         {
-            std::set<uint32> bonusListIDset = sDB2Manager.GetItemBonusTree(itemId, atoi(context), itemLevel);
+            std::set<uint32> bonusListIDset = sDB2Manager.GetItemBonusTree(itemId, atoi(context));
             bonusListIDs.insert(bonusListIDs.end(), bonusListIDset.begin(), bonusListIDset.end());
         }
 

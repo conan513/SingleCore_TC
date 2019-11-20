@@ -481,22 +481,6 @@ struct AuctionHouseLoadInfo
     }
 };
 
-struct AzeriteEmpoweredItemLoadInfo
-{
-    static DB2LoadInfo const* Instance()
-    {
-        static DB2FieldMeta const fields[] =
-        {
-            { false, FT_INT, "ID" },
-            { true, FT_INT, "ItemID" },
-            { false, FT_INT, "AzeriteTierUnlockSetID" },
-            { false, FT_INT, "AzeritePowerSetID" },
-        };
-        static DB2LoadInfo const loadInfo(&fields[0], std::extent<decltype(fields)>::value, AzeriteEmpoweredItemMeta::Instance(), HOTFIX_SEL_AZERITE_EMPOWERED_ITEM);
-        return &loadInfo;
-    }
-};
-
 struct AzeriteItemLoadInfo
 {
     static DB2LoadInfo const* Instance()
@@ -511,71 +495,32 @@ struct AzeriteItemLoadInfo
     }
 };
 
-struct AzeriteItemMilestonePowerLoadInfo
+struct AzeriteKnowledgeMultiplierLoadInfo
 {
     static DB2LoadInfo const* Instance()
     {
         static DB2FieldMeta const fields[] =
         {
             { false, FT_INT, "ID" },
-            { true, FT_INT, "RequiredLevel" },
-            { true, FT_INT, "AzeritePowerID" },
-            { true, FT_INT, "Unk1" },
-            { true, FT_INT, "Unk2" },
+            { false, FT_FLOAT, "Multiplier" },
         };
-        static DB2LoadInfo const loadInfo(&fields[0], std::extent<decltype(fields)>::value, AzeriteItemMilestonePowerMeta::Instance(), HOTFIX_SEL_AZERITE_ITEM_MILESTONE_POWER);
+        static DB2LoadInfo const loadInfo(&fields[0], std::extent<decltype(fields)>::value, AzeriteKnowledgeMultiplierMeta::Instance(), HOTFIX_SEL_AZERITE_KNOWLEDGE_MULTIPLIER);
         return &loadInfo;
     }
 };
 
-struct AzeritePowerLoadInfo
+struct AzeriteLevelInfoLoadInfo
 {
     static DB2LoadInfo const* Instance()
     {
         static DB2FieldMeta const fields[] =
         {
             { false, FT_INT, "ID" },
-            { true, FT_INT, "SpellID" },
-            { true, FT_INT, "ItemBonusListID" },
-            { true, FT_INT, "SpecSetMemberID" },
-            { true, FT_INT, "Flags" },
+            { false, FT_LONG, "BaseExperienceToNextLevel" },
+            { false, FT_LONG, "MinimumExperienceToNextLevel" },
+            { true, FT_INT, "ItemLevel" },
         };
-        static DB2LoadInfo const loadInfo(&fields[0], std::extent<decltype(fields)>::value, AzeritePowerMeta::Instance(), HOTFIX_SEL_AZERITE_POWER);
-        return &loadInfo;
-    }
-};
-
-struct AzeritePowerSetMemberLoadInfo
-{
-    static DB2LoadInfo const* Instance()
-    {
-        static DB2FieldMeta const fields[] =
-        {
-            { false, FT_INT, "ID" },
-            { true, FT_INT, "AzeritePowerSetID" },
-            { true, FT_INT, "AzeritePowerID" },
-            { true, FT_INT, "Class" },
-            { true, FT_INT, "Tier" },
-            { true, FT_INT, "OrderIndex" },
-        };
-        static DB2LoadInfo const loadInfo(&fields[0], std::extent<decltype(fields)>::value, AzeritePowerSetMemberMeta::Instance(), HOTFIX_SEL_AZERITE_POWER_SET_MEMBER);
-        return &loadInfo;
-    }
-};
-
-struct AzeriteTierUnlockLoadInfo
-{
-    static DB2LoadInfo const* Instance()
-    {
-        static DB2FieldMeta const fields[] =
-        {
-            { false, FT_INT, "ID" },
-            { false, FT_BYTE, "ItemCreationContext" },
-            { false, FT_BYTE, "Tier" },
-            { false, FT_BYTE, "AzeriteLevel" },
-            { false, FT_BYTE, "AzeriteTierUnlockSetID" },
-        };
-        static DB2LoadInfo const loadInfo(&fields[0], std::extent<decltype(fields)>::value, AzeriteTierUnlockMeta::Instance(), HOTFIX_SEL_AZERITE_TIER_UNLOCK);
+        static DB2LoadInfo const loadInfo(&fields[0], std::extent<decltype(fields)>::value, AzeriteLevelInfoMeta::Instance(), HOTFIX_SEL_AZERITE_LEVEL_INFO);
         return &loadInfo;
     }
 };

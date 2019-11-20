@@ -309,55 +309,24 @@ struct AuctionHouseEntry
     uint8 ConsignmentRate;
 };
 
-struct AzeriteEmpoweredItemEntry
-{
-    uint32      ID;
-    int32       ItemID;
-    uint32      AzeriteTierUnlockSetID;
-    uint32      AzeritePowerSetID;
-};
-
 struct AzeriteItemEntry
 {
-    uint32      ID;
-    int32       ItemID;
+    uint32 ID;
+    int32 ItemID;
 };
 
-struct AzeriteItemMilestonePowerEntry
+struct AzeriteKnowledgeMultiplierEntry
 {
-    uint32      ID;
-    int32       RequiredLevel;
-    int32       AzeritePowerID;
-    int32       Unk1;
-    int32       Unk2;
+    uint32 ID;
+    float Multiplier;
 };
 
-struct AzeritePowerEntry
+struct AzeriteLevelInfoEntry
 {
-    uint32      ID;
-    int32       SpellID;
-    int32       ItemBonusListID;
-    int32       SpecSetMemberID;
-    int32       Flags;
-};
-
-struct AzeritePowerSetMemberEntry
-{
-    uint32      ID;
-    int32       AzeritePowerSetID;
-    int32       AzeritePowerID;
-    int32       Class;
-    int32       Tier;
-    int32       OrderIndex;
-};
-
-struct AzeriteTierUnlockEntry
-{
-    uint32      ID;
-    uint8       ItemCreationContext;
-    uint8       Tier;
-    uint8       AzeriteLevel;
-    uint8       AzeriteTierUnlockSetID;
+    uint32 ID;
+    uint64 BaseExperienceToNextLevel;
+    uint64 MinimumExperienceToNextLevel;
+    int32 ItemLevel;
 };
 
 struct BankBagSlotPricesEntry

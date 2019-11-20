@@ -21,6 +21,7 @@
 #include "AreaTriggerPackets.h"
 #include "AccountMgr.h"
 #include "AchievementMgr.h"
+#include "AzeriteItem.h"
 #include "ArchaeologyMgr.h"
 #include "Bag.h"
 #include "Battlefield.h"
@@ -129,7 +130,6 @@
 #include "WorldSession.h"
 #include "WorldStatePackets.h"
 #include <G3D/g3dmath.h>
-#include "AzeriteItem.h"
 
 #define ZONE_UPDATE_INTERVAL (1*IN_MILLISECONDS)
 #define SHOP_UPDATE_INTERVAL (30*IN_MILLISECONDS)
@@ -4211,6 +4211,10 @@ void Player::DeleteFromDB(ObjectGuid playerguid, uint32 accountId, bool updateRe
             stmt->setUInt64(0, guid);
             trans->Append(stmt);
 
+            stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_ITEM_INSTANCE_AZERITE_BY_OWNER);
+            stmt->setUInt64(0, guid);
+            trans->Append(stmt);
+
             stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_ITEM_INSTANCE_BY_OWNER);
             stmt->setUInt64(0, guid);
             trans->Append(stmt);
@@ -7007,19 +7011,6 @@ void Player::ModifyCurrency(uint32 id, int32 count, bool printLog/* = true*/, bo
     CurrencyTypesEntry const* currency = sCurrencyTypesStore.LookupEntry(id);
     ASSERT(currency);
 
-    switch (id)
-    {
-        case CURRENCY_TYPE_AZERITE:
-        {
-            if (Item* item = GetItemByEntry(158075)) // Heart of Azeroth
-                item->ToAzeriteItem()->AddExperience(count);
-
-            return;
-        }
-        default:
-            break;
-    }
-
     if (!ignoreMultipliers)
         count *= GetTotalAuraMultiplierByMiscValue(SPELL_AURA_MOD_CURRENCY_GAIN, id);
 
@@ -7029,6 +7020,14 @@ void Player::ModifyCurrency(uint32 id, int32 count, bool printLog/* = true*/, bo
         if (currency->Flags & CURRENCY_FLAG_HIGH_PRECISION)
             count /= 100;
         GetReputationMgr().ModifyReputation(factionEntry, count, true);
+        return;
+    }
+
+    if (id == CURRENCY_TYPE_AZERITE)
+    {
+        if (count > 0)
+            if (Item* heartOfAzeroth = GetItemByEntry(ITEM_ID_HEART_OF_AZEROTH))
+                heartOfAzeroth->ToAzeriteItem()->GiveXP(uint64(count));
         return;
     }
 
@@ -7662,7 +7661,6 @@ void Player::_ApplyItemMods(Item* item, uint8 slot, bool apply, bool updateItemA
         ApplyItemDependentAuras(item, apply);
     ApplyArtifactPowers(item, apply);
     ApplyEnchantment(item, apply);
-    ApplyAzeriteItemPowers(item, apply);
 
     TC_LOG_DEBUG("entities.player.items", "Player::_ApplyItemMods: completed");
 }
@@ -8168,9 +8166,6 @@ void Player::UpdateItemSetAuras(bool formChange /*= false*/)
 
 void Player::ApplyArtifactPowers(Item* item, bool apply)
 {
-    // Disabled since BFA, TODO : Remove method
-    return;
-
     for (UF::ArtifactPower const& artifactPower : item->m_itemData->ArtifactPowers)
     {
         uint8 rank = artifactPower.CurrentRankWithBonus;
@@ -8248,12 +8243,6 @@ void Player::ApplyArtifactPowerRank(Item* artifact, ArtifactPowerRankEntry const
         }
     }
 
-}
-
-void Player::ApplyAzeriteItemPowers(Item* item, bool apply)
-{
-    if (AzeriteEmpoweredItem* azeriteItem = item->ToAzeriteImpoweredItem())
-        azeriteItem->ApplyPowers(this, apply);
 }
 
 void Player::CastItemCombatSpell(DamageInfo const& damageInfo)
@@ -8562,7 +8551,6 @@ void Player::_RemoveAllItemMods()
             ApplyItemEquipSpell(m_items[i], false);
             ApplyEnchantment(m_items[i], false);
             ApplyArtifactPowers(m_items[i], false);
-            ApplyAzeriteItemPowers(m_items[i], false);
         }
     }
 
@@ -8615,7 +8603,6 @@ void Player::_ApplyAllItemMods()
             ApplyItemEquipSpell(m_items[i], true);
             ApplyArtifactPowers(m_items[i], true);
             ApplyEnchantment(m_items[i], true);
-            ApplyAzeriteItemPowers(m_items[i], true);
         }
     }
 
@@ -15403,6 +15390,7 @@ void Player::AddQuestAndCheckCompletion(Quest const* quest, Object* questGiver)
             break;
         case TYPEID_ITEM:
         case TYPEID_CONTAINER:
+        case TYPEID_AZERITE_ITEM:
         {
             Item* item = static_cast<Item*>(questGiver);
             sScriptMgr->OnQuestAccept(this, item, quest);
@@ -19136,9 +19124,9 @@ void Player::_LoadInventory(PreparedQueryResult result, PreparedQueryResult arti
     //        spellItemEnchantmentAllSpecs, spellItemEnchantmentSpec1, spellItemEnchantmentSpec2, spellItemEnchantmentSpec3, spellItemEnchantmentSpec4,
     //                29           30           31                32          33           34           35                36          37           38           39                40
     //        gemItemId1, gemBonuses1, gemContext1, gemScalingLevel1, gemItemId2, gemBonuses2, gemContext2, gemScalingLevel2, gemItemId3, gemBonuses3, gemContext3, gemScalingLevel3
-    //                       41                      42
-    //        fixedScalingLevel, artifactKnowledgeLevel FROM item_instance
-    //         43    44
+    //                       41                      42     43        44                 45
+    //        fixedScalingLevel, artifactKnowledgeLevel, iz.xp, iz.level, iz.knowledgeLevel FROM item_instance
+    //         46    47
     //        bag, slot
     // FROM character_inventory ci
     // JOIN item_instance ii ON ci.item = ii.guid
@@ -19207,8 +19195,8 @@ void Player::_LoadInventory(PreparedQueryResult result, PreparedQueryResult arti
                 if (item->GetTemplate()->GetArtifactID() && artifactDataItr != artifactData.end())
                     item->LoadArtifactData(this, std::get<0>(artifactDataItr->second), std::get<1>(artifactDataItr->second), std::get<2>(artifactDataItr->second), std::get<3>(artifactDataItr->second));
 
-                ObjectGuid bagGuid = fields[49].GetUInt64() ? ObjectGuid::Create<HighGuid::Item>(fields[49].GetUInt64()) : ObjectGuid::Empty;
-                uint8 slot = fields[50].GetUInt8();
+                ObjectGuid bagGuid = fields[46].GetUInt64() ? ObjectGuid::Create<HighGuid::Item>(fields[46].GetUInt64()) : ObjectGuid::Empty;
+                uint8 slot = fields[47].GetUInt8();
 
                 GetSession()->GetCollectionMgr()->CheckHeirloomUpgrades(item);
                 GetSession()->GetCollectionMgr()->AddItemAppearance(item);
@@ -19554,7 +19542,7 @@ void Player::_LoadMailedItems(Mail* mail)
 
         Item* item = NewItemOrBag(proto);
 
-        ObjectGuid ownerGuid = fields[43].GetUInt64() ? ObjectGuid::Create<HighGuid::Player>(fields[43].GetUInt64()) : ObjectGuid::Empty;
+        ObjectGuid ownerGuid = fields[46].GetUInt64() ? ObjectGuid::Create<HighGuid::Player>(fields[46].GetUInt64()) : ObjectGuid::Empty;
         if (!item->LoadFromDB(itemGuid, ownerGuid, fields, itemEntry))
         {
             TC_LOG_ERROR("entities.player", "Player::_LoadMailedItems: Item (GUID: " UI64FMTD ") in mail (%u) doesn't exist, deleted from mail.", itemGuid, mail->messageID);

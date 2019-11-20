@@ -35,8 +35,6 @@
 #include <list>
 #include <unordered_map>
 
-class AzeriteEmpoweredItem;
-class AzeriteItem;
 class AreaTrigger;
 class Conversation;
 class Corpse;
@@ -205,14 +203,6 @@ class TC_GAME_API Object
         inline bool IsSceneObject() const { return GetTypeId() == TYPEID_SCENEOBJECT; }
         SceneObject* ToSceneObject() { if (IsSceneObject()) return reinterpret_cast<SceneObject*>(this); else return nullptr; }
         SceneObject const* ToSceneObject() const { if (IsSceneObject()) return reinterpret_cast<SceneObject const*>(this); else return nullptr; }
-
-        bool IsAzeriteItem() const { return GetTypeId() == TYPEID_AZERITE_ITEM; }
-        AzeriteItem* ToAzeriteItem() { if (IsAzeriteItem()) return reinterpret_cast<AzeriteItem*>(this); return nullptr; }
-        AzeriteItem const* ToAzeriteItem() const { if (IsAzeriteItem()) return reinterpret_cast<AzeriteItem const*>(this); return nullptr; }
-
-        bool IsAzeriteImpoweredItem() const { return GetTypeId() == TYPEID_AZERITE_EMPOWERED_ITEM; }
-        AzeriteEmpoweredItem* ToAzeriteImpoweredItem() { if (IsAzeriteImpoweredItem()) return reinterpret_cast<AzeriteEmpoweredItem*>(this); return nullptr; }
-        AzeriteEmpoweredItem const* ToAzeriteImpoweredItem() const { if (IsAzeriteImpoweredItem()) return reinterpret_cast<AzeriteEmpoweredItem const*>(this); return nullptr; }
 
         UF::UpdateFieldHolder m_values;
         UF::UpdateField<UF::ObjectData, 0, TYPEID_OBJECT> m_objectData;

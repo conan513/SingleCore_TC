@@ -1345,10 +1345,6 @@ class TC_GAME_API ObjectMgr
 
         void LoadInstanceDifficultyMultiplier();
 
-        std::set<uint32> GetItemBonusTree(uint32 ItemID, uint32 itemBonusTreeMod, uint32 ownerLevel, int32 levelBonus, int32 needLevel);
-        std::set<uint32> GetItemBonusForLevel(uint32 itemID, uint32 itemBonusTreeMod, int32 needLevel);
-        uint32 GetItemBonusLevel(uint32 ItemID, uint32 ownerLevel, uint8& quality, std::set<uint32>& bonusListIDs);
-
         void InitializeQueriesData(QueryDataGroup mask);
 
 
