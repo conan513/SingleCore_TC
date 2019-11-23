@@ -180,6 +180,7 @@ enum WorldBoolConfigs
     CONFIG_ALLOW_TRACK_BOTH_RESOURCES,
     CONFIG_FEATURE_SYSTEM_BPAY_STORE_ENABLED,
     CONFIG_FEATURE_SYSTEM_CHARACTER_UNDELETE_ENABLED,
+    CONFIG_FEATURE_SYSTEM_WAR_MODE_ENABLED,
     CONFIG_RESET_DUEL_COOLDOWNS,
     CONFIG_RESET_DUEL_HEALTH_MANA,
     CONFIG_BASEMAP_LOAD_GRIDS,
@@ -192,6 +193,7 @@ enum WorldBoolConfigs
     CONFIG_HOTSWAP_INSTALL_ENABLED,
     CONFIG_HOTSWAP_PREFIX_CORRECTION_ENABLED,
     CONFIG_PREVENT_RENAME_CUSTOMIZATION,
+    CONFIG_CACHE_DATA_QUERIES,
     CONFIG_CREATURE_CHECK_INVALID_POSITION,
     CONFIG_GAME_OBJECT_CHECK_INVALID_POSITION,
     CONFIG_LEGACY_BUFF_ENABLED,
@@ -344,8 +346,6 @@ enum WorldIntConfigs
     CONFIG_PVP_TOKEN_MAP_TYPE,
     CONFIG_PVP_TOKEN_ID,
     CONFIG_PVP_TOKEN_COUNT,
-    CONFIG_INTERVAL_LOG_UPDATE,
-    CONFIG_MIN_LOG_UPDATE,
     CONFIG_ENABLE_SINFO_LOGIN,
     CONFIG_PLAYER_ALLOW_COMMANDS,
     CONFIG_NUMTHREADS,
@@ -425,7 +425,6 @@ enum WorldIntConfigs
     CONFIG_TALENTS_INSPECTING,
     CONFIG_BLACKMARKET_MAXAUCTIONS,
     CONFIG_BLACKMARKET_UPDATE_PERIOD,
-    CONFIG_AZERITE_KNOWLEGE,
     INT_CONFIG_VALUE_COUNT
 };
 
@@ -695,24 +694,6 @@ class TC_GAME_API World
         /// Get the path where data (dbc, maps) are stored on disk
         std::string const& GetDataPath() const { return m_dataPath; }
 
-		/// Return the Mob IDs to be Autobalanced
-		std::string GetVAS40() const { return VAS_AutoBalance_40_Name; }
-		std::string GetVAS25() const { return VAS_AutoBalance_25_Name; }
-		std::string GetVAS20() const { return VAS_AutoBalance_20_Name; }
-		std::string GetVAS10() const { return VAS_AutoBalance_10_Name; }
-		std::string GetVAS5() const { return VAS_AutoBalance_5_Name; }
-		std::string GetVAS2() const { return VAS_AutoBalance_2_Name; }
-
-        /// When server started?
-        time_t const& GetStartTime() const { return m_startTime; }
-        /// What time is it?
-        time_t const& GetGameTime() const { return m_gameTime; }
-        /// Uptime (in secs)
-        uint32 GetUptime() const { return uint32(m_gameTime - m_startTime); }
-        /// Update time
-        uint32 GetUpdateTime() const { return m_updateTime; }
-        void SetRecordDiffInterval(int32 t) { if (t >= 0) m_int_configs[CONFIG_INTERVAL_LOG_UPDATE] = (uint32)t; }
-
         /// Next daily quests and random bg reset time
         time_t GetNextDailyQuestsResetTime() const { return m_NextDailyQuestReset; }
         time_t GetNextWeeklyQuestsResetTime() const { return m_NextWeeklyQuestReset; }
@@ -837,9 +818,6 @@ class TC_GAME_API World
         void LoadDBVersion();
         char const* GetDBVersion() const { return m_DBVersion.c_str(); }
 
-        void ResetTimeDiffRecord();
-        void RecordTimeDiff(std::string const& text);
-
         void LoadAutobroadcasts();
 
         void UpdateAreaDependentAuras();
@@ -854,6 +832,7 @@ class TC_GAME_API World
 
     protected:
         void _UpdateGameTime();
+
         // callback for UpdateRealmCharacters
         void _UpdateRealmCharCount(PreparedQueryResult resultCharCount);
 
@@ -890,15 +869,10 @@ class TC_GAME_API World
 
         bool m_isClosed;
 
-        time_t m_startTime;
-        time_t m_gameTime;
         IntervalTimer m_timers[WUPDATE_COUNT];
         time_t mail_timer;
         time_t mail_timer_expires;
         time_t blackmarket_timer;
-        uint32 m_updateTime, m_updateTimeSum;
-        uint32 m_updateTimeCount;
-        uint32 m_currentTime;
 
         SessionMap m_sessions;
         typedef std::unordered_map<uint32, time_t> DisconnectMap;

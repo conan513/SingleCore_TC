@@ -22,6 +22,7 @@
 #include "ScriptSystem.h"
 #include "Log.h"
 #include "Map.h"
+#include "ObjectMgr.h"
 #include "ConfusedMovementGenerator.h"
 #include "FleeingMovementGenerator.h"
 #include "HomeMovementGenerator.h"
@@ -428,7 +429,7 @@ void MotionMaster::MoveKnockbackFrom(float srcX, float srcY, float speedXY, floa
     if (_owner->GetTypeId() == TYPEID_PLAYER)
         return;
 
-    if (speedXY <= 0.1f)
+    if (speedXY < 0.01f)
         return;
 
     float x, y, z;
@@ -466,18 +467,18 @@ void MotionMaster::MoveJumpTo(float angle, float speedXY, float speedZ)
 
 void MotionMaster::MoveJump(uint32 locEntry, float speedXY, float speedZ, uint32 id /*= EVENT_JUMP*/)
 {
-    WorldSafeLocsEntry const* safeLoc = sWorldSafeLocsStore.LookupEntry(locEntry);
+    WorldSafeLocsEntry const* safeLoc = sObjectMgr->GetWorldSafeLoc(locEntry);
     if (safeLoc == nullptr)
         return;
 
-    MoveJump(safeLoc->Loc.X, safeLoc->Loc.Y, safeLoc->Loc.Z, speedXY, speedZ, safeLoc->Facing, id);
+    MoveJump(safeLoc->Loc, speedXY, speedZ, id);
 }
 
 void MotionMaster::MoveJump(float x, float y, float z, float o, float speedXY, float speedZ, uint32 id /*= EVENT_JUMP*/, bool hasOrientation /* = false*/,
     JumpArrivalCastArgs const* arrivalCast /*= nullptr*/, Movement::SpellEffectExtraData const* spellEffectExtraData /*= nullptr*/)
 {
     TC_LOG_DEBUG("misc", "Unit (%s) jumps to point (X: %f Y: %f Z: %f).", _owner->GetGUID().ToString().c_str(), x, y, z);
-    if (speedXY <= 0.1f)
+    if (speedXY < 0.01f)
         return;
 
     float moveTimeHalf = speedZ / Movement::gravity;
@@ -721,14 +722,6 @@ void MotionMaster::MovePath(uint32 path_id, bool repeatable)
 
     TC_LOG_DEBUG("misc", "%s starts moving over path (Id:%u, repeatable: %s).",
         _owner->GetGUID().ToString().c_str(), path_id, repeatable ? "YES" : "NO");
-}
-
-void MotionMaster::MovePath(WaypointPath& path, bool repeatable)
-{
-    Mutate(new WaypointMovementGenerator<Creature>(path, repeatable), MOTION_SLOT_IDLE);
-
-    TC_LOG_DEBUG("misc", "%s starts moving over path (repeatable: %s).",
-        _owner->GetGUID().ToString().c_str(), repeatable ? "YES" : "NO");
 }
 
 void MotionMaster::MoveRotate(uint32 time, RotateDirection direction)

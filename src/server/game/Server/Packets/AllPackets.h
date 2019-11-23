@@ -23,6 +23,7 @@
 #include "ArtifactPackets.h"
 #include "AuctionHousePackets.h"
 #include "AuthenticationPackets.h"
+#include "AzeritePackets.h"
 #include "BankPackets.h"
 #include "BlackMarketPackets.h"
 #include "BattlefieldPackets.h"

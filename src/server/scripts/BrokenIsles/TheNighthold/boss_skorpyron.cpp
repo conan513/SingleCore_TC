@@ -189,9 +189,7 @@ public:
             _JustDied();
             instance->SendEncounterUnit(ENCOUNTER_FRAME_DISENGAGE, me);
             if (instance->GetData(DATA_CAGE_REMATCH) == DONE)
-                if (AchievementEntry const* achievementEntry = sAchievementStore.LookupEntry(ACHIEVEMENT_CAGE_REMATCH))
-                    //instance->DoCompletedAchievement(achievementEntry);
-                    instance->DoCompleteAchievement(ACHIEVEMENT_CAGE_REMATCH);
+                instance->DoCompleteAchievement(ACHIEVEMENT_CAGE_REMATCH);
         }
 
         void DamageTaken(Unit* /*attacker*/, uint32& damage) override
@@ -204,6 +202,7 @@ public:
             // We must remove 1 stack of Chitinous Exoskeleton for each 1% HP
             // If aura from Chitinous Exoskeleton is absent, then we cast Exoskeletal Vulnerability
             if (me->HealthBelowPctDamaged(_prevHealthForRemoveStack, damage) && !me->HasAura(SPELL_EXOSKELETAL_VULNERABILITY))
+            {
                 if (Aura* exoskeleton = me->GetAura(SPELL_CHITINOUS_EXOSKELETON))
                 {
                     if (_prevHealthForRemoveStack - healthPctDamage >= 1)
@@ -226,6 +225,7 @@ public:
                         events.ScheduleEvent(EVENT_CALL_OF_THE_SCORPID, 29000);
                     }
                 }
+            }
         }
 
         void DoAction(int32 action) override
@@ -359,7 +359,7 @@ public:
             DoCastSelf(SPELL_LOS_BLOCKER);
         }
 
-        void MoveInLineOfSight(Unit* who)
+        void MoveInLineOfSight(Unit* who) override
         {
             if (who->ToPlayer() && who->GetExactDist(me) <= 5.0f && me->HasInArc(static_cast<float>(M_PI), who))
                 who->RemoveAura(SPELL_BROKEN_SHARD);
@@ -443,7 +443,7 @@ public:
             DoCastSelf(SPELL_SHROUDED);
         }
 
-        void MoveInLineOfSight(Unit* who)
+        void MoveInLineOfSight(Unit* who) override
         {
             if (who->ToPlayer() && who->GetExactDist(me) <= 5.0f && me->HasAura(SPELL_SHROUDED))
             {
@@ -458,7 +458,7 @@ public:
             events.ScheduleEvent(EVENT_BOON_OF_THE_SCORPID, 10000);
         }
 
-        void MovementInform(uint32 /*uiType*/, uint32 uiPointId)
+        void MovementInform(uint32 /*uiType*/, uint32 uiPointId) override
         {
             if (uiPointId == 1)
                 DoCastSelf(SPELL_AVAILABLE);
@@ -511,7 +511,7 @@ public:
     {
         PrepareAuraScript(spell_skorpyron_power_AuraScript);
 
-        bool Load()
+        bool Load() override
         {
             return GetCaster() && GetCaster()->ToCreature();
         }
@@ -550,7 +550,7 @@ public:
     {
         PrepareAuraScript(spell_skorpyron_arcanoslash_periodic_AuraScript);
 
-        bool Load()
+        bool Load() override
         {
             return GetCaster() && GetCaster()->ToCreature();
         }
@@ -847,7 +847,7 @@ public:
             });
         }
 
-        bool Load()
+        bool Load() override
         {
             return GetCaster() && GetCaster()->ToTempSummon();
         }
@@ -859,6 +859,7 @@ public:
                 return;
 
             if (Unit* summoner = caster->GetSummoner())
+            {
                 if (summoner->GetExactDist(caster) <= 10.0f)
                 {
                     caster->CastSpell(summoner, SPELL_ARCANE_TETHER_VISUAL_TENTACLES, true);
@@ -869,6 +870,7 @@ public:
                     summoner->RemoveAura(SPELL_ARCANE_TETHER_VISUAL_CHAIN);
                     caster->DespawnOrUnsummon();
                 }
+            }
         }
 
         void Register() override
@@ -1020,7 +1022,7 @@ public:
             return ValidateSpellInfo({ SPELL_BROKEN_SHARD });
         }
 
-        bool Load()
+        bool Load() override
         {
             return GetCaster() && GetCaster()->ToCreature();
         }

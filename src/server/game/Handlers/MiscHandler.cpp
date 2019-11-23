@@ -29,6 +29,7 @@
 #include "Corpse.h"
 #include "DatabaseEnv.h"
 #include "DB2Stores.h"
+#include "GameTime.h"
 #include "GossipDef.h"
 #include "Group.h"
 #include "Guild.h"
@@ -86,8 +87,8 @@ void WorldSession::HandleRepopRequest(WorldPackets::Misc::RepopRequest& /*packet
             {
                 Position resurectPosition;
 
-                if (WorldSafeLocsEntry const* entranceLocation = sWorldSafeLocsStore.LookupEntry(instanceScript->GetEntranceLocation()))
-                    resurectPosition.Relocate(entranceLocation->Loc.X, entranceLocation->Loc.Y, entranceLocation->Loc.Z, entranceLocation->Facing);
+                if (WorldSafeLocsEntry const* entranceLocation = sObjectMgr->GetWorldSafeLoc(instanceScript->GetEntranceLocation()))
+                    resurectPosition.Relocate(entranceLocation->Loc);
                 else if (AreaTriggerTeleportStruct const* areaTrigger = sObjectMgr->GetMapEntranceTrigger(GetPlayer()->GetMapId()))
                     resurectPosition.Relocate(areaTrigger->target_X, areaTrigger->target_Y, areaTrigger->target_Z, areaTrigger->target_Orientation);
 
@@ -795,7 +796,7 @@ void WorldSession::HandleTimeSyncResponse(WorldPackets::Misc::TimeSyncResponse& 
 
     TC_LOG_DEBUG("network", "Time sync received: counter %u, client ticks %u, time since last sync %u", packet.SequenceIndex, packet.ClientTime, packet.ClientTime - _player->m_timeSyncClient);
 
-    uint32 ourTicks = packet.ClientTime + (getMSTime() - _player->m_timeSyncServer);
+    uint32 ourTicks = packet.ClientTime + (GameTime::GetGameTimeMS() - _player->m_timeSyncServer);
 
     // diff should be small
     TC_LOG_DEBUG("network", "Our ticks: %u, diff %u, latency %u", ourTicks, ourTicks - packet.ClientTime, GetLatency());
@@ -1190,7 +1191,7 @@ void WorldSession::HandleSelectFactionOpcode(WorldPackets::Misc::FactionSelect& 
 
 void WorldSession::HandleSetWarModeOpcode(WorldPackets::Misc::SetWarMode& warMode)
 {
-    uint32 const warModeSpellId = 282559; // Enlisted
+    uint32 const warModeSpellId = 269083; // Enlisted
 
     if (_player->GetZoneId() != ZONE_STORMWIND_CITY && _player->GetZoneId() != ZONE_ORGRIMMAR)
         return;

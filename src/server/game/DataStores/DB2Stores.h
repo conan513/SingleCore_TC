@@ -51,12 +51,8 @@ TC_GAME_API extern DB2Storage<ArtifactPowerPickerEntry>             sArtifactPow
 TC_GAME_API extern DB2Storage<ArtifactTierEntry>                    sArtifactTierStore;
 TC_GAME_API extern DB2Storage<ArtifactUnlockEntry>                  sArtifactUnlockStore;
 TC_GAME_API extern DB2Storage<AuctionHouseEntry>                    sAuctionHouseStore;
-TC_GAME_API extern DB2Storage<AzeriteEmpoweredItemEntry>            sAzeriteEmpoweredItemStore;
-TC_GAME_API extern DB2Storage<AzeriteItemEntry>                     sAzeriteItemStore;
-TC_GAME_API extern DB2Storage<AzeriteItemMilestonePowerEntry>       sAzeriteItemMilestonePowerStore;
-TC_GAME_API extern DB2Storage<AzeritePowerEntry>                    sAzeritePowerStore;
-TC_GAME_API extern DB2Storage<AzeritePowerSetMemberEntry>           sAzeritePowerSetMemberStore;
-TC_GAME_API extern DB2Storage<AzeriteTierUnlockEntry>               sAzeriteTierUnlockStore;
+TC_GAME_API extern DB2Storage<AzeriteKnowledgeMultiplierEntry>      sAzeriteKnowledgeMultiplierStore;
+TC_GAME_API extern DB2Storage<AzeriteLevelInfoEntry>                sAzeriteLevelInfoStore;
 TC_GAME_API extern DB2Storage<BankBagSlotPricesEntry>               sBankBagSlotPricesStore;
 TC_GAME_API extern DB2Storage<BannedAddonsEntry>                    sBannedAddonsStore;
 TC_GAME_API extern DB2Storage<BarberShopStyleEntry>                 sBarberShopStyleStore;
@@ -71,6 +67,7 @@ TC_GAME_API extern DB2Storage<BattlePetSpeciesStateEntry>           sBattlePetSp
 TC_GAME_API extern DB2Storage<BattlePetSpeciesXAbilityEntry>        sBattlePetSpeciesXAbilityEntry;
 TC_GAME_API extern DB2Storage<BattlemasterListEntry>                sBattlemasterListStore;
 TC_GAME_API extern DB2Storage<BroadcastTextEntry>                   sBroadcastTextStore;
+TC_GAME_API extern DB2Storage<Cfg_RegionsEntry>                     sCfgRegionsStore;
 TC_GAME_API extern DB2Storage<CharStartOutfitEntry>                 sCharStartOutfitStore;
 TC_GAME_API extern DB2Storage<CharTitlesEntry>                      sCharTitlesStore;
 TC_GAME_API extern DB2Storage<ChatChannelsEntry>                    sChatChannelsStore;
@@ -152,7 +149,6 @@ TC_GAME_API extern DB2Storage<ItemSetSpellEntry>                    sItemSetSpel
 TC_GAME_API extern DB2Storage<ItemSparseEntry>                      sItemSparseStore;
 TC_GAME_API extern DB2Storage<ItemSpecEntry>                        sItemSpecStore;
 TC_GAME_API extern DB2Storage<ItemSpecOverrideEntry>                sItemSpecOverrideStore;
-TC_GAME_API extern DB2Storage<ItemUpgradeEntry>                     sItemUpgradeStore;
 TC_GAME_API extern DB2Storage<JournalEncounterEntry>                sJournalEncounterStore;
 TC_GAME_API extern DB2Storage<JournalEncounterItemEntry>            sJournalEncounterItemStore;
 TC_GAME_API extern DB2Storage<JournalInstanceEntry>                 sJournalInstanceStore;
@@ -222,6 +218,7 @@ TC_GAME_API extern DB2Storage<SpellShapeshiftEntry>                 sSpellShapes
 TC_GAME_API extern DB2Storage<SpellShapeshiftFormEntry>             sSpellShapeshiftFormStore;
 TC_GAME_API extern DB2Storage<SpellTargetRestrictionsEntry>         sSpellTargetRestrictionsStore;
 TC_GAME_API extern DB2Storage<SpellTotemsEntry>                     sSpellTotemsStore;
+TC_GAME_API extern DB2Storage<SpellVisualKitEntry>                  sSpellVisualKitStore;
 TC_GAME_API extern DB2Storage<SpellXSpellVisualEntry>               sSpellXSpellVisualStore;
 TC_GAME_API extern DB2Storage<SummonPropertiesEntry>                sSummonPropertiesStore;
 TC_GAME_API extern DB2Storage<TalentEntry>                          sTalentStore;
@@ -238,7 +235,7 @@ TC_GAME_API extern DB2Storage<VehicleEntry>                         sVehicleStor
 TC_GAME_API extern DB2Storage<VehicleSeatEntry>                     sVehicleSeatStore;
 TC_GAME_API extern DB2Storage<WorldEffectEntry>                     sWorldEffectStore;
 TC_GAME_API extern DB2Storage<WorldMapOverlayEntry>                 sWorldMapOverlayStore;
-TC_GAME_API extern DB2Storage<WorldSafeLocsEntry>                   sWorldSafeLocsStore;
+TC_GAME_API extern DB2Storage<WorldStateExpressionEntry>            sWorldStateExpressionStore;
 
 struct TaxiPathBySourceAndDestination
 {
@@ -298,6 +295,7 @@ public:
     std::unordered_set<uint32> const* GetArtifactPowerLinks(uint32 artifactPowerId) const;
     ArtifactPowerRankEntry const* GetArtifactPowerRank(uint32 artifactPowerId, uint8 rank) const;
     BattlePetSpeciesEntry const* GetBattlePetSpeciesByCreatureID(uint32 CreatureID) const;
+    bool IsAzeriteItem(uint32 itemId) const;
     static char const* GetBroadcastTextValue(BroadcastTextEntry const* broadcastText, LocaleConstant locale = DEFAULT_LOCALE, uint8 gender = GENDER_MALE, bool forceGender = false);
     bool HasCharacterFacialHairStyle(uint8 race, uint8 gender, uint8 variationId) const;
     bool HasCharSections(uint8 race, uint8 gender, CharBaseSectionVariation variation) const;
@@ -318,7 +316,6 @@ public:
     std::vector<uint32> const* GetGlyphRequiredSpecs(uint32 glyphPropertiesId) const;
     ItemBonusList const* GetItemBonusList(uint32 bonusListId) const;
     uint32 GetItemBonusListForItemLevelDelta(int16 delta) const;
-    std::set<uint32> GetItemBonusTree(uint32 itemId, uint32 itemContext, uint32& itemLevel) const;
     std::set<uint32> GetItemBonusTree(uint32 itemId, uint32 itemContext) const;
     bool HasItemContext(uint32 itemId) const;
     bool HasItemContext(uint32 itemId, uint32 itemContext) const;
@@ -362,7 +359,6 @@ public:
     uint32 GetQuestUniqueBitFlag(uint32 questId);
     std::vector<RewardPackXCurrencyTypeEntry const*> const* GetRewardPackCurrencyTypesByRewardID(uint32 rewardPackID) const;
     std::vector<RewardPackXItemEntry const*> const* GetRewardPackItemsByRewardID(uint32 rewardPackID) const;
-    uint32 GetRulesetItemUpgrade(uint32 itemId) const;
     std::vector<SkillLineEntry const*> const* GetSkillLinesForParentSkill(uint32 parentSkillId) const;
     std::vector<SkillLineAbilityEntry const*> const* GetSkillLineAbilitiesBySkill(uint32 skillId) const;
     SkillRaceClassInfoEntry const* GetSkillRaceClassInfo(uint32 skill, uint8 race, uint8 class_);
@@ -381,9 +377,6 @@ public:
     void Map2ZoneCoordinates(uint32 areaId, float& x, float& y) const;
     bool IsUiMapPhase(uint32 phaseId) const;
     WMOAreaTableEntry const* GetWMOAreaTable(int32 rootId, int32 adtId, int32 groupId) const;
-
-    bool IsAzeriteItem(uint32 itemID) const;
-    bool IsAzeriteEmpoweredItem(uint32 itemID) const;
 
 private:
     friend class DB2HotfixGeneratorBase;

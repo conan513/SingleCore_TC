@@ -128,16 +128,17 @@ Quest::Quest(Field* questRecord)
     TreasurePickerID = questRecord[109].GetInt32();
     Expansion = questRecord[110].GetInt32();
     ManagedWorldStateID = questRecord[111].GetInt32();
+    QuestSessionBonus = questRecord[112].GetInt32();
 
-    LogTitle = questRecord[112].GetString();
-    LogDescription = questRecord[113].GetString();
-    QuestDescription = questRecord[114].GetString();
-    AreaDescription = questRecord[115].GetString();
-    PortraitGiverText = questRecord[116].GetString();
-    PortraitGiverName = questRecord[117].GetString();
-    PortraitTurnInText = questRecord[118].GetString();
-    PortraitTurnInName = questRecord[119].GetString();
-    QuestCompletionLog = questRecord[120].GetString();
+    LogTitle = questRecord[113].GetString();
+    LogDescription = questRecord[114].GetString();
+    QuestDescription = questRecord[115].GetString();
+    AreaDescription = questRecord[116].GetString();
+    PortraitGiverText = questRecord[117].GetString();
+    PortraitGiverName = questRecord[118].GetString();
+    PortraitTurnInText = questRecord[119].GetString();
+    PortraitTurnInName = questRecord[120].GetString();
+    QuestCompletionLog = questRecord[121].GetString();
 
     for (uint32 i = 0; i < QUEST_EMOTE_COUNT; ++i)
     {
@@ -454,4 +455,169 @@ bool Quest::CanIncreaseRewardedQuestCounters() const
     // Dungeon Finder/Daily/Repeatable (if not weekly, monthly or seasonal) quests are never considered rewarded serverside.
     // This affects counters and client requests for completed quests.
     return (!IsDFQuest() && !IsDaily() && (!IsRepeatable() || IsWeekly() || IsMonthly() || IsSeasonal()));
+}
+
+void Quest::InitializeQueryData()
+{
+    WorldPacket queryTemp;
+    for (uint8 loc = LOCALE_enUS; loc < TOTAL_LOCALES; ++loc)
+    {
+        queryTemp = BuildQueryData(static_cast<LocaleConstant>(loc));
+        QueryData[loc] = queryTemp;
+    }
+}
+
+WorldPacket Quest::BuildQueryData(LocaleConstant loc) const
+{
+    WorldPackets::Quest::QueryQuestInfoResponse response;
+
+    response.Allow = true;
+    response.QuestID = GetQuestId();
+
+    response.Info.LogTitle = GetLogTitle();
+    response.Info.LogDescription = GetLogDescription();
+    response.Info.QuestDescription = GetQuestDescription();
+    response.Info.AreaDescription = GetAreaDescription();
+    response.Info.QuestCompletionLog = GetQuestCompletionLog();
+    response.Info.PortraitGiverText = GetPortraitGiverText();
+    response.Info.PortraitGiverName = GetPortraitGiverName();
+    response.Info.PortraitTurnInText = GetPortraitTurnInText();
+    response.Info.PortraitTurnInName = GetPortraitTurnInName();
+
+    if (loc != LOCALE_enUS)
+    {
+        if (QuestTemplateLocale const* questTemplateLocale = sObjectMgr->GetQuestLocale(GetQuestId()))
+        {
+            ObjectMgr::GetLocaleString(questTemplateLocale->LogTitle,           loc, response.Info.LogTitle);
+            ObjectMgr::GetLocaleString(questTemplateLocale->LogDescription,     loc, response.Info.LogDescription);
+            ObjectMgr::GetLocaleString(questTemplateLocale->QuestDescription,   loc, response.Info.QuestDescription);
+            ObjectMgr::GetLocaleString(questTemplateLocale->AreaDescription,    loc, response.Info.AreaDescription);
+            ObjectMgr::GetLocaleString(questTemplateLocale->QuestCompletionLog, loc, response.Info.QuestCompletionLog);
+            ObjectMgr::GetLocaleString(questTemplateLocale->PortraitGiverText,  loc, response.Info.PortraitGiverText);
+            ObjectMgr::GetLocaleString(questTemplateLocale->PortraitGiverName,  loc, response.Info.PortraitGiverName);
+            ObjectMgr::GetLocaleString(questTemplateLocale->PortraitTurnInText, loc, response.Info.PortraitTurnInText);
+            ObjectMgr::GetLocaleString(questTemplateLocale->PortraitTurnInName, loc, response.Info.PortraitTurnInName);
+        }
+    }
+
+    if (sWorld->getBoolConfig(CONFIG_UI_QUESTLEVELS_IN_DIALOGS))
+        AddQuestLevelToTitle(response.Info.LogTitle, GetQuestLevel());
+
+    response.Info.QuestID = GetQuestId();
+    response.Info.QuestType = GetQuestType();
+    response.Info.QuestLevel = GetQuestLevel();
+    response.Info.QuestScalingFactionGroup = GetQuestScalingFactionGroup();
+    response.Info.QuestMaxScalingLevel = GetQuestMaxScalingLevel();
+    response.Info.QuestPackageID = GetQuestPackageID();
+    response.Info.QuestMinLevel = GetMinLevel();
+    response.Info.QuestSortID = GetZoneOrSort();
+    response.Info.QuestInfoID = GetQuestInfoID();
+    response.Info.SuggestedGroupNum = GetSuggestedPlayers();
+    response.Info.RewardNextQuest = GetNextQuestInChain();
+    response.Info.RewardXPDifficulty = GetXPDifficulty();
+    response.Info.RewardXPMultiplier = GetXPMultiplier();
+
+    if (!HasFlag(QUEST_FLAGS_HIDDEN_REWARDS))
+        response.Info.RewardMoney = RewardMoney;
+
+    response.Info.RewardMoneyDifficulty = GetRewMoneyDifficulty();
+    response.Info.RewardMoneyMultiplier = GetMoneyMultiplier();
+    response.Info.RewardBonusMoney = GetRewMoneyMaxLevel();
+    for (uint8 i = 0; i < QUEST_REWARD_DISPLAY_SPELL_COUNT; ++i)
+        response.Info.RewardDisplaySpell[i] = RewardDisplaySpell[i];
+
+    response.Info.RewardSpell = GetRewSpell();
+
+    response.Info.RewardHonor = GetRewHonor();
+    response.Info.RewardKillHonor = GetRewKillHonor();
+
+    response.Info.RewardArtifactXPDifficulty = GetArtifactXPDifficulty();
+    response.Info.RewardArtifactXPMultiplier = GetArtifactXPMultiplier();
+    response.Info.RewardArtifactCategoryID = GetArtifactCategoryId();
+
+    response.Info.StartItem = GetSrcItemId();
+    response.Info.Flags = GetFlags();
+    response.Info.FlagsEx = GetFlagsEx();
+    response.Info.FlagsEx2 = GetFlagsEx2();
+    response.Info.RewardTitle = GetRewTitle();
+    response.Info.RewardArenaPoints = GetRewArenaPoints();
+    response.Info.RewardSkillLineID = GetRewardSkillId();
+    response.Info.RewardNumSkillUps = GetRewardSkillPoints();
+    response.Info.RewardFactionFlags = GetRewardReputationMask();
+    response.Info.PortraitGiver = GetQuestGiverPortrait();
+    response.Info.PortraitGiverMount = GetQuestGiverPortraitMount();
+    response.Info.PortraitTurnIn = GetQuestTurnInPortrait();
+
+    for (uint8 i = 0; i < QUEST_ITEM_DROP_COUNT; ++i)
+    {
+        response.Info.ItemDrop[i] = ItemDrop[i];
+        response.Info.ItemDropQuantity[i] = ItemDropQuantity[i];
+    }
+
+    if (!HasFlag(QUEST_FLAGS_HIDDEN_REWARDS))
+    {
+        for (uint8 i = 0; i < QUEST_REWARD_ITEM_COUNT; ++i)
+        {
+            response.Info.RewardItems[i] = RewardItemId[i];
+            response.Info.RewardAmount[i] = RewardItemCount[i];
+        }
+        for (uint8 i = 0; i < QUEST_REWARD_CHOICES_COUNT; ++i)
+        {
+            response.Info.UnfilteredChoiceItems[i].ItemID = RewardChoiceItemId[i];
+            response.Info.UnfilteredChoiceItems[i].Quantity = RewardChoiceItemCount[i];
+        }
+    }
+
+    for (uint8 i = 0; i < QUEST_REWARD_REPUTATIONS_COUNT; ++i)
+    {
+        response.Info.RewardFactionID[i] = RewardFactionId[i];
+        response.Info.RewardFactionValue[i] = RewardFactionValue[i];
+        response.Info.RewardFactionOverride[i] = RewardFactionOverride[i];
+        response.Info.RewardFactionCapIn[i] = RewardFactionCapIn[i];
+    }
+
+    response.Info.POIContinent = GetPOIContinent();
+    response.Info.POIx = GetPOIx();
+    response.Info.POIy = GetPOIy();
+    response.Info.POIPriority = GetPOIPriority();
+
+    response.Info.AllowableRaces = GetAllowableRaces();
+    response.Info.TreasurePickerID = GetTreasurePickerId();
+    response.Info.Expansion = GetExpansion();
+    response.Info.ManagedWorldStateID = GetManagedWorldStateId();
+    response.Info.QuestSessionBonus = 0; //GetQuestSessionBonus(); // this is only sent while quest session is active
+
+    for (QuestObjective const& questObjective : GetObjectives())
+    {
+        response.Info.Objectives.push_back(questObjective);
+
+        if (loc != LOCALE_enUS)
+        {
+            if (QuestObjectivesLocale const* questObjectivesLocale = sObjectMgr->GetQuestObjectivesLocale(questObjective.ID))
+                ObjectMgr::GetLocaleString(questObjectivesLocale->Description, loc, response.Info.Objectives.back().Description);
+        }
+    }
+
+    for (uint32 i = 0; i < QUEST_REWARD_CURRENCY_COUNT; ++i)
+    {
+        response.Info.RewardCurrencyID[i] = RewardCurrencyId[i];
+        response.Info.RewardCurrencyQty[i] = RewardCurrencyCount[i];
+    }
+
+    response.Info.AcceptedSoundKitID = GetSoundAccept();
+    response.Info.CompleteSoundKitID = GetSoundTurnIn();
+    response.Info.AreaGroupID = GetAreaGroupID();
+    response.Info.TimeAllowed = GetLimitTime();
+
+    return *response.Write();
+}
+
+void Quest::AddQuestLevelToTitle(std::string& title, int32 level)
+{
+    // Adds the quest level to the front of the quest title
+    // example: [13] Westfall Stew
+
+    std::stringstream questTitlePretty;
+    questTitlePretty << "[" << level << "] " << title;
+    title = questTitlePretty.str();
 }

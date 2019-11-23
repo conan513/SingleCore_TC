@@ -325,7 +325,7 @@ public:
 
                     Position position = me->GetPosition();
 
-                    for (auto itr : l_ListPlayers)
+                    /*for (auto itr : l_ListPlayers)
                     {
                         if (itr->IsWithinDist(me, 25.0f, true))
                         {
@@ -336,7 +336,7 @@ public:
                         }
                         else if (itr->HasMovementForce(me->GetGUID()))
                             itr->RemoveMovementForce(me->GetGUID());
-                    }
+                    }*/
 
                     m_VortexDiff = 2 * TimeConstants::IN_MILLISECONDS;
                 }

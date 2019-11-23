@@ -3012,8 +3012,10 @@ class spell_item_socrethars_stone : public SpellScriptLoader
 
             bool Load() override
             {
-                return (GetCaster()->GetAreaId() == 3900 || GetCaster()->GetAreaId() == 3742);
+                return (GetCaster()->GetAreaId() == AREA_NETHERSTORM_INVASION_POINT_OVERLORD ||
+                        GetCaster()->GetAreaId() == AREA_NETHERSTORM_SOCRETHAR_SEAT);
             }
+
             bool Validate(SpellInfo const* /*spell*/) override
             {
                 return ValidateSpellInfo({ SPELL_SOCRETHAR_TO_SEAT, SPELL_SOCRETHAR_FROM_SEAT });
@@ -3024,10 +3026,10 @@ class spell_item_socrethars_stone : public SpellScriptLoader
                 Unit* caster = GetCaster();
                 switch (caster->GetAreaId())
                 {
-                    case 3900:
+                    case AREA_NETHERSTORM_INVASION_POINT_OVERLORD:
                         caster->CastSpell(caster, SPELL_SOCRETHAR_TO_SEAT, true);
                         break;
-                    case 3742:
+                    case AREA_NETHERSTORM_SOCRETHAR_SEAT:
                         caster->CastSpell(caster, SPELL_SOCRETHAR_FROM_SEAT, true);
                         break;
                     default:
@@ -4666,6 +4668,32 @@ class aura_item_burning_essence : public AuraScript
     }
 };
 
+// 277253 - Heart of Azeroth
+class spell_item_heart_of_azeroth : public AuraScript
+{
+    PrepareAuraScript(spell_item_heart_of_azeroth);
+
+    void SetEquippedFlag(AuraEffect const* /*effect*/, AuraEffectHandleModes /*mode*/)
+    {
+        if (Player* target = GetTarget()->ToPlayer())
+            if (Item* item = target->GetItemByGuid(GetAura()->GetCastItemGUID()))
+                item->AddItemFlag2(ITEM_FIELD_FLAG2_HEART_OF_AZEROTH_EQUIPPED);
+    }
+
+    void ClearEquippedFlag(AuraEffect const* /*effect*/, AuraEffectHandleModes /*mode*/)
+    {
+        if (Player* target = GetTarget()->ToPlayer())
+            if (Item* item = target->GetItemByGuid(GetAura()->GetCastItemGUID()))
+                item->RemoveItemFlag2(ITEM_FIELD_FLAG2_HEART_OF_AZEROTH_EQUIPPED);
+    }
+
+    void Register()
+    {
+        OnEffectApply += AuraEffectApplyFn(spell_item_heart_of_azeroth::SetEquippedFlag, EFFECT_0, SPELL_AURA_DUMMY, AURA_EFFECT_HANDLE_REAL);
+        OnEffectRemove += AuraEffectRemoveFn(spell_item_heart_of_azeroth::ClearEquippedFlag, EFFECT_0, SPELL_AURA_DUMMY, AURA_EFFECT_HANDLE_REAL);
+    }
+};
+
 void AddSC_item_spell_scripts()
 {
     // 23074 Arcanite Dragonling
@@ -4782,5 +4810,7 @@ void AddSC_item_spell_scripts()
     new spell_item_world_queller_focus();
     new spell_item_water_strider();
     new spell_item_brutal_kinship();
+
     RegisterAuraScript(aura_item_burning_essence);
+    RegisterAuraScript(spell_item_heart_of_azeroth);
 }

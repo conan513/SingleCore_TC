@@ -33,6 +33,7 @@
 #include "DB2Stores.h"
 #include "EquipmentSetPackets.h"
 #include "GameObject.h"
+#include "GameTime.h"
 #include "GitRevision.h"
 #include "Group.h"
 #include "Guild.h"
@@ -307,20 +308,24 @@ void WorldSession::HandleCharEnum(PreparedQueryResult result)
 
             TC_LOG_INFO("network", "Loading char guid %s from account %u.", charInfo.Guid.ToString().c_str(), GetAccountId());
 
-            if (!Player::ValidateAppearance(charInfo.Race, charInfo.Class, charInfo.Sex, charInfo.HairStyle, charInfo.HairColor, charInfo.Face, charInfo.FacialHair, charInfo.Skin, charInfo.CustomDisplay))
+            if (!Player::ValidateAppearance(charInfo.RaceID, charInfo.ClassID, charInfo.SexID, charInfo.HairStyle, charInfo.HairColor, charInfo.FaceID, charInfo.FacialHair, charInfo.SkinID, charInfo.CustomDisplay))
             {
                 TC_LOG_ERROR("entities.player.loading", "Player %s has wrong Appearance values (Hair/Skin/Color), forcing recustomize", charInfo.Guid.ToString().c_str());
 
                 // Make sure customization always works properly - send all zeroes instead
-                charInfo.Skin = 0, charInfo.Face = 0, charInfo.HairStyle = 0, charInfo.HairColor = 0, charInfo.FacialHair = 0;
+                charInfo.SkinID = 0;
+                charInfo.FaceID = 0;
+                charInfo.HairStyle = 0;
+                charInfo.HairColor = 0;
+                charInfo.FacialHair = 0;
 
-                if (!(charInfo.CustomizationFlag == CHAR_CUSTOMIZE_FLAG_CUSTOMIZE))
+                if (!(charInfo.Flags2 == CHAR_CUSTOMIZE_FLAG_CUSTOMIZE))
                 {
                     CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_UPD_ADD_AT_LOGIN_FLAG);
                     stmt->setUInt16(0, uint16(AT_LOGIN_CUSTOMIZE));
                     stmt->setUInt64(1, charInfo.Guid.GetCounter());
                     CharacterDatabase.Execute(stmt);
-                    charInfo.CustomizationFlag = CHAR_CUSTOMIZE_FLAG_CUSTOMIZE;
+                    charInfo.Flags2 = CHAR_CUSTOMIZE_FLAG_CUSTOMIZE;
                 }
             }
 
@@ -329,9 +334,9 @@ void WorldSession::HandleCharEnum(PreparedQueryResult result)
                 _legitCharacters.insert(charInfo.Guid);
 
             if (!sCharacterCache->HasCharacterCacheEntry(charInfo.Guid)) // This can happen if characters are inserted into the database manually. Core hasn't loaded name data yet.
-                sCharacterCache->AddCharacterCacheEntry(charInfo.Guid, GetAccountId(), charInfo.Name, charInfo.Sex, charInfo.Race, charInfo.Class, charInfo.Level, false);
+                sCharacterCache->AddCharacterCacheEntry(charInfo.Guid, GetAccountId(), charInfo.Name, charInfo.SexID, charInfo.RaceID, charInfo.ClassID, charInfo.ExperienceLevel, false);
 
-            if (charInfo.Class == CLASS_DEMON_HUNTER)
+            if (charInfo.ClassID == CLASS_DEMON_HUNTER)
                 demonHunterCount++;
 
             if (demonHunterCount >= sWorld->getIntConfig(CONFIG_DEMON_HUNTERS_PER_REALM) && !canAlwaysCreateDemonHunter)
@@ -339,7 +344,7 @@ void WorldSession::HandleCharEnum(PreparedQueryResult result)
             else
                 charEnum.HasDemonHunterOnRealm = false;
 
-            charEnum.MaxCharacterLevel = std::max<int32>(charEnum.MaxCharacterLevel, charInfo.Level);
+            charEnum.MaxCharacterLevel = std::max<int32>(charEnum.MaxCharacterLevel, charInfo.ExperienceLevel);
         }
         while (result->NextRow());
     }
@@ -395,7 +400,7 @@ void WorldSession::HandleCharUndeleteEnum(PreparedQueryResult result)
             TC_LOG_INFO("network", "Loading undeleted char guid %s from account %u.", charInfo.Guid.ToString().c_str(), GetAccountId());
 
             if (!sCharacterCache->HasCharacterCacheEntry(charInfo.Guid)) // This can happen if characters are inserted into the database manually. Core hasn't loaded name data yet.
-                sCharacterCache->AddCharacterCacheEntry(charInfo.Guid, GetAccountId(), charInfo.Name, charInfo.Sex, charInfo.Race, charInfo.Class, charInfo.Level, true);
+                sCharacterCache->AddCharacterCacheEntry(charInfo.Guid, GetAccountId(), charInfo.Name, charInfo.SexID, charInfo.RaceID, charInfo.ClassID, charInfo.ExperienceLevel, true);
 
             charEnum.Characters.emplace_back(charInfo);
         }
@@ -905,7 +910,7 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder* holder)
 
     WorldPackets::ClientConfig::AccountDataTimes accountDataTimes;
     accountDataTimes.PlayerGuid = playerGuid;
-    accountDataTimes.ServerTime = uint32(sWorld->GetGameTime());
+    accountDataTimes.ServerTime = uint32(GameTime::GetGameTime());
     for (uint32 i = 0; i < NUM_ACCOUNT_DATA_TYPES; ++i)
         accountDataTimes.AccountTimes[i] = uint32(GetAccountData(AccountDataType(i))->Time);
 
@@ -939,7 +944,7 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder* holder)
             chH.PSendSysMessage(GitRevision::GetFullVersion());
     }
 
-    //QueryResult* result = CharacterDatabase.PQuery("SELECT guildid, rank FROM guild_member WHERE guid = '%u'", pCurrChar->GetGUIDLow());
+    //QueryResult* result = CharacterDatabase.PQuery("SELECT guildid, `rank` FROM guild_member WHERE guid = '%u'", pCurrChar->GetGUIDLow());
     if (PreparedQueryResult resultGuild = holder->GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_GUILD))
     {
         Field* fields = resultGuild->Fetch();
@@ -1044,7 +1049,7 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder* holder)
     loginStmt->setUInt32(0, GetAccountId());
     LoginDatabase.Execute(loginStmt);
 
-    pCurrChar->SetInGameTime(getMSTime());
+    pCurrChar->SetInGameTime(GameTime::GetGameTimeMS());
 
     // announce group about member online (must be after add to player list to receive announce to self)
     if (Group* group = pCurrChar->GetGroup())
@@ -1170,7 +1175,6 @@ void WorldSession::SendFeatureSystemStatus()
     features.CfgRealmID = 2;
     features.CfgRealmRecID = 0;
     features.TokenPollTimeSeconds = 300;
-    features.TokenRedeemIndex = 0;
     features.VoiceEnabled = false;
     features.BrowserEnabled = false; // Has to be false, otherwise client will crash if "Customer Support" is opened
 
@@ -1192,6 +1196,7 @@ void WorldSession::SendFeatureSystemStatus()
 
     features.CharUndeleteEnabled = sWorld->getBoolConfig(CONFIG_FEATURE_SYSTEM_CHARACTER_UNDELETE_ENABLED);
     features.BpayStoreEnabled = sWorld->getBoolConfig(CONFIG_FEATURE_SYSTEM_BPAY_STORE_ENABLED);
+    features.WarModeFeatureEnabled = sWorld->getBoolConfig(CONFIG_FEATURE_SYSTEM_WAR_MODE_ENABLED);
 
     SendPacket(features.Write());
 }
@@ -1979,7 +1984,7 @@ void WorldSession::HandleCharRaceOrFactionChangeCallback(std::shared_ptr<WorldPa
         trans->Append(stmt);
 
         // Race specific languages
-        if (factionChangeInfo->RaceID != RACE_ORC && factionChangeInfo->RaceID != RACE_HUMAN && factionChangeInfo->RaceID != RACE_MAGHAR_ORC)
+        if (factionChangeInfo->RaceID != RACE_ORC && factionChangeInfo->RaceID != RACE_HUMAN && factionChangeInfo->RaceID != RACE_MAGHAR_ORC && factionChangeInfo->RaceID != RACE_KUL_TIRAN)
         {
             stmt = CharacterDatabase.GetPreparedStatement(CHAR_INS_CHAR_SKILL_LANGUAGE);
             stmt->setUInt64(0, lowGuid);
@@ -1998,6 +2003,7 @@ void WorldSession::HandleCharRaceOrFactionChangeCallback(std::shared_ptr<WorldPa
                 case RACE_UNDEAD_PLAYER:        raceLang = 673;     break;
                 case RACE_TAUREN:
                 case RACE_HIGHMOUNTAIN_TAUREN:  raceLang = 115;     break;
+                case RACE_ZANDALARI_TROLL:
                 case RACE_TROLL:                raceLang = 315;     break;
                 case RACE_BLOODELF:             raceLang = 137;     break;
                 case RACE_GOBLIN:               raceLang = 792;     break;

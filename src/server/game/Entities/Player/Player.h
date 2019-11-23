@@ -427,8 +427,8 @@ enum PlayerFlags
     PLAYER_FLAGS_UNK7                   = 0x00000080,       // pre-3.0.3 PLAYER_FLAGS_FFA_PVP flag for FFA PVP state
     PLAYER_FLAGS_CONTESTED_PVP          = 0x00000100,       // Player has been involved in a PvP combat and will be attacked by contested guards
     PLAYER_FLAGS_IN_PVP                 = 0x00000200,
-    PLAYER_FLAGS_HIDE_HELM              = 0x00000400,
-    PLAYER_FLAGS_WAR_MODE               = 0x00000800,
+    PLAYER_FLAGS_WAR_MODE_ACTIVE        = 0x00000400,
+    PLAYER_FLAGS_WAR_MODE_DESIRED       = 0x00000800,
     PLAYER_FLAGS_PLAYED_LONG_TIME       = 0x00001000,       // played long time
     PLAYER_FLAGS_PLAYED_TOO_LONG        = 0x00002000,       // played too long time
     PLAYER_FLAGS_IS_OUT_OF_BOUNDS       = 0x00004000,
@@ -1007,23 +1007,21 @@ struct BGData
 
 struct VoidStorageItem
 {
-    VoidStorageItem() : ItemId(0), ItemEntry(0), RandomBonusListId(0), ItemUpgradeId(0), FixedScalingLevel(0), ArtifactKnowledgeLevel(0), Context(0) { }
+    VoidStorageItem() : ItemId(0), ItemEntry(0), RandomBonusListId(0), FixedScalingLevel(0), ArtifactKnowledgeLevel(0), Context(0) { }
     VoidStorageItem(uint64 id, uint32 entry, ObjectGuid const& creator, ItemRandomBonusListId randomBonusListId,
-        uint32 upgradeId, uint32 fixedScalingLevel, uint32 artifactKnowledgeLevel, uint8 context, std::vector<int32> const& bonuses)
+        uint32 fixedScalingLevel, uint32 artifactKnowledgeLevel, uint8 context, std::vector<int32> const& bonuses)
         : ItemId(id), ItemEntry(entry), CreatorGuid(creator), RandomBonusListId(randomBonusListId),
-        ItemUpgradeId(upgradeId), FixedScalingLevel(fixedScalingLevel), ArtifactKnowledgeLevel(artifactKnowledgeLevel), Context(context)
+        FixedScalingLevel(fixedScalingLevel), ArtifactKnowledgeLevel(artifactKnowledgeLevel), Context(context)
     {
         BonusListIDs.insert(BonusListIDs.end(), bonuses.begin(), bonuses.end());
     }
     VoidStorageItem(VoidStorageItem&& vsi) noexcept : ItemId(vsi.ItemId), ItemEntry(vsi.ItemEntry), CreatorGuid(vsi.CreatorGuid), RandomBonusListId(vsi.RandomBonusListId),
-        ItemUpgradeId(vsi.ItemUpgradeId), FixedScalingLevel(vsi.FixedScalingLevel),
-        ArtifactKnowledgeLevel(vsi.ArtifactKnowledgeLevel), Context(vsi.Context), BonusListIDs(std::move(vsi.BonusListIDs)) { }
+        FixedScalingLevel(vsi.FixedScalingLevel), ArtifactKnowledgeLevel(vsi.ArtifactKnowledgeLevel), Context(vsi.Context), BonusListIDs(std::move(vsi.BonusListIDs)) { }
 
     uint64 ItemId;
     uint32 ItemEntry;
     ObjectGuid CreatorGuid;
     ItemRandomBonusListId RandomBonusListId;
-    uint32 ItemUpgradeId;
     uint32 FixedScalingLevel;
     uint32 ArtifactKnowledgeLevel;
     uint8 Context;
@@ -1316,7 +1314,7 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         /// return presence related currency
         bool HasCurrency(uint32 id, uint32 count) const;
         /// initialize currency count for custom initialization at create character
-        void SetCurrency(uint32 id, uint32 count, bool printLog = true);
+        void SetCreateCurrency(uint32 id, uint32 count, bool printLog = true);
         void ResetCurrencyWeekCap();
         uint32 CalculateCurrencyWeekCap(uint32 id) const;
 
@@ -1433,8 +1431,8 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         bool CanAddQuest(Quest const* quest, bool msg) const;
         bool CanCompleteQuest(uint32 quest_id);
         bool CanCompleteRepeatableQuest(Quest const* quest);
-        bool CanRewardQuest(Quest const* quest, bool msg);
-        bool CanRewardQuest(Quest const* quest, uint32 reward, bool msg);
+        bool CanRewardQuest(Quest const* quest, bool msg) const;
+        bool CanRewardQuest(Quest const* quest, uint32 reward, bool msg) const;
         void AddQuestAndCheckCompletion(Quest const* quest, Object* questGiver);
         void AddQuest(Quest const* quest, Object* questGiver);
         void AbandonQuest(uint32 quest_id);
@@ -1462,8 +1460,8 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         bool SatisfyQuestNextChain(Quest const* qInfo, bool msg) const;
         bool SatisfyQuestPrevChain(Quest const* qInfo, bool msg);
         bool SatisfyQuestDay(Quest const* qInfo, bool msg) const;
-        bool SatisfyQuestWeek(Quest const* qInfo, bool msg);
-        bool SatisfyQuestMonth(Quest const* qInfo, bool msg);
+        bool SatisfyQuestWeek(Quest const* qInfo, bool msg) const;
+        bool SatisfyQuestMonth(Quest const* qInfo, bool msg) const;
         bool SatisfyQuestSeasonal(Quest const* qInfo, bool msg) const;
         bool GiveQuestSourceItem(Quest const* quest);
         bool TakeQuestSourceItem(uint32 questId, bool msg);
@@ -2085,8 +2083,6 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         bool isHonorOrXPTarget(Unit const* victim) const;
 
         bool GetsRecruitAFriendBonus(bool forXP);
-        uint8 GetGrantableLevels() const { return m_grantableLevels; }
-        void SetGrantableLevels(uint8 val) { m_grantableLevels = val; }
 
         ReputationMgr&       GetReputationMgr()       { return *m_reputationMgr; }
         ReputationMgr const& GetReputationMgr() const { return *m_reputationMgr; }
@@ -2179,7 +2175,6 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         void UpdateItemSetAuras(bool formChange = false);
         void ApplyArtifactPowers(Item* item, bool apply);
         void ApplyArtifactPowerRank(Item* artifact, ArtifactPowerRankEntry const* artifactPowerRank, bool apply);
-        void ApplyAzeriteItemPowers(Item* item, bool apply);
 
         void CastItemCombatSpell(DamageInfo const& damageInfo);
         void CastItemCombatSpell(DamageInfo const& damageInfo, Item* item, ItemTemplate const* proto);
@@ -2330,6 +2325,7 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         void UpdateVisibilityOf(T* target, UpdateData& data, std::set<Unit*>& visibleNow);
 
         uint8 m_forced_speed_changes[MAX_MOVE_TYPE];
+        uint8 m_movementForceModMagnitudeChanges;
 
         bool HasAtLoginFlag(AtLoginFlags f) const { return (m_atLoginFlags & f) != 0; }
         void SetAtLoginFlag(AtLoginFlags f) { m_atLoginFlags |= f; }
@@ -2927,8 +2923,6 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         bool CanAlwaysSee(WorldObject const* obj) const override;
 
         bool IsAlwaysDetectableFor(WorldObject const* seer) const override;
-
-        uint8 m_grantableLevels;
 
         uint8 m_fishingSteps;
 

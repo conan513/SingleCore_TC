@@ -48,7 +48,6 @@ LootItem::LootItem(LootStoreItem const& li)
         freeforall = false;
         needs_quest = false;
         follow_loot_rules = false;
-        upgradeId = 0;
     }
     else
     {
@@ -57,12 +56,9 @@ LootItem::LootItem(LootStoreItem const& li)
         follow_loot_rules = proto && (proto->FlagsCu & ITEM_FLAGS_CU_FOLLOW_LOOT_RULES);
 
         needs_quest = li.needs_quest;
-
-        upgradeId = sDB2Manager.GetRulesetItemUpgrade(itemid);
     }
 
     randomBonusListId = GenerateItemRandomBonusListId(itemid);
-    upgradeId = sDB2Manager.GetRulesetItemUpgrade(itemid);
     context = 0;
     count = 0;
     is_looted = 0;
@@ -332,8 +328,7 @@ void Loot::AddItem(LootStoreItem const& item, Player const* player /*= nullptr*/
         generatedLoot.count = std::min(count, proto->GetMaxStackSize());
         if (_itemContext)
         {
-            uint32 redunantData = 0;
-            std::set<uint32> bonusListIDs = sDB2Manager.GetItemBonusTree(generatedLoot.itemid, _itemContext, redunantData);
+            std::set<uint32> bonusListIDs = sDB2Manager.GetItemBonusTree(generatedLoot.itemid, _itemContext);
             generatedLoot.BonusListIDs.insert(generatedLoot.BonusListIDs.end(), bonusListIDs.begin(), bonusListIDs.end());
         }
 

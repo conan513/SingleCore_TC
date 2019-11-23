@@ -26,6 +26,8 @@
 #include <sstream>
 #include <iomanip>
 
+static_assert(sizeof(ObjectGuid) == sizeof(uint64) * 2, "ObjectGuid must be exactly 16 bytes");
+
 namespace
 {
     struct GuidTypeNames
@@ -88,6 +90,7 @@ namespace
         SET_GUID_NAME(ClientSession);
         SET_GUID_NAME(Cast);
         SET_GUID_NAME(ClientConnection);
+        SET_GUID_NAME(ClubFinder);
 
 #undef SET_GUID_NAME
     }

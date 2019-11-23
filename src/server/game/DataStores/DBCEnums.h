@@ -171,7 +171,7 @@ enum ArtifactPowerFlag : uint8
 
 #define MAX_ARTIFACT_TIER 1
 
-#define BATTLE_PET_SPECIES_MAX_ID 2775
+#define BATTLE_PET_SPECIES_MAX_ID 2796
 
 enum BattlePetSpeciesFlags
 {
@@ -532,11 +532,11 @@ enum CriteriaTypes : uint8
     CRITERIA_TYPE_EARN_HONOR_XP                         = 207,
     CRITERIA_TYPE_RELIC_TALENT_UNLOCKED                 = 211,
     CRITERIA_TYPE_REACH_ACCOUNT_HONOR_LEVEL             = 213,
-    CRITERIA_TREE_HEART_OF_AZEROTH_ARTIFACT_POWER_EARNED= 214,
-    CRITERIA_TREE_HEART_OF_AZEROTH_LEVEL_REACHED        = 215
+    CRITERIA_TYPE_HEART_OF_AZEROTH_ARTIFACT_POWER_EARNED= 214,
+    CRITERIA_TYPE_HEART_OF_AZEROTH_LEVEL_REACHED        = 215
 };
 
-#define CRITERIA_TYPE_TOTAL 217
+#define CRITERIA_TYPE_TOTAL 219
 
 enum CriteriaTreeFlags : uint16
 {
@@ -649,6 +649,7 @@ enum Difficulty : uint8
     DIFFICULTY_PVP_ISLAND           = 45,
     DIFFICULTY_NORMAL_WARFRONT      = 147,
     DIFFICULTY_HEROIC_WARFRONT      = 149,
+    DIFFICULTY_LFR_15TH_ANNIVERSARY = 151,
 
     MAX_DIFFICULTY
 };
@@ -700,7 +701,6 @@ enum class ExpectedStatType : uint8
 
 enum FactionTemplateFlags
 {
-    FACTION_TEMPLATE_ENEMY_SPAR             = 0x00000020,   // guessed, sparring with enemies?
     FACTION_TEMPLATE_FLAG_PVP               = 0x00000800,   // flagged for PvP
     FACTION_TEMPLATE_FLAG_CONTESTED_GUARD   = 0x00001000,   // faction will attack players that were involved in PvP combats
     FACTION_TEMPLATE_FLAG_HOSTILE_BY_DEFAULT= 0x00002000
@@ -716,6 +716,7 @@ enum FactionMasks
 };
 
 #define MAX_ITEM_PROTO_FLAGS 4
+#define MAX_ITEM_PROTO_ZONES 2
 #define MAX_ITEM_PROTO_SOCKETS 3
 #define MAX_ITEM_PROTO_STATS  10
 
@@ -1027,6 +1028,18 @@ enum PhaseUseFlagsValues : uint8
     PHASE_USE_FLAGS_ALL             = PHASE_USE_FLAGS_ALWAYS_VISIBLE | PHASE_USE_FLAGS_INVERSE
 };
 
+enum class PlayerConditionLfgStatus : uint8
+{
+    InLFGDungeon            = 1,
+    InLFGRandomDungeon      = 2,
+    InLFGFirstRandomDungeon = 3,
+    PartialClear            = 4,
+    StrangerCount           = 5,
+    VoteKickCount           = 6,
+    BootCount               = 7,
+    GearDiff                = 8
+};
+
 enum PrestigeLevelInfoFlags : uint8
 {
     PRESTIGE_FLAG_DISABLED  = 0x01                      // Prestige levels with this flag won't be included to calculate max prestigelevel.
@@ -1314,12 +1327,92 @@ enum CurrencyTypes
     CURRENCY_TYPE_SECRET_OF_DRAENOR_LEATHERWORKING  = 1017,
     CURRENCY_TYPE_SECRET_OF_DRAENOR_BLACKSMITHING   = 1020,
     CURRENCY_TYPE_OIL                               = 1101,
-    CURRENCY_TYPE_AZERITE                           = 1553,
+    CURRENCY_TYPE_AZERITE                           = 1553
 };
 
 enum WorldMapTransformsFlags
 {
     WORLD_MAP_TRANSFORMS_FLAG_DUNGEON   = 0x04
+};
+
+enum class WorldStateExpressionValueType : uint8
+{
+    Constant    = 1,
+    WorldState  = 2,
+    Function    = 3
+};
+
+enum class WorldStateExpressionLogic : uint8
+{
+    None    = 0,
+    And     = 1,
+    Or      = 2,
+    Xor     = 3,
+};
+
+enum class WorldStateExpressionComparisonType : uint8
+{
+    None            = 0,
+    Equal           = 1,
+    NotEqual        = 2,
+    Less            = 3,
+    LessOrEqual     = 4,
+    Greater         = 5,
+    GreaterOrEqual  = 6,
+};
+
+enum class WorldStateExpressionOperatorType : uint8
+{
+    None            = 0,
+    Sum             = 1,
+    Substraction    = 2,
+    Multiplication  = 3,
+    Division        = 4,
+    Remainder       = 5,
+};
+
+enum WorldStateExpressionFunctions
+{
+    WSE_FUNCTION_NONE = 0,
+    WSE_FUNCTION_RANDOM,
+    WSE_FUNCTION_MONTH,
+    WSE_FUNCTION_DAY,
+    WSE_FUNCTION_TIME_OF_DAY,
+    WSE_FUNCTION_REGION,
+    WSE_FUNCTION_CLOCK_HOUR,
+    WSE_FUNCTION_OLD_DIFFICULTY_ID,
+    WSE_FUNCTION_HOLIDAY_START,
+    WSE_FUNCTION_HOLIDAY_LEFT,
+    WSE_FUNCTION_HOLIDAY_ACTIVE,
+    WSE_FUNCTION_TIMER_CURRENT_TIME,
+    WSE_FUNCTION_WEEK_NUMBER,
+    WSE_FUNCTION_UNK13,
+    WSE_FUNCTION_UNK14,
+    WSE_FUNCTION_DIFFICULTY_ID,
+    WSE_FUNCTION_WAR_MODE_ACTIVE,
+    WSE_FUNCTION_UNK17,
+    WSE_FUNCTION_UNK18,
+    WSE_FUNCTION_UNK19,
+    WSE_FUNCTION_UNK20,
+    WSE_FUNCTION_UNK21,
+    WSE_FUNCTION_WORLD_STATE_EXPRESSION,
+    WSE_FUNCTION_KEYSTONE_AFFIX,
+    WSE_FUNCTION_UNK24,
+    WSE_FUNCTION_UNK25,
+    WSE_FUNCTION_UNK26,
+    WSE_FUNCTION_UNK27,
+    WSE_FUNCTION_KEYSTONE_LEVEL,
+    WSE_FUNCTION_UNK29,
+    WSE_FUNCTION_UNK30,
+    WSE_FUNCTION_UNK31,
+    WSE_FUNCTION_UNK32,
+    WSE_FUNCTION_MERSENNE_RANDOM,
+    WSE_FUNCTION_UNK34,
+    WSE_FUNCTION_UNK35,
+    WSE_FUNCTION_UNK36,
+    WSE_FUNCTION_UI_WIDGET_DATA,
+
+    WSE_FUNCTION_MAX,
 };
 
 #endif

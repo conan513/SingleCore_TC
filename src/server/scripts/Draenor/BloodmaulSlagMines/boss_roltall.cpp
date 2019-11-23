@@ -507,8 +507,8 @@ namespace Instances { namespace Bloodmaul
                 {
                     if (Player* player = unit->ToPlayer())
                     {
-                        if (!player->HasMovementForce(at->GetGUID()))
-                            player->ApplyMovementForce(at->GetGUID(), -7.0f, s_HeatWavePos);
+                        /*if (!player->HasMovementForce(at->GetGUID()))
+                            player->ApplyMovementForce(at->GetGUID(), -7.0f, s_HeatWavePos);*/
 
                         if (!player->HasAura(eSpells::SpellPeriodicDamage))
                             caster->CastSpell(player, eSpells::SpellPeriodicDamage, true);

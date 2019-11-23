@@ -89,7 +89,6 @@ namespace WorldPackets
         class ArtifactAddPower;
         class ArtifactSetAppearance;
         class ConfirmArtifactRespec;
-        class AzeriteEmpoweredItemSelectPower;
     }
 
     namespace AuctionHouse
@@ -521,7 +520,9 @@ namespace WorldPackets
         class MoveTimeSkipped;
         class SummonResponse;
         class MoveSplineDone;
-        class SuspendTokenResponse;
+        class SuspendTokenResponse;\
+        class MoveApplyMovementForceAck;
+        class MoveRemoveMovementForceAck;
     }
 
     namespace NPC
@@ -1224,6 +1225,11 @@ class TC_GAME_API WorldSession
         void HandleForceSpeedChangeAck(WorldPackets::Movement::MovementSpeedAck& packet);
         void HandleSetCollisionHeightAck(WorldPackets::Movement::MoveSetCollisionHeightAck& setCollisionHeightAck);
 
+        // Movement forces
+        void HandleMoveApplyMovementForceAck(WorldPackets::Movement::MoveApplyMovementForceAck& moveApplyMovementForceAck);
+        void HandleMoveRemoveMovementForceAck(WorldPackets::Movement::MoveRemoveMovementForceAck& moveRemoveMovementForceAck);
+        void HandleMoveSetModMovementForceMagnitudeAck(WorldPackets::Movement::MovementSpeedAck& setModMovementForceMagnitudeAck);
+
         void HandleRepopRequest(WorldPackets::Misc::RepopRequest& packet);
         void HandleAutostoreLootItemOpcode(WorldPackets::Loot::LootItem& packet);
         void HandleLootMoneyOpcode(WorldPackets::Loot::LootMoney& packet);
@@ -1675,10 +1681,6 @@ class TC_GAME_API WorldSession
         void HandleGuildBankTextQuery(WorldPackets::Guild::GuildBankTextQuery& packet);
         void HandleGuildBankSetTabText(WorldPackets::Guild::GuildBankSetTabText& packet);
 
-        // Refer-a-Friend
-        void HandleGrantLevel(WorldPackets::RaF::GrantLevel& grantLevel);
-        void HandleAcceptGrantLevel(WorldPackets::RaF::AcceptLevelGrant& acceptLevelGrant);
-
         // Calendar
         void HandleCalendarGetCalendar(WorldPackets::Calendar::CalendarGetCalendar& calendarGetCalendar);
         void HandleCalendarGetEvent(WorldPackets::Calendar::CalendarGetEvent& calendarGetEvent);
@@ -1807,7 +1809,6 @@ class TC_GAME_API WorldSession
         void HandleArtifactAddPower(WorldPackets::Artifact::ArtifactAddPower& artifactAddPower);
         void HandleArtifactSetAppearance(WorldPackets::Artifact::ArtifactSetAppearance& artifactSetAppearance);
         void HandleConfirmArtifactRespec(WorldPackets::Artifact::ConfirmArtifactRespec& confirmArtifactRespec);
-        void HandleAzeriteEmpoweredItemSelectPower(WorldPackets::Artifact::AzeriteEmpoweredItemSelectPower& packet);
 
         // Scenario
         void HandleQueryScenarioPOI(WorldPackets::Scenario::QueryScenarioPOI& queryScenarioPOI);

@@ -23,6 +23,7 @@
 #include "DBCEnums.h"
 #include "DatabaseEnvFwd.h"
 #include "SharedDefines.h"
+#include "WorldPacket.h"
 #include <vector>
 
 class Player;
@@ -442,6 +443,7 @@ class TC_GAME_API Quest
         int32 GetTreasurePickerId() const { return TreasurePickerID; }
         int32 GetExpansion() const { return Expansion; }
         int32 GetManagedWorldStateId() const { return ManagedWorldStateID; }
+        int32 GetQuestSessionBonus() const { return QuestSessionBonus; }
         uint32 GetQuestGiverPortrait() const { return QuestGiverPortrait; }
         int32 GetQuestGiverPortraitMount() const { return QuestGiverPortraitMount; }
         uint32 GetQuestTurnInPortrait() const { return QuestTurnInPortrait; }
@@ -465,12 +467,17 @@ class TC_GAME_API Quest
         void SetEventIdForQuest(uint16 eventId) { _eventIdForQuest = eventId; }
         uint16 GetEventIdForQuest() const { return _eventIdForQuest; }
 
+        static void AddQuestLevelToTitle(std::string& title, int32 level);
+        void InitializeQueryData();
+        WorldPacket BuildQueryData(LocaleConstant loc) const;
+
         void BuildQuestRewards(WorldPackets::Quest::QuestRewards& rewards, Player* player) const;
 
         typedef std::vector<int32> PrevQuests;
         PrevQuests prevQuests;
         typedef std::vector<uint32> PrevChainQuests;
         PrevChainQuests prevChainQuests;
+        WorldPacket QueryData[TOTAL_LOCALES];
 
     private:
         uint32 _rewChoiceItemsCount;
@@ -541,6 +548,7 @@ class TC_GAME_API Quest
         int32 TreasurePickerID;
         int32 Expansion;
         int32 ManagedWorldStateID;
+        int32 QuestSessionBonus;
         QuestObjectives Objectives;
         std::string LogTitle;
         std::string LogDescription;

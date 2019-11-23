@@ -25,6 +25,7 @@
 #include "DatabaseEnvFwd.h"
 #include "GameObjectData.h"
 #include "ItemTemplate.h"
+#include "IteratorPair.h"
 #include "NPCHandler.h"
 #include "ObjectDefines.h"
 #include "ObjectGuid.h"
@@ -706,16 +707,16 @@ typedef std::multimap<uint32, GossipMenuItems> GossipMenuItemsContainer;
 typedef std::pair<GossipMenuItemsContainer::const_iterator, GossipMenuItemsContainer::const_iterator> GossipMenuItemsMapBounds;
 typedef std::pair<GossipMenuItemsContainer::iterator, GossipMenuItemsContainer::iterator> GossipMenuItemsMapBoundsNonConst;
 
-struct QuestPOIPoint
+struct QuestPOIBlobPoint
 {
     int32 X;
     int32 Y;
 
-    QuestPOIPoint() : X(0), Y(0) { }
-    QuestPOIPoint(int32 _X, int32 _Y) : X(_X), Y(_Y) { }
+    QuestPOIBlobPoint() : X(0), Y(0) { }
+    QuestPOIBlobPoint(int32 _X, int32 _Y) : X(_X), Y(_Y) { }
 };
 
-struct QuestPOI
+struct QuestPOIBlobData
 {
     int32 BlobIndex;
     int32 ObjectiveIndex;
@@ -728,20 +729,38 @@ struct QuestPOI
     int32 WorldEffectID;
     int32 PlayerConditionID;
     int32 SpawnTrackingID;
-    std::vector<QuestPOIPoint> points;
+    std::vector<QuestPOIBlobPoint> QuestPOIBlobPointStats;
     bool AlwaysAllowMergingBlobs;
 
-    QuestPOI() : BlobIndex(0), ObjectiveIndex(0), QuestObjectiveID(0), QuestObjectID(0), MapID(0), UiMapID(0), Priority(0), Flags(0), WorldEffectID(0), PlayerConditionID(0), SpawnTrackingID(0), AlwaysAllowMergingBlobs(false){ }
-    QuestPOI(int32 blobIndex, int32 objectiveIndex, int32 questObjectiveID, int32 questObjectID, int32 mapID, int32 uiMapID, int32 priority, int32 flags, int32 worldEffectID, int32 playerConditionID, int32 spawnTrackingID, bool alwaysAllowMergingBlobs) :
-        BlobIndex(blobIndex), ObjectiveIndex(objectiveIndex), QuestObjectiveID(questObjectiveID), QuestObjectID(questObjectID), MapID(mapID), UiMapID(uiMapID),
-        Priority(priority), Flags(flags), WorldEffectID(worldEffectID), PlayerConditionID(playerConditionID), SpawnTrackingID(spawnTrackingID), AlwaysAllowMergingBlobs(alwaysAllowMergingBlobs) { }
+    QuestPOIBlobData() : BlobIndex(0), ObjectiveIndex(0), QuestObjectiveID(0), QuestObjectID(0), MapID(0), UiMapID(0), Priority(0), Flags(0), WorldEffectID(0),
+        PlayerConditionID(0), SpawnTrackingID(0), AlwaysAllowMergingBlobs(false) { }
+    QuestPOIBlobData(int32 blobIndex, int32 objectiveIndex, int32 questObjectiveID, int32 questObjectID, int32 mapID, int32 uiMapID, int32 priority,
+        int32 flags, int32 worldEffectID, int32 playerConditionID, int32 spawnTrackingID, std::vector<QuestPOIBlobPoint> questPOIBlobPointStats,
+        bool alwaysAllowMergingBlobs) : BlobIndex(blobIndex), ObjectiveIndex(objectiveIndex), QuestObjectiveID(questObjectiveID),
+        QuestObjectID(questObjectID), MapID(mapID), UiMapID(uiMapID), Priority(priority), Flags(flags), WorldEffectID(worldEffectID),
+        PlayerConditionID(playerConditionID), SpawnTrackingID(spawnTrackingID), QuestPOIBlobPointStats(std::move(questPOIBlobPointStats)),
+        AlwaysAllowMergingBlobs(alwaysAllowMergingBlobs) { }
 };
 
-typedef std::vector<QuestPOI> QuestPOIVector;
-typedef std::unordered_map<uint32, QuestPOIVector> QuestPOIContainer;
+struct QuestPOIData
+{
+    int32 QuestID = 0;
+    std::vector<QuestPOIBlobData> QuestPOIBlobDataStats;
+
+    void InitializeQueryData();
+    ByteBuffer QueryDataBuffer;
+};
+
+typedef std::unordered_map<uint32, QuestPOIData> QuestPOIContainer;
 
 typedef std::array<std::unordered_map<uint32, QuestGreeting>, 2> QuestGreetingContainer;
 typedef std::array<std::unordered_map<uint32, QuestGreetingLocale>, 2> QuestGreetingLocaleContainer;
+
+struct WorldSafeLocsEntry
+{
+    uint32 ID = 0;
+    WorldLocation Loc;
+};
 
 struct GraveYardData
 {
@@ -946,6 +965,17 @@ struct ItemScrappingLoot
     int32 IsCrafted;
 };
 
+enum QueryDataGroup
+{
+    QUERY_DATA_CREATURES = 0x01,
+    QUERY_DATA_GAMEOBJECTS = 0x02,
+    QUERY_DATA_ITEMS = 0x04,
+    QUERY_DATA_QUESTS = 0x08,
+    QUERY_DATA_POIS = 0x10,
+
+    QUERY_DATA_ALL = 0xFF
+};
+
 class PlayerDumpReader;
 
 class TC_GAME_API ObjectMgr
@@ -1085,6 +1115,9 @@ class TC_GAME_API ObjectMgr
         void RemoveGraveYardLink(uint32 id, uint32 zoneId, uint32 team, bool persist = false);
         void LoadGraveyardZones();
         GraveYardData const* FindGraveYardData(uint32 id, uint32 zone) const;
+        void LoadWorldSafeLocs();
+        WorldSafeLocsEntry const* GetWorldSafeLoc(uint32 id) const;
+        Trinity::IteratorPair<std::unordered_map<uint32, WorldSafeLocsEntry>::const_iterator> GetWorldSafeLocs() const;
 
         AreaTriggerTeleportStruct const* GetAreaTrigger(int64 trigger) const;
         AccessRequirement const* GetAccessRequirement(uint32 mapid, Difficulty difficulty) const;
@@ -1130,7 +1163,7 @@ class TC_GAME_API ObjectMgr
             return nullptr;
         }
 
-        QuestPOIVector const* GetQuestPOIVector(int32 QuestID)
+        QuestPOIData const* GetQuestPOIData(int32 QuestID)
         {
             QuestPOIContainer::const_iterator itr = _questPOIStore.find(QuestID);
             if (itr != _questPOIStore.end())
@@ -1312,9 +1345,8 @@ class TC_GAME_API ObjectMgr
 
         void LoadInstanceDifficultyMultiplier();
 
-        std::set<uint32> GetItemBonusTree(uint32 ItemID, uint32 itemBonusTreeMod, uint32 ownerLevel, int32 levelBonus, int32 needLevel);
-        std::set<uint32> GetItemBonusForLevel(uint32 itemID, uint32 itemBonusTreeMod, int32 needLevel);
-        uint32 GetItemBonusLevel(uint32 ItemID, uint32 ownerLevel, uint8& quality, std::set<uint32>& bonusListIDs);
+        void InitializeQueriesData(QueryDataGroup mask);
+
 
         std::string GeneratePetName(uint32 entry);
         uint32 GetBaseXP(uint8 level);
@@ -1667,9 +1699,8 @@ class TC_GAME_API ObjectMgr
         // first free id for selected id type
         uint32 _auctionId;
         uint64 _equipmentSetGuid;
-        uint32 _itemTextId;
-        uint32 _mailId;
-        uint32 _hiPetNumber;
+        std::atomic<uint32> _mailId;
+        std::atomic<uint32> _hiPetNumber;
         uint64 _voidItemId;
         uint64 _creatureSpawnId;
         uint64 _gameObjectSpawnId;
@@ -1705,6 +1736,7 @@ class TC_GAME_API ObjectMgr
         AreaTriggerScriptContainer _areaTriggerScriptStore;
         AccessRequirementContainer _accessRequirementStore;
         DungeonEncounterContainer _dungeonEncounterStore;
+        std::unordered_map<uint32, WorldSafeLocsEntry> _worldSafeLocs;
 
         RepRewardRateContainer _repRewardRateStore;
         RepOnKillContainer _repOnKillStore;

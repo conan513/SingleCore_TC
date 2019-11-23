@@ -35,8 +35,6 @@
 #include <list>
 #include <unordered_map>
 
-class AzeriteEmpoweredItem;
-class AzeriteItem;
 class AreaTrigger;
 class Conversation;
 class Corpse;
@@ -119,6 +117,12 @@ namespace UF
     {
         setter.Clear();
     }
+
+    template<typename T>
+    inline void RemoveOptionalUpdateFieldValue(OptionalUpdateFieldSetter<T>& setter)
+    {
+        setter.RemoveValue();
+    }
 }
 
 class TC_GAME_API Object
@@ -200,14 +204,6 @@ class TC_GAME_API Object
         SceneObject* ToSceneObject() { if (IsSceneObject()) return reinterpret_cast<SceneObject*>(this); else return nullptr; }
         SceneObject const* ToSceneObject() const { if (IsSceneObject()) return reinterpret_cast<SceneObject const*>(this); else return nullptr; }
 
-        bool IsAzeriteItem() const { return GetTypeId() == TYPEID_AZERITE_ITEM; }
-        AzeriteItem* ToAzeriteItem() { if (IsAzeriteItem()) return reinterpret_cast<AzeriteItem*>(this); return nullptr; }
-        AzeriteItem const* ToAzeriteItem() const { if (IsAzeriteItem()) return reinterpret_cast<AzeriteItem const*>(this); return nullptr; }
-
-        bool IsAzeriteImpoweredItem() const { return GetTypeId() == TYPEID_AZERITE_EMPOWERED_ITEM; }
-        AzeriteEmpoweredItem* ToAzeriteImpoweredItem() { if (IsAzeriteImpoweredItem()) return reinterpret_cast<AzeriteEmpoweredItem*>(this); return nullptr; }
-        AzeriteEmpoweredItem const* ToAzeriteImpoweredItem() const { if (IsAzeriteImpoweredItem()) return reinterpret_cast<AzeriteEmpoweredItem const*>(this); return nullptr; }
-
         UF::UpdateFieldHolder m_values;
         UF::UpdateField<UF::ObjectData, 0, TYPEID_OBJECT> m_objectData;
 
@@ -269,6 +265,13 @@ class TC_GAME_API Object
         {
             AddToObjectUpdateIfNeeded();
             UF::ClearDynamicUpdateFieldValues(setter);
+        }
+
+        template<typename T>
+        void RemoveOptionalUpdateFieldValue(UF::OptionalUpdateFieldSetter<T> setter)
+        {
+            AddToObjectUpdateIfNeeded();
+            UF::RemoveOptionalUpdateFieldValue(setter);
         }
 
         // stat system helpers
@@ -603,14 +606,9 @@ class TC_GAME_API WorldObject : public Object, public WorldLocation
         virtual float GetStationaryZ() const { return GetPositionZ(); }
         virtual float GetStationaryO() const { return GetOrientation(); }
 
-        virtual void SetAIAnimKitId(uint16 animKitId, bool /*oneshot*/ = false) { _aiAnimKitId = animKitId; }
-        uint16 GetAIAnimKitId() const { return _aiAnimKitId; }
-
-        virtual void SetMovementAnimKitId(uint16 animKitId) { _movementAnimKitId = animKitId; }
-        uint16 GetMovementAnimKitId() const { return _movementAnimKitId; }
-
-        virtual void SetMeleeAnimKitId(uint16 animKitId) { _meleeAnimKitId = animKitId; }
-        uint16 GetMeleeAnimKitId() const { return _meleeAnimKitId; }
+        virtual uint16 GetAIAnimKitId() const { return 0; }
+        virtual uint16 GetMovementAnimKitId() const { return 0; }
+        virtual uint16 GetMeleeAnimKitId() const { return 0; }
 
     protected:
         std::string m_name;
@@ -623,10 +621,6 @@ class TC_GAME_API WorldObject : public Object, public WorldLocation
 
         // transports
         Transport* m_transport;
-
-        uint16 _aiAnimKitId;
-        uint16 _movementAnimKitId;
-        uint16 _meleeAnimKitId;
 
         //these functions are used mostly for Relocate() and Corpse/Player specific stuff...
         //use them ONLY in LoadFromDB()/Create() funcs and nowhere else!

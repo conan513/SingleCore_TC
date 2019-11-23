@@ -43,6 +43,7 @@
 #include "PhasingHandler.h"
 #include "Player.h"
 #include "PoolMgr.h"
+#include "QueryPackets.h"
 #include "QuestDef.h"
 #include "Random.h"
 #include "ReputationMgr.h"
@@ -266,7 +267,6 @@ bool SpellClickInfo::IsFitToRequirements(Unit const* clicker, Unit const* clicke
 ObjectMgr::ObjectMgr():
     _auctionId(1),
     _equipmentSetGuid(1),
-    _itemTextId(1),
     _mailId(1),
     _hiPetNumber(1),
     _voidItemId(1),
@@ -426,7 +426,7 @@ void ObjectMgr::LoadCreatureTemplates()
     //                                        9         10        11              12        13        14                      15                 16
                                              "TitleAlt, IconName, gossip_menu_id, minlevel, maxlevel, HealthScalingExpansion, RequiredExpansion, VignetteID, "
     //                                        17       18       19          20         21     22    23         24              25               26            27
-                                             "faction, npcflag, speed_walk, speed_run, scale, rank, dmgschool, BaseAttackTime, RangeAttackTime, BaseVariance, RangeVariance, "
+                                             "faction, npcflag, speed_walk, speed_run, scale, `rank`, dmgschool, BaseAttackTime, RangeAttackTime, BaseVariance, RangeVariance, "
     //                                        28          29          30           31           32            33      34             35
                                              "unit_class, unit_flags, unit_flags2, unit_flags3, dynamicflags, family, trainer_class, type, "
     //                                        36          37           38      39              40        41           42           43           44           45           46
@@ -4041,9 +4041,9 @@ void ObjectMgr::LoadQuests()
         "RewardFactionID5, RewardFactionValue5, RewardFactionOverride5, RewardFactionCapIn5, RewardFactionFlags, "
         //96                97                  98                 99                  100                101                 102                103
         "RewardCurrencyID1, RewardCurrencyQty1, RewardCurrencyID2, RewardCurrencyQty2, RewardCurrencyID3, RewardCurrencyQty3, RewardCurrencyID4, RewardCurrencyQty4, "
-        //104                105                 106          107          108             109               110        111
-        "AcceptedSoundKitID, CompleteSoundKitID, AreaGroupID, TimeAllowed, AllowableRaces, TreasurePickerID, Expansion, ManagedWorldStateID, "
-        //112      113             114               115              116                117                118                 119                 120
+        //104                105                 106          107          108             109               110        111                  112
+        "AcceptedSoundKitID, CompleteSoundKitID, AreaGroupID, TimeAllowed, AllowableRaces, TreasurePickerID, Expansion, ManagedWorldStateID, QuestSessionBonus, "
+        //113      114             115               116              117                118                119                 120                 121
         "LogTitle, LogDescription, QuestDescription, AreaDescription, PortraitGiverText, PortraitGiverName, PortraitTurnInText, PortraitTurnInName, QuestCompletionLog"
         " FROM quest_template");
     if (!result)
@@ -6465,7 +6465,7 @@ void ObjectMgr::LoadGraveyardZones()
         uint32 zoneId = fields[1].GetUInt32();
         uint32 team   = fields[2].GetUInt16();
 
-        WorldSafeLocsEntry const* entry = sWorldSafeLocsStore.LookupEntry(safeLocId);
+        WorldSafeLocsEntry const* entry = GetWorldSafeLoc(safeLocId);
         if (!entry)
         {
             TC_LOG_ERROR("sql.sql", "Table `graveyard_zone` has a record for non-existing graveyard (WorldSafeLocsID: %u), skipped.", safeLocId);
@@ -6501,9 +6501,9 @@ WorldSafeLocsEntry const* ObjectMgr::GetDefaultGraveYard(uint32 team) const
     };
 
     if (team == HORDE)
-        return sWorldSafeLocsStore.LookupEntry(HORDE_GRAVEYARD);
+        return GetWorldSafeLoc(HORDE_GRAVEYARD);
     else if (team == ALLIANCE)
-        return sWorldSafeLocsStore.LookupEntry(ALLIANCE_GRAVEYARD);
+        return GetWorldSafeLoc(ALLIANCE_GRAVEYARD);
     else return nullptr;
 }
 
@@ -6564,7 +6564,7 @@ WorldSafeLocsEntry const* ObjectMgr::GetClosestGraveYard(WorldLocation const& lo
     {
         GraveYardData const& data = range.first->second;
 
-        WorldSafeLocsEntry const* entry = sWorldSafeLocsStore.AssertEntry(data.safeLocId);
+        WorldSafeLocsEntry const* entry = ASSERT_NOTNULL(GetWorldSafeLoc(data.safeLocId));
 
         // skip enemy faction graveyard
         // team == 0 case can be at call from .neargrave
@@ -6576,17 +6576,17 @@ WorldSafeLocsEntry const* ObjectMgr::GetClosestGraveYard(WorldLocation const& lo
             if (!sConditionMgr->IsObjectMeetingNotGroupedConditions(CONDITION_SOURCE_TYPE_GRAVEYARD, data.safeLocId, conditionSource))
                 continue;
 
-            if (int16(entry->MapID) == mapEntry->ParentMapID && !conditionObject->GetPhaseShift().HasVisibleMapId(entry->MapID))
+            if (int16(entry->Loc.GetMapId()) == mapEntry->ParentMapID && !conditionObject->GetPhaseShift().HasVisibleMapId(entry->Loc.GetMapId()))
                 continue;
         }
 
         // find now nearest graveyard at other map
-        if (MapId != entry->MapID && int16(entry->MapID) != mapEntry->ParentMapID)
+        if (MapId != entry->Loc.GetMapId() && int16(entry->Loc.GetMapId()) != mapEntry->ParentMapID)
         {
             // if find graveyard at different map from where entrance placed (or no entrance data), use any first
             if (!mapEntry
                 || mapEntry->CorpseMapID < 0
-                || uint32(mapEntry->CorpseMapID) != entry->MapID
+                || uint32(mapEntry->CorpseMapID) != entry->Loc.GetMapId()
                 || (mapEntry->Corpse.X == 0 && mapEntry->Corpse.Y == 0)) // Check X and Y
             {
                 // not have any corrdinates for check distance anyway
@@ -6595,8 +6595,8 @@ WorldSafeLocsEntry const* ObjectMgr::GetClosestGraveYard(WorldLocation const& lo
             }
 
             // at entrance map calculate distance (2D);
-            float dist2 = (entry->Loc.X - mapEntry->Corpse.X)*(entry->Loc.X - mapEntry->Corpse.X)
-                +(entry->Loc.Y - mapEntry->Corpse.Y)*(entry->Loc.Y - mapEntry->Corpse.Y);
+            float dist2 = (entry->Loc.GetPositionX() - mapEntry->Corpse.X) * (entry->Loc.GetPositionX() - mapEntry->Corpse.X)
+                + (entry->Loc.GetPositionY() - mapEntry->Corpse.Y) * (entry->Loc.GetPositionY() - mapEntry->Corpse.Y);
             if (foundEntr)
             {
                 if (dist2 < distEntr)
@@ -6615,7 +6615,9 @@ WorldSafeLocsEntry const* ObjectMgr::GetClosestGraveYard(WorldLocation const& lo
         // find now nearest graveyard at same map
         else
         {
-            float dist2 = (entry->Loc.X - x)*(entry->Loc.X - x)+(entry->Loc.Y - y)*(entry->Loc.Y - y)+(entry->Loc.Z - z)*(entry->Loc.Z - z);
+            float dist2 = (entry->Loc.GetPositionX() - x) * (entry->Loc.GetPositionX() - x)
+                + (entry->Loc.GetPositionY() - y) * (entry->Loc.GetPositionY() - y)
+                + (entry->Loc.GetPositionZ() - z) * (entry->Loc.GetPositionZ() - z);
             if (foundNear)
             {
                 if (dist2 < distNear)
@@ -6652,6 +6654,46 @@ GraveYardData const* ObjectMgr::FindGraveYardData(uint32 id, uint32 zoneId) cons
             return &data;
     }
     return nullptr;
+}
+
+void ObjectMgr::LoadWorldSafeLocs()
+{
+    uint32 oldMSTime = getMSTime();
+
+    //                                                   0   1      2     3     4     5
+    if (QueryResult result = WorldDatabase.Query("SELECT ID, MapID, LocX, LocY, LocZ, Facing FROM world_safe_locs"))
+    {
+        do
+        {
+            Field* fields = result->Fetch();
+            uint32 id = fields[0].GetUInt32();
+            WorldLocation loc(fields[1].GetUInt32(), fields[2].GetFloat(), fields[3].GetFloat(), fields[4].GetFloat(), fields[5].GetFloat());
+            if (!MapManager::IsValidMapCoord(loc))
+            {
+                TC_LOG_ERROR("sql.sql", "World location (ID: %u) has a invalid position MapID: %u %s, skipped", id, loc.GetMapId(), loc.ToString().c_str());
+                continue;
+            }
+
+            WorldSafeLocsEntry& worldSafeLocs = _worldSafeLocs[id];
+            worldSafeLocs.ID = id;
+            worldSafeLocs.Loc.WorldRelocate(loc);
+
+        } while (result->NextRow());
+
+        TC_LOG_INFO("server.loading", ">> Loaded " SZFMTD " world locations %u ms", _worldSafeLocs.size(), GetMSTimeDiffToNow(oldMSTime));
+    }
+    else
+        TC_LOG_INFO("server.loading", ">> Loaded 0 world locations. DB table `world_safe_locs` is empty.");
+}
+
+WorldSafeLocsEntry const* ObjectMgr::GetWorldSafeLoc(uint32 id) const
+{
+    return Trinity::Containers::MapGetValuePtr(_worldSafeLocs, id);
+}
+
+Trinity::IteratorPair<std::unordered_map<uint32, WorldSafeLocsEntry>::const_iterator> ObjectMgr::GetWorldSafeLocs() const
+{
+    return std::make_pair(_worldSafeLocs.begin(), _worldSafeLocs.end());
 }
 
 AreaTriggerTeleportStruct const* ObjectMgr::GetAreaTrigger(int64 trigger) const
@@ -6771,7 +6813,7 @@ void ObjectMgr::LoadAreaTriggerTeleports()
         int64 TriggerIDOrGUID   = fields[0].GetInt64();
         uint32 PortLocID        = fields[1].GetUInt32();
 
-        WorldSafeLocsEntry const* portLoc = sWorldSafeLocsStore.LookupEntry(PortLocID);
+        WorldSafeLocsEntry const* portLoc = GetWorldSafeLoc(PortLocID);
         if (!portLoc)
         {
             if (TriggerIDOrGUID > 0)
@@ -6783,11 +6825,11 @@ void ObjectMgr::LoadAreaTriggerTeleports()
 
         AreaTriggerTeleportStruct at;
 
-        at.target_mapId       = portLoc->MapID;
-        at.target_X           = portLoc->Loc.X;
-        at.target_Y           = portLoc->Loc.Y;
-        at.target_Z           = portLoc->Loc.Z;
-        at.target_Orientation = (portLoc->Facing * M_PI) / 180; // Orientation is initially in degrees
+        at.target_mapId       = portLoc->Loc.GetMapId();
+        at.target_X           = portLoc->Loc.GetPositionX();
+        at.target_Y           = portLoc->Loc.GetPositionY();
+        at.target_Z           = portLoc->Loc.GetPositionZ();
+        at.target_Orientation = portLoc->Loc.GetOrientation();
 
         if (TriggerIDOrGUID > 0)
         {
@@ -7001,7 +7043,7 @@ void ObjectMgr::SetHighestGuids()
     if (result)
         sGuildMgr->SetNextGuildId((*result)[0].GetUInt64()+1);
 
-    result = CharacterDatabase.Query("SELECT MAX(guid) FROM groups");
+    result = CharacterDatabase.Query("SELECT MAX(guid) FROM `groups`");
     if (result)
         sGroupMgr->SetGroupDbStoreSize((*result)[0].GetUInt32()+1);
 
@@ -7399,8 +7441,8 @@ void ObjectMgr::LoadGameObjectTemplateAddons()
 {
     uint32 oldMSTime = getMSTime();
 
-    //                                               0       1       2      3        4        5              6            7           8
-    QueryResult result = WorldDatabase.Query("SELECT entry, faction, flags, mingold, maxgold, WorldEffectID, AIAnimKitID, MovementID, MeleeID FROM gameobject_template_addon");
+    //                                               0       1       2      3        4        5              6
+    QueryResult result = WorldDatabase.Query("SELECT entry, faction, flags, mingold, maxgold, WorldEffectID, AIAnimKitID FROM gameobject_template_addon");
 
     if (!result)
     {
@@ -7429,8 +7471,6 @@ void ObjectMgr::LoadGameObjectTemplateAddons()
         gameObjectAddon.maxgold       = fields[4].GetUInt32();
         gameObjectAddon.WorldEffectID = fields[5].GetUInt32();
         gameObjectAddon.AIAnimKitID   = fields[6].GetUInt32();
-        gameObjectAddon.MovementID    = fields[7].GetUInt32();
-        gameObjectAddon.MeleeID       = fields[8].GetUInt32();
 
         // checks
         if (gameObjectAddon.faction && !sFactionTemplateStore.LookupEntry(gameObjectAddon.faction))
@@ -7892,7 +7932,7 @@ void ObjectMgr::LoadQuestPOI()
     //                                                0        1    2  3
     QueryResult points = WorldDatabase.Query("SELECT QuestID, Idx1, X, Y FROM quest_poi_points ORDER BY QuestID DESC, Idx1, Idx2");
 
-    std::vector<std::vector<std::vector<QuestPOIPoint>>> POIs;
+    std::vector<std::vector<std::vector<QuestPOIBlobPoint>>> POIs;
 
     if (points)
     {
@@ -7913,7 +7953,7 @@ void ObjectMgr::LoadQuestPOI()
             if (int32(POIs[QuestID].size()) <= Idx1 + 1)
                 POIs[QuestID].resize(Idx1 + 10);
 
-            QuestPOIPoint point(X, Y);
+            QuestPOIBlobPoint point(X, Y);
             POIs[QuestID][Idx1].push_back(point);
         } while (points->NextRow());
     }
@@ -7940,11 +7980,12 @@ void ObjectMgr::LoadQuestPOI()
         if (!sObjectMgr->GetQuestTemplate(questID))
             TC_LOG_ERROR("sql.sql", "`quest_poi` quest id (%u) Idx1 (%u) does not exist in `quest_template`", questID, idx1);
 
-        QuestPOI POI(blobIndex, objectiveIndex, questObjectiveID, questObjectID, mapID, uiMapID, priority, flags, worldEffectID, playerConditionID, spawnTrackingID, alwaysAllowMergingBlobs);
         if (questID < int32(POIs.size()) && idx1 < int32(POIs[questID].size()))
         {
-            POI.points = POIs[questID][idx1];
-            _questPOIStore[questID].push_back(POI);
+            QuestPOIData& poiData = _questPOIStore[questID];
+            poiData.QuestID = questID;
+            poiData.QuestPOIBlobDataStats.emplace_back(blobIndex, objectiveIndex, questObjectiveID, questObjectID, mapID, uiMapID, priority, flags,
+                worldEffectID, playerConditionID, spawnTrackingID, std::move(POIs[questID][idx1]), alwaysAllowMergingBlobs);
         }
         else
             TC_LOG_ERROR("sql.sql", "Table quest_poi references unknown quest points for quest %i POI id %i", questID, blobIndex);
@@ -10500,6 +10541,38 @@ void ObjectMgr::LoadCreatureQuestItems()
     TC_LOG_INFO("server.loading", ">> Loaded %u creature quest items in %u ms", count, GetMSTimeDiffToNow(oldMSTime));
 }
 
+void ObjectMgr::InitializeQueriesData(QueryDataGroup mask)
+{
+    // cache disabled
+    if (!sWorld->getBoolConfig(CONFIG_CACHE_DATA_QUERIES))
+        return;
+
+    // Initialize Query data for creatures
+    if (mask & QUERY_DATA_CREATURES)
+        for (auto& creaturePair : _creatureTemplateStore)
+            creaturePair.second.InitializeQueryData();
+
+    // Initialize Query Data for gameobjects
+    if (mask & QUERY_DATA_GAMEOBJECTS)
+        for (auto& gameobjectPair : _gameObjectTemplateStore)
+            gameobjectPair.second.InitializeQueryData();
+
+    // Initialize Query Data for quests
+    if (mask & QUERY_DATA_QUESTS)
+        for (auto& questPair : _questTemplates)
+            questPair.second->InitializeQueryData();
+
+    // Initialize Quest POI data
+    if (mask & QUERY_DATA_POIS)
+        for (auto& poiPair : _questPOIStore)
+            poiPair.second.InitializeQueryData();
+}
+
+void QuestPOIData::InitializeQueryData()
+{
+    QueryDataBuffer << *this;
+}
+
 void ObjectMgr::LoadSceneTemplates()
 {
     uint32 oldMSTime = getMSTime();
@@ -10548,16 +10621,13 @@ void ObjectMgr::LoadQuestTasks()
         if (!quest_template || quest_template->GetQuestType() != QUEST_TYPE_TASK)
             continue;
 
-        if (QuestPOIVector const* questPOIs = GetQuestPOIVector(quest_template->GetQuestId()))
+        if (QuestPOIData const* questPOIs = GetQuestPOIData(quest_template->GetQuestId()))
         {
-            if (questPOIs->size() <= 0)
+            if (questPOIs->QuestPOIBlobDataStats.size() <= 0)
                 continue;
 
-            for (QuestPOIVector::const_iterator itr = questPOIs->begin(); itr != questPOIs->end(); ++itr)
+            for (auto itr = questPOIs->QuestPOIBlobDataStats.begin(); itr != questPOIs->QuestPOIBlobDataStats.end(); ++itr)
             {
-                if (itr->points.size() <= 0)
-                    continue;
-
                 BonusQuestRectEntry rec;
                 rec.MapID = itr->MapID;
                 rec.MinX = 5000000.f;
@@ -10565,7 +10635,7 @@ void ObjectMgr::LoadQuestTasks()
                 rec.MaxX = -5000000.f;
                 rec.MaxY = -5000000.f;
 
-                for (auto const& poi : itr->points)
+                for (auto const& poi : itr->QuestPOIBlobPointStats)
                 {
                     if (poi.X == 0 && poi.Y == 0)
                         continue;
@@ -10578,7 +10648,7 @@ void ObjectMgr::LoadQuestTasks()
                 }
 
                 // If the area is a single point, we assume 50m
-                if (itr->points.size() == 1)
+                if (itr->QuestPOIBlobPointStats.size() == 1)
                 {
                     rec.MinX -= 50;
                     rec.MaxX += 50;
@@ -11002,120 +11072,6 @@ void ObjectMgr::LoadPlayerChoicesLocale()
 
         TC_LOG_INFO("server.loading", ">> Loaded " SZFMTD " Player Choice Response locale strings in %u ms", count, GetMSTimeDiffToNow(oldMSTime));
     }
-}
-
-std::set<uint32> ObjectMgr::GetItemBonusTree(uint32 ItemID, uint32 itemBonusTreeMod, uint32 ownerLevel, int32 levelBonus, int32 needLevel)
-{
-    auto itemTemplate = GetItemTemplate(ItemID);
-    auto bonusListIDs = GetItemBonusForLevel(ItemID, itemBonusTreeMod, needLevel);
-    if (!itemTemplate)
-        return bonusListIDs;
-
-    uint8 quality = 0;
-    if (levelBonus != 0)
-    {
-        auto bonusLevel = GetItemBonusLevel(ItemID, ownerLevel, quality, bonusListIDs) + levelBonus;
-        if (auto bonus = sDB2Manager.GetItemBonusListForItemLevelDelta(int16(bonusLevel - itemTemplate->GetBaseItemLevel())))
-            bonusListIDs.insert(bonus);
-    }
-
-    return bonusListIDs;
-}
-
-std::set<uint32> ObjectMgr::GetItemBonusForLevel(uint32 itemID, uint32 itemBonusTreeMod, int32 needLevel)
-{
-    auto itemTemplate = GetItemTemplate(itemID);
-    uint32 itemLevelFromBonus = 0;
-
-    auto bonusListIDs = sDB2Manager.GetItemBonusTree(itemID, itemBonusTreeMod, itemLevelFromBonus);
-    if (!needLevel)
-        needLevel = itemLevelFromBonus;
-
-    if (!itemTemplate || !needLevel)
-        return bonusListIDs;
-
-    int16 delta = needLevel - itemTemplate->GetBaseItemLevel();
-    if (auto bonus = sDB2Manager.GetItemBonusListForItemLevelDelta(delta))
-        bonusListIDs.insert(bonus);
-
-    return bonusListIDs;
-}
-
-uint32 ObjectMgr::GetItemBonusLevel(uint32 ItemID, uint32 ownerLevel, uint8& quality, std::set<uint32>& bonusListIDs)
-{
-    auto itemTemplate = GetItemTemplate(ItemID);
-    if (!itemTemplate)
-        return 0;
-
-    std::set<uint32> bonusSetIDs;
-    for (auto bonusListID : bonusListIDs)
-        bonusSetIDs.insert(bonusListID);
-
-    auto copyBonusSetIDs(bonusSetIDs);
-
-    quality = itemTemplate->GetQuality();
-    auto itemLevel = itemTemplate->GetBaseItemLevel();
-    auto ScalingStatDistribution = itemTemplate->GetScalingStatDistribution();
-    auto ItemLevelBonus = 0;
-
-    auto ScalingStatDistributionPriority = std::numeric_limits<int32>::max();
-    auto HasQualityBonus = false;
-
-    for (auto bonusListID : copyBonusSetIDs)
-    {
-        auto bonuses = sDB2Manager.GetItemBonusList(bonusListID);
-        if (!bonuses)
-            continue;
-
-        for (auto bonus : *bonuses)
-        {
-            switch (bonus->Type)
-            {
-            case ITEM_BONUS_ITEM_LEVEL:
-                ItemLevelBonus += bonus->Value[0];
-                break;
-            case ITEM_BONUS_QUALITY:
-                if (!HasQualityBonus)
-                {
-                    quality = static_cast<uint32>(bonus->Value[0]);
-                    HasQualityBonus = true;
-                }
-                else if (quality < static_cast<uint32>(bonus->Value[0]))
-                    quality = static_cast<uint32>(bonus->Value[0]);
-                break;
-            case ITEM_BONUS_SCALING_STAT_DISTRIBUTION:
-                if (bonus->Value[1] < ScalingStatDistributionPriority)
-                {
-                    ScalingStatDistribution = static_cast<uint32>(bonus->Value[0]);
-                    ScalingStatDistributionPriority = bonus->Value[1];
-                }
-                bonusSetIDs.erase(bonusListID);
-                break;
-            case ITEM_BONUS_SCALING_STAT_DISTRIBUTION_FIXED:
-                if (bonus->Value[1] < ScalingStatDistributionPriority)
-                {
-                    ScalingStatDistribution = static_cast<uint32>(bonus->Value[0]);
-                    ScalingStatDistributionPriority = bonus->Value[1];
-                }
-                bonusSetIDs.erase(bonusListID);
-                break;
-            default:
-                break;
-            }
-        }
-    }
-
-    if (auto ssd = sScalingStatDistributionStore.LookupEntry(ScalingStatDistribution))
-        if (auto scaleLvl = uint32(sDB2Manager.GetCurveValueAt(ssd->PlayerLevelToItemLevelCurveID, ownerLevel)))
-            itemLevel = scaleLvl;
-
-    itemLevel += ItemLevelBonus;
-
-    bonusListIDs.clear();
-    for (auto bonusListID : bonusSetIDs)
-        bonusListIDs.insert(bonusListID);
-
-    return std::min(std::max(itemLevel, uint32(MIN_ITEM_LEVEL)), uint32(MAX_ITEM_LEVEL));
 }
 
 void ObjectMgr::LoadInstanceDifficultyMultiplier()

@@ -21,6 +21,12 @@
 #include "Battleground.h"
 #include "BattlegroundScore.h"
 
+enum BG_TP_Objectives
+{
+    BG_TP_FLAG_CAPTURES = 290,
+    BG_TP_FLAG_RETURNS  = 291
+};
+
 enum BG_TP_TimerOrScore
 {
     BG_TP_MAX_TEAM_SCORE        = 3,
@@ -162,14 +168,6 @@ enum BG_TP_CarrierDebuffs
     TP_SPELL_BRUTAL_ASSAULT    = 46393
 };
 
-
-enum BG_TP_Objectives
-{
-    TP_OBJECTIVE_CAPTURE_FLAG   = 290,
-    TP_OBJECTIVE_RETURN_FLAG    = 291
-};
-
-
 #define TP_EVENT_START_BATTLE   8563
 
 
@@ -200,8 +198,8 @@ struct BattlegroundTPScore final : public BattlegroundScore
         {
             BattlegroundScore::BuildPvPLogPlayerDataPacket(playerData);
 
-            playerData.Stats.push_back(FlagCaptures);
-            playerData.Stats.push_back(FlagReturns);
+            playerData.Stats.emplace_back(BG_TP_FLAG_CAPTURES, FlagCaptures);
+            playerData.Stats.emplace_back(BG_TP_FLAG_RETURNS, FlagReturns);
         }
 
         uint32 GetAttr1() const final override { return FlagCaptures; }

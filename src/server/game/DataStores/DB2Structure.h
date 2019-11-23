@@ -309,55 +309,24 @@ struct AuctionHouseEntry
     uint8 ConsignmentRate;
 };
 
-struct AzeriteEmpoweredItemEntry
-{
-    uint32      ID;
-    int32       ItemID;
-    uint32      AzeriteTierUnlockSetID;
-    uint32      AzeritePowerSetID;
-};
-
 struct AzeriteItemEntry
 {
-    uint32      ID;
-    int32       ItemID;
+    uint32 ID;
+    int32 ItemID;
 };
 
-struct AzeriteItemMilestonePowerEntry
+struct AzeriteKnowledgeMultiplierEntry
 {
-    uint32      ID;
-    int32       RequiredLevel;
-    int32       AzeritePowerID;
-    int32       Unk1;
-    int32       Unk2;
+    uint32 ID;
+    float Multiplier;
 };
 
-struct AzeritePowerEntry
+struct AzeriteLevelInfoEntry
 {
-    uint32      ID;
-    int32       SpellID;
-    int32       ItemBonusListID;
-    int32       SpecSetMemberID;
-    int32       Flags;
-};
-
-struct AzeritePowerSetMemberEntry
-{
-    uint32      ID;
-    int32       AzeritePowerSetID;
-    int32       AzeritePowerID;
-    int32       Class;
-    int32       Tier;
-    int32       OrderIndex;
-};
-
-struct AzeriteTierUnlockEntry
-{
-    uint32      ID;
-    uint8       ItemCreationContext;
-    uint8       Tier;
-    uint8       AzeriteLevel;
-    uint8       AzeriteTierUnlockSetID;
+    uint32 ID;
+    uint64 BaseExperienceToNextLevel;
+    uint64 MinimumExperienceToNextLevel;
+    int32 ItemLevel;
 };
 
 struct BankBagSlotPricesEntry
@@ -977,7 +946,7 @@ struct CriteriaEntry
         // CRITERIA_TYPE_REACH_ACCOUNT_HONOR_LEVEL = 213
         int32 AccountHonorLevel;
 
-        // CRITERIA_TREE_HEART_OF_AZEROTH_LEVEL_REACHED = 215
+        // CRITERIA_TYPE_HEART_OF_AZEROTH_LEVEL_REACHED = 215
         int32 HeartOfAzerothLevel;
     } Asset;
     uint32 ModifierTreeId;
@@ -1250,7 +1219,6 @@ struct FactionTemplateEntry
         return EnemyGroup == 0 && FriendGroup == 0;
     }
     bool IsContestedGuardFaction() const { return (Flags & FACTION_TEMPLATE_FLAG_CONTESTED_GUARD) != 0; }
-    bool ShouldSparAttack() const { return (Flags & FACTION_TEMPLATE_ENEMY_SPAR) != 0; }
 };
 
 struct GameObjectDisplayInfoEntry
@@ -1649,6 +1617,7 @@ struct ItemAppearanceEntry
 {
     uint32 ID;
     uint8 DisplayType;
+    int32 SubclassID;
     int32 ItemDisplayInfoID;
     int32 DefaultIconFileDataID;
     int32 UiOrder;
@@ -1958,7 +1927,7 @@ struct ItemSparseEntry
     uint16 SocketMatchEnchantmentId;
     uint16 TotemCategoryID;
     uint16 InstanceBound;
-    uint16 ZoneBound;
+    uint16 ZoneBound[MAX_ITEM_PROTO_ZONES];
     uint16 ItemSet;
     uint16 LockID;
     uint16 StartQuestID;
@@ -2007,16 +1976,6 @@ struct ItemSpecOverrideEntry
     uint32 ID;
     uint16 SpecID;
     int32 ItemID;
-};
-
-struct ItemUpgradeEntry
-{
-    uint32 ID;
-    uint8 ItemUpgradePathID;
-    uint8 ItemLevelIncrement;
-    uint16 PrerequisiteID;
-    uint16 CurrencyType;
-    uint32 CurrencyAmount;
 };
 
 struct ItemXBonusTreeEntry
@@ -2508,9 +2467,9 @@ struct PowerDisplayEntry
 
 struct PowerTypeEntry
 {
-    uint32 ID;
     char const* NameGlobalStringTag;
     char const* CostGlobalStringTag;
+    uint32 ID;
     int8 PowerTypeEnum;
     int8 MinPower;
     int16 MaxBasePower;
@@ -2686,13 +2645,6 @@ struct RewardPackXItemEntry
     int32 ItemID;
     int32 ItemQuantity;
     int32 RewardPackID;
-};
-
-struct RulesetItemUpgradeEntry
-{
-    uint32 ID;
-    int32 ItemID;
-    uint16 ItemUpgradeID;
 };
 
 struct QuestPOIBlobEntry
@@ -2995,12 +2947,12 @@ struct SpellDurationEntry
 struct SpellEffectEntry
 {
     uint32 ID;
+    int16 EffectAura;
     int32 DifficultyID;
     int32 EffectIndex;
     uint32 Effect;
     float EffectAmplitude;
     int32 EffectAttributes;
-    int16 EffectAura;
     int32 EffectAuraPeriod;
     float EffectBonusCoefficient;
     float EffectChainAmplitude;
@@ -3110,6 +3062,7 @@ struct SpellLevelsEntry
 struct SpellMiscEntry
 {
     uint32 ID;
+    int32 Attributes[14];
     uint8 DifficultyID;
     uint16 CastingTimeIndex;
     uint16 DurationIndex;
@@ -3121,7 +3074,6 @@ struct SpellMiscEntry
     int32 SpellIconFileDataID;
     int32 ActiveIconFileDataID;
     int32 ContentTuningID;
-    int32 Attributes[14];
     int32 SpellID;
 };
 
@@ -3261,6 +3213,16 @@ struct SpellTotemsEntry
     int32 Totem[MAX_SPELL_TOTEMS];
 };
 
+struct SpellVisualKitEntry
+{
+    uint32 ID;
+    int32 Flags;
+    int8 FallbackPriority;
+    uint32 FallbackSpellVisualKitId;
+    uint16 DelayMin;
+    uint16 DelayMax;
+};
+
 struct SpellXSpellVisualEntry
 {
     uint32 ID;
@@ -3387,6 +3349,7 @@ struct TransmogSetEntry
     uint8 ExpansionID;
     int32 PatchID;
     int16 UiOrder;
+    int32 PlayerConditionID;
 };
 
 struct TransmogSetGroupEntry
@@ -3480,7 +3443,7 @@ struct UnitPowerBarEntry
     LocalizedString* ToolTip;
     uint32 MinPower;
     uint32 MaxPower;
-    uint16 StartPower;
+    uint32 StartPower;
     uint8 CenterPower;
     float RegenerationPeace;
     float RegenerationCombat;
@@ -3647,13 +3610,10 @@ struct WorldMapOverlayEntry
     uint32 AreaID[MAX_WORLD_MAP_OVERLAY_AREA_IDX];
 };
 
-struct WorldSafeLocsEntry
+struct WorldStateExpressionEntry
 {
     uint32 ID;
-    LocalizedString* AreaName;
-    DBCPosition3D Loc;
-    uint16 MapID;
-    float Facing;
+    char const* Expression;
 };
 
 #pragma pack(pop)

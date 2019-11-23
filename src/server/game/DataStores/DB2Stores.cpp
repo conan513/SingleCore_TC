@@ -57,12 +57,9 @@ DB2Storage<ArtifactQuestXPEntry>                sArtifactQuestXPStore("ArtifactQ
 DB2Storage<ArtifactTierEntry>                   sArtifactTierStore("ArtifactTier.db2", ArtifactTierLoadInfo::Instance());
 DB2Storage<ArtifactUnlockEntry>                 sArtifactUnlockStore("ArtifactUnlock.db2", ArtifactUnlockLoadInfo::Instance());
 DB2Storage<AuctionHouseEntry>                   sAuctionHouseStore("AuctionHouse.db2", AuctionHouseLoadInfo::Instance());
-DB2Storage<AzeriteEmpoweredItemEntry>           sAzeriteEmpoweredItemStore("AzeriteEmpoweredItem.db2", AzeriteEmpoweredItemLoadInfo::Instance());
 DB2Storage<AzeriteItemEntry>                    sAzeriteItemStore("AzeriteItem.db2", AzeriteItemLoadInfo::Instance());
-DB2Storage<AzeriteItemMilestonePowerEntry>      sAzeriteItemMilestonePowerStore("AzeriteItemMilestonePower.db2", AzeriteItemMilestonePowerLoadInfo::Instance());
-DB2Storage<AzeritePowerEntry>                   sAzeritePowerStore("AzeritePower.db2", AzeritePowerLoadInfo::Instance());
-DB2Storage<AzeritePowerSetMemberEntry>          sAzeritePowerSetMemberStore("AzeritePowerSetMember.db2", AzeritePowerSetMemberLoadInfo::Instance());
-DB2Storage<AzeriteTierUnlockEntry>              sAzeriteTierUnlockStore("AzeriteTierUnlock.db2", AzeriteTierUnlockLoadInfo::Instance());
+DB2Storage<AzeriteKnowledgeMultiplierEntry>     sAzeriteKnowledgeMultiplierStore("AzeriteKnowledgeMultiplier.db2", AzeriteKnowledgeMultiplierLoadInfo::Instance());
+DB2Storage<AzeriteLevelInfoEntry>               sAzeriteLevelInfoStore("AzeriteLevelInfo.db2", AzeriteLevelInfoLoadInfo::Instance());
 DB2Storage<BankBagSlotPricesEntry>              sBankBagSlotPricesStore("BankBagSlotPrices.db2", BankBagSlotPricesLoadInfo::Instance());
 DB2Storage<BannedAddonsEntry>                   sBannedAddonsStore("BannedAddons.db2", BannedAddonsLoadInfo::Instance());
 DB2Storage<BarberShopStyleEntry>                sBarberShopStyleStore("BarberShopStyle.db2", BarberShopStyleLoadInfo::Instance());
@@ -180,7 +177,6 @@ DB2Storage<ItemSetSpellEntry>                   sItemSetSpellStore("ItemSetSpell
 DB2Storage<ItemSparseEntry>                     sItemSparseStore("ItemSparse.db2", ItemSparseLoadInfo::Instance());
 DB2Storage<ItemSpecEntry>                       sItemSpecStore("ItemSpec.db2", ItemSpecLoadInfo::Instance());
 DB2Storage<ItemSpecOverrideEntry>               sItemSpecOverrideStore("ItemSpecOverride.db2", ItemSpecOverrideLoadInfo::Instance());
-DB2Storage<ItemUpgradeEntry>                    sItemUpgradeStore("ItemUpgrade.db2", ItemUpgradeLoadInfo::Instance());
 DB2Storage<ItemXBonusTreeEntry>                 sItemXBonusTreeStore("ItemXBonusTree.db2", ItemXBonusTreeLoadInfo::Instance());
 DB2Storage<JournalEncounterEntry>               sJournalEncounterStore("JournalEncounter.db2", JournalEncounterLoadInfo::Instance());
 DB2Storage<JournalEncounterItemEntry>           sJournalEncounterItemStore("JournalEncounterItem.db2", JournalEncounterItemLoadInfo::Instance());
@@ -233,7 +229,6 @@ DB2Storage<RandPropPointsEntry>                 sRandPropPointsStore("RandPropPo
 DB2Storage<RewardPackEntry>                     sRewardPackStore("RewardPack.db2", RewardPackLoadInfo::Instance());
 DB2Storage<RewardPackXCurrencyTypeEntry>        sRewardPackXCurrencyTypeStore("RewardPackXCurrencyType.db2", RewardPackXCurrencyTypeLoadInfo::Instance());
 DB2Storage<RewardPackXItemEntry>                sRewardPackXItemStore("RewardPackXItem.db2", RewardPackXItemLoadInfo::Instance());
-DB2Storage<RulesetItemUpgradeEntry>             sRulesetItemUpgradeStore("RulesetItemUpgrade.db2", RulesetItemUpgradeLoadInfo::Instance());
 DB2Storage<ScalingStatDistributionEntry>        sScalingStatDistributionStore("ScalingStatDistribution.db2", ScalingStatDistributionLoadInfo::Instance());
 DB2Storage<ScenarioEntry>                       sScenarioStore("Scenario.db2", ScenarioLoadInfo::Instance());
 DB2Storage<ScenarioStepEntry>                   sScenarioStepStore("ScenarioStep.db2", ScenarioStepLoadInfo::Instance());
@@ -277,6 +272,7 @@ DB2Storage<SpellShapeshiftEntry>                sSpellShapeshiftStore("SpellShap
 DB2Storage<SpellShapeshiftFormEntry>            sSpellShapeshiftFormStore("SpellShapeshiftForm.db2", SpellShapeshiftFormLoadInfo::Instance());
 DB2Storage<SpellTargetRestrictionsEntry>        sSpellTargetRestrictionsStore("SpellTargetRestrictions.db2", SpellTargetRestrictionsLoadInfo::Instance());
 DB2Storage<SpellTotemsEntry>                    sSpellTotemsStore("SpellTotems.db2", SpellTotemsLoadInfo::Instance());
+DB2Storage<SpellVisualKitEntry>                 sSpellVisualKitStore("SpellVisualKit.db2", SpellVisualKitLoadInfo::Instance());
 DB2Storage<SpellXSpellVisualEntry>              sSpellXSpellVisualStore("SpellXSpellVisual.db2", SpellXSpellVisualLoadInfo::Instance());
 DB2Storage<SummonPropertiesEntry>               sSummonPropertiesStore("SummonProperties.db2", SummonPropertiesLoadInfo::Instance());
 DB2Storage<TactKeyEntry>                        sTactKeyStore("TactKey.db2", TactKeyLoadInfo::Instance());
@@ -302,7 +298,7 @@ DB2Storage<VehicleSeatEntry>                    sVehicleSeatStore("VehicleSeat.d
 DB2Storage<WMOAreaTableEntry>                   sWMOAreaTableStore("WMOAreaTable.db2", WmoAreaTableLoadInfo::Instance());
 DB2Storage<WorldEffectEntry>                    sWorldEffectStore("WorldEffect.db2", WorldEffectLoadInfo::Instance());
 DB2Storage<WorldMapOverlayEntry>                sWorldMapOverlayStore("WorldMapOverlay.db2", WorldMapOverlayLoadInfo::Instance());
-DB2Storage<WorldSafeLocsEntry>                  sWorldSafeLocsStore("WorldSafeLocs.db2", WorldSafeLocsLoadInfo::Instance());
+DB2Storage<WorldStateExpressionEntry>           sWorldStateExpressionStore("WorldStateExpression.db2", WorldStateExpressionLoadInfo::Instance());
 
 TaxiMask                                        sTaxiNodesMask;
 TaxiMask                                        sOldContinentsNodesMask;
@@ -355,7 +351,6 @@ typedef std::array<std::vector<Trinity::wregex>, TOTAL_LOCALES + 1> NameValidati
 typedef std::unordered_map<uint32, std::vector<uint32>> PhaseGroupContainer;
 typedef std::array<PowerTypeEntry const*, MAX_POWERS> PowerTypesContainer;
 typedef std::unordered_map<uint32, std::pair<std::vector<QuestPackageItemEntry const*>, std::vector<QuestPackageItemEntry const*>>> QuestPackageItemContainer;
-typedef std::unordered_map<uint32, uint32> RulesetItemUpgradeContainer;
 typedef std::unordered_multimap<uint32, SkillRaceClassInfoEntry const*> SkillRaceClassInfoContainer;
 typedef std::unordered_map<uint32, std::vector<SpecializationSpellsEntry const*>> SpecializationSpellsContainer;
 typedef std::unordered_map<uint32, std::vector<SpellPowerEntry const*>> SpellPowerContainer;
@@ -428,7 +423,6 @@ namespace
     QuestPackageItemContainer _questPackages;
     std::unordered_map<uint32, std::vector<RewardPackXCurrencyTypeEntry const*>> _rewardPackCurrencyTypes;
     std::unordered_map<uint32, std::vector<RewardPackXItemEntry const*>> _rewardPackItems;
-    RulesetItemUpgradeContainer _rulesetItemUpgrade;
     std::unordered_map<uint32, std::vector<SkillLineEntry const*>> _skillLinesByParentSkillLine;
     std::unordered_map<uint32, std::vector<SkillLineAbilityEntry const*>> _skillLineAbilitiesBySkillupSkill;
     SkillRaceClassInfoContainer _skillRaceClassInfoBySkill;
@@ -448,8 +442,6 @@ namespace
     std::unordered_multimap<int32, UiMapAssignmentEntry const*> _uiMapAssignmentByWmoGroup[MAX_UI_MAP_SYSTEM];
     std::unordered_set<int32> _uiMapPhases;
     WMOAreaTableLookupContainer _wmoAreaTableLookup;
-    std::set<uint32> _azeriteItems;
-    std::set<uint32> _azeriteEmpoweredItems;
 }
 
 template<class T, template<class> class DB2>
@@ -552,12 +544,9 @@ void DB2Manager::LoadStores(std::string const& dataPath, uint32 defaultLocale)
     LOAD_DB2(sArtifactTierStore);
     LOAD_DB2(sArtifactUnlockStore);
     LOAD_DB2(sAuctionHouseStore);
-    LOAD_DB2(sAzeriteEmpoweredItemStore);
     LOAD_DB2(sAzeriteItemStore);
-    LOAD_DB2(sAzeriteItemMilestonePowerStore);
-    LOAD_DB2(sAzeritePowerStore);
-    LOAD_DB2(sAzeritePowerSetMemberStore);
-    LOAD_DB2(sAzeriteTierUnlockStore);
+    LOAD_DB2(sAzeriteKnowledgeMultiplierStore);
+    LOAD_DB2(sAzeriteLevelInfoStore);
     LOAD_DB2(sBankBagSlotPricesStore);
     LOAD_DB2(sBannedAddonsStore);
     LOAD_DB2(sBarberShopStyleStore);
@@ -674,7 +663,6 @@ void DB2Manager::LoadStores(std::string const& dataPath, uint32 defaultLocale)
     LOAD_DB2(sItemSparseStore);
     LOAD_DB2(sItemSpecStore);
     LOAD_DB2(sItemSpecOverrideStore);
-    LOAD_DB2(sItemUpgradeStore);
     LOAD_DB2(sItemXBonusTreeStore);
     LOAD_DB2(sJournalEncounterStore);
     LOAD_DB2(sJournalEncounterItemStore);
@@ -727,7 +715,6 @@ void DB2Manager::LoadStores(std::string const& dataPath, uint32 defaultLocale)
     LOAD_DB2(sResearchProjectStore);
     LOAD_DB2(sRewardPackXCurrencyTypeStore);
     LOAD_DB2(sRewardPackXItemStore);
-    LOAD_DB2(sRulesetItemUpgradeStore);
     LOAD_DB2(sScalingStatDistributionStore);
     LOAD_DB2(sScenarioStore);
     LOAD_DB2(sScenarioStepStore);
@@ -771,6 +758,7 @@ void DB2Manager::LoadStores(std::string const& dataPath, uint32 defaultLocale)
     LOAD_DB2(sSpellShapeshiftFormStore);
     LOAD_DB2(sSpellTargetRestrictionsStore);
     LOAD_DB2(sSpellTotemsStore);
+    LOAD_DB2(sSpellVisualKitStore);
     LOAD_DB2(sSpellXSpellVisualStore);
     LOAD_DB2(sSummonPropertiesStore);
     LOAD_DB2(sTactKeyStore);
@@ -796,7 +784,6 @@ void DB2Manager::LoadStores(std::string const& dataPath, uint32 defaultLocale)
     LOAD_DB2(sWMOAreaTableStore);
     LOAD_DB2(sWorldEffectStore);
     LOAD_DB2(sWorldMapOverlayStore);
-    LOAD_DB2(sWorldSafeLocsStore);
 
 #undef LOAD_DB2
 
@@ -1107,9 +1094,6 @@ void DB2Manager::LoadStores(std::string const& dataPath, uint32 defaultLocale)
     for (RewardPackXItemEntry const* rewardPackXItem : sRewardPackXItemStore)
         _rewardPackItems[rewardPackXItem->RewardPackID].push_back(rewardPackXItem);
 
-    for (RulesetItemUpgradeEntry const* rulesetItemUpgrade : sRulesetItemUpgradeStore)
-        _rulesetItemUpgrade[rulesetItemUpgrade->ItemID] = rulesetItemUpgrade->ItemUpgradeID;
-
     for (SkillLineEntry const* skill : sSkillLineStore)
         if (skill->ParentSkillLineID)
             _skillLinesByParentSkillLine[skill->ParentSkillLineID].push_back(skill);
@@ -1330,20 +1314,13 @@ void DB2Manager::LoadStores(std::string const& dataPath, uint32 defaultLocale)
         }
     }
 
-    for (auto const entry : sAzeriteEmpoweredItemStore)
-        _azeriteEmpoweredItems.insert(entry->ItemID);
-
-    for (auto const entry : sAzeriteItemStore)
-        _azeriteItems.insert(entry->ItemID);
-
     // error checks
     if (bad_db2_files.size() == _stores.size())
     {
         TC_LOG_ERROR("misc", "\nIncorrect DataDir value in worldserver.conf or ALL required *.db2 files (" SZFMTD ") not found by path: %sdbc/%s/", _stores.size(), dataPath.c_str(), localeNames[defaultLocale]);
         exit(1);
     }
-
-    if (!bad_db2_files.empty())
+    else if (!bad_db2_files.empty())
     {
         std::string str;
         for (auto const& bad_db2_file : bad_db2_files)
@@ -1537,6 +1514,12 @@ BattlePetSpeciesEntry const* DB2Manager::GetBattlePetSpeciesByCreatureID(uint32 
         return itr->second;
 
     return nullptr;
+}
+
+bool DB2Manager::IsAzeriteItem(uint32 itemId) const
+{
+    return std::find_if(sAzeriteItemStore.begin(), sAzeriteItemStore.end(),
+        [&](AzeriteItemEntry const* azeriteItem) { return azeriteItem->ItemID == int32(itemId); }) != sAzeriteItemStore.end();
 }
 
 char const* DB2Manager::GetBroadcastTextValue(BroadcastTextEntry const* broadcastText, LocaleConstant locale /*= DEFAULT_LOCALE*/, uint8 gender /*= GENDER_MALE*/, bool forceGender /*= false*/)
@@ -1975,7 +1958,7 @@ uint32 DB2Manager::GetItemBonusListForItemLevelDelta(int16 delta) const
     return 0;
 }
 
-std::set<uint32> DB2Manager::GetItemBonusTree(uint32 itemId, uint32 itemContext, uint32& itemLevel) const
+std::set<uint32> DB2Manager::GetItemBonusTree(uint32 itemId, uint32 itemContext) const
 {
     std::set<uint32> bonusListIDs;
 
@@ -2007,8 +1990,6 @@ std::set<uint32> DB2Manager::GetItemBonusTree(uint32 itemId, uint32 itemContext,
                 if (!selector)
                     continue;
 
-                itemLevel = selector->MinItemLevel;
-
                 int16 delta = int16(selector->MinItemLevel) - proto->ItemLevel;
 
                 if (uint32 bonus = GetItemBonusListForItemLevelDelta(delta))
@@ -2025,7 +2006,9 @@ std::set<uint32> DB2Manager::GetItemBonusTree(uint32 itemId, uint32 itemContext,
                         else if (selector->MinItemLevel >= selectorQualitySet->IlvlRare)
                             quality = ITEM_QUALITY_RARE;
 
-                        auto itemSelectorQuality = std::lower_bound(itemSelectorQualities->second.begin(), itemSelectorQualities->second.end(), quality, ItemLevelSelectorQualityEntryComparator{});
+                        auto itemSelectorQuality = std::lower_bound(itemSelectorQualities->second.begin(), itemSelectorQualities->second.end(),
+                            quality, ItemLevelSelectorQualityEntryComparator{});
+
                         if (itemSelectorQuality != itemSelectorQualities->second.end())
                             bonusListIDs.insert((*itemSelectorQuality)->QualityItemBonusListID);
                     }
@@ -2040,19 +2023,19 @@ std::set<uint32> DB2Manager::GetItemBonusTree(uint32 itemId, uint32 itemContext,
 bool DB2Manager::HasItemContext(uint32 itemId) const
 {
     auto itemIdRange = _itemToBonusTree.equal_range(itemId);
-    return itemIdRange.first == itemIdRange.second;
+    if (itemIdRange.first == itemIdRange.second)
+        return true;
+    return false;
 }
 
 bool DB2Manager::HasItemContext(uint32 itemId, uint32 itemContext) const
 {
-    uint32 redunantData = 0;
-    return !GetItemBonusTree(itemId, itemContext, redunantData).empty();
+    return !GetItemBonusTree(itemId, itemContext).empty();
 }
 
 std::vector<int32> DB2Manager::GetItemBonusTreeVector(uint32 itemId, uint32 itemBonusTreeMod) const
 {
-    uint32 redunantData = 0;
-    std::set<uint32> bonusListIDs = GetItemBonusTree(itemId, itemBonusTreeMod, redunantData);
+    std::set<uint32> bonusListIDs = GetItemBonusTree(itemId, itemBonusTreeMod);
     std::vector<int32> vectorBonusListIDs;
 
     for (uint32 bonusList : bonusListIDs)
@@ -2493,15 +2476,6 @@ std::vector<RewardPackXItemEntry const*> const* DB2Manager::GetRewardPackItemsBy
         return &itr->second;
 
     return nullptr;
-}
-
-uint32 DB2Manager::GetRulesetItemUpgrade(uint32 itemId) const
-{
-    auto itr = _rulesetItemUpgrade.find(itemId);
-    if (itr != _rulesetItemUpgrade.end())
-        return itr->second;
-
-    return 0;
 }
 
 std::vector<SkillLineEntry const*> const* DB2Manager::GetSkillLinesForParentSkill(uint32 parentSkillId) const
@@ -2997,14 +2971,4 @@ bool DB2Manager::MountTypeXCapabilityEntryComparator::Compare(MountTypeXCapabili
     if (left->MountTypeID == right->MountTypeID)
         return left->OrderIndex < right->OrderIndex;
     return left->MountTypeID < right->MountTypeID;
-}
-
-bool DB2Manager::IsAzeriteItem(uint32 itemID) const
-{
-    return _azeriteItems.find(itemID) != _azeriteItems.end();
-}
-
-bool DB2Manager::IsAzeriteEmpoweredItem(uint32 itemID) const
-{
-    return _azeriteEmpoweredItems.find(itemID) != _azeriteEmpoweredItems.end();
 }

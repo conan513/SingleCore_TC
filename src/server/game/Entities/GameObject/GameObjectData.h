@@ -22,6 +22,7 @@
 #include "DBCEnums.h"
 #include "QuaternionData.h"
 #include "SharedDefines.h"
+#include "WorldPacket.h"
 #include <string>
 #include <vector>
 
@@ -705,6 +706,14 @@ struct GameObjectTemplate
             uint32 open;                                    // 2 open, References: Lock_, NoValue = 0
             uint32 openTextID;                              // 3 openTextID, References: BroadcastText, NoValue = 0
         } pvpReward;
+        // 56 GAMEOBJECT_TYPE_FUTURE_PATCH_1
+        struct
+        {
+        } futurePatch1;
+        // 57 GAMEOBJECT_TYPE_FUTURE_PATCH_2
+        struct
+        {
+        } futurePatch2;
         struct
         {
             uint32 data[MAX_GAMEOBJECT_DATA];
@@ -713,6 +722,7 @@ struct GameObjectTemplate
 
     std::string AIName;
     uint32 ScriptId;
+    WorldPacket QueryData[TOTAL_LOCALES];
 
     // helpers
     bool IsDespawnAtAction() const
@@ -815,7 +825,7 @@ struct GameObjectTemplate
             case GAMEOBJECT_TYPE_TRAPDOOR:      autoCloseTime = trapdoor.autoClose; break;
             default: break;
         }
-        return autoCloseTime / IN_MILLISECONDS;              // prior to 3.0.3, conversion was / 0x10000;
+        return autoCloseTime;              // prior to 3.0.3, conversion was / 0x10000;
     }
 
     uint32 GetLootId() const
@@ -914,6 +924,9 @@ struct GameObjectTemplate
             default: return false;
         }
     }
+
+    void InitializeQueryData();
+    WorldPacket BuildQueryData(LocaleConstant loc) const;
 };
 
 // From `gameobject_template_addon`
@@ -926,8 +939,6 @@ struct GameObjectTemplateAddon
     uint32  maxgold;
     uint32  WorldEffectID;
     uint32  AIAnimKitID;
-    uint32  MovementID;
-    uint32  MeleeID;
 };
 
 

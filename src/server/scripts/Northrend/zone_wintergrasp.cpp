@@ -218,8 +218,8 @@ class npc_wg_spirit_guide : public CreatureScript
                 GraveyardVect gy = wintergrasp->GetGraveyardVector();
                 for (uint8 i = 0; i < gy.size(); i++)
                     if (action - GOSSIP_ACTION_INFO_DEF == i && gy[i]->GetControlTeamId() == player->GetTeamId())
-                        if (WorldSafeLocsEntry const* safeLoc = sWorldSafeLocsStore.LookupEntry(gy[i]->GetGraveyardId()))
-                            player->TeleportTo(safeLoc->MapID, safeLoc->Loc.X, safeLoc->Loc.Y, safeLoc->Loc.Z, 0);
+                        if (WorldSafeLocsEntry const* safeLoc = sObjectMgr->GetWorldSafeLoc(gy[i]->GetGraveyardId()))
+                            player->TeleportTo(safeLoc->Loc);
             }
             return true;
         }
@@ -521,7 +521,7 @@ public:
             if (Battlefield* wg = sBattlefieldMgr->GetBattlefieldByBattleId(BATTLEFIELD_BATTLEID_WG))
                 if (Player* target = GetExplTargetUnit()->ToPlayer())
                     // check if we are in Wintergrasp at all, SotA uses same teleport spells
-                    if ((target->GetZoneId() == 4197 && target->GetTeamId() != wg->GetDefenderTeam()) || target->HasAura(SPELL_WINTERGRASP_TELEPORT_TRIGGER))
+                    if ((target->GetZoneId() == ZONE_WINTERGRASP && target->GetTeamId() != wg->GetDefenderTeam()) || target->HasAura(SPELL_WINTERGRASP_TELEPORT_TRIGGER))
                         return SPELL_FAILED_BAD_TARGETS;
             return SPELL_CAST_OK;
         }
