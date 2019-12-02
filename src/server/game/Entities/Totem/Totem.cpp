@@ -71,10 +71,6 @@ void Totem::InitStats(uint32 duration)
         // set display id depending on caster's race
         if (uint32 totemDisplayId = sObjectMgr->GetModelForTotem(SummonSlot(slot), Races(owner->GetRace())))
             SetDisplayId(totemDisplayId);
-        //npcbot: suppress this error if totem is summoned by bot
-        else if (GetCreatorGUID() && GetCreatorGUID().IsCreature())
-        {}
-        //end npcbot
         else
             TC_LOG_DEBUG("misc", "Totem with entry %u, owned by player guidlow %u (%u %s %s) in slot %u, created by spell %u, does not have a specialized model. Set to default.",
                          GetEntry(), owner->GetGUID().GetCounter(), owner->GetLevel(), EnumUtils::ToTitle(Races(owner->GetRace())), EnumUtils::ToTitle(Classes(owner->GetClass())), slot, GetUInt32Value(UNIT_CREATED_BY_SPELL));
@@ -156,13 +152,6 @@ void Totem::UnSummon(uint32 msTime)
     // any totem unsummon look like as totem kill, req. for proper animation
     if (IsAlive())
         setDeathState(DEAD);
-
-    //npcbot: send SummonedCreatureDespawn()
-    if (GetCreatorGUID() && GetCreatorGUID().IsCreature())
-        if (Creature* bot = ObjectAccessor::GetCreature(*GetOwner(), GetCreatorGUID()))
-            if (bot->IsNPCBot())
-                bot->OnBotDespawn(this);
-    //end npcbot
 
     AddObjectToRemoveList();
 }
