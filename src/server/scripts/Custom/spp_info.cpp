@@ -42,11 +42,11 @@ public:
         TC_LOG_INFO("server.loading", "Change realmlist address in realmlist.wtf file to 127.0.0.1 or to a custom server address.");
         TC_LOG_INFO("server.loading", " ");
         TC_LOG_INFO("server.loading", "Included softwares:");
-        TC_LOG_INFO("server.loading", "- TrinityCore      (https://github.com/TrinityCore/TrinityCore)");
-        TC_LOG_INFO("server.loading", "- Notepad++        (https://notepad-plus-plus.org)");
-        TC_LOG_INFO("server.loading", "- 7zip             (https://www.7-zip.org)");
-        TC_LOG_INFO("server.loading", "- MariaDB          (https://mariadb.org)");
-        TC_LOG_INFO("server.loading", "- Wget for Windows (http://gnuwin32.sourceforge.net/packages/wget.htm)");
+        TC_LOG_INFO("server.loading", "- TrinityCore        https://github.com/TrinityCore/TrinityCore");
+        TC_LOG_INFO("server.loading", "- Notepad++          https://notepad-plus-plus.org");
+        TC_LOG_INFO("server.loading", "- 7zip               https://www.7-zip.org");
+        TC_LOG_INFO("server.loading", "- MariaDB            https://mariadb.org");
+        TC_LOG_INFO("server.loading", "- Wget for Windows   http://gnuwin32.sourceforge.net/packages/wget.htm");
         TC_LOG_INFO("server.loading", " ");
         TC_LOG_INFO("server.loading", "SPP Tools:");
         TC_LOG_INFO("server.loading", "- Account_Creator:   you can create normal and admin accounts there");
