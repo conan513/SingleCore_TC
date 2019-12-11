@@ -208,16 +208,6 @@ public:
         if (!sObjectMgr->GetCreatureTemplate(id))
             return false;
 
-        //npcbot
-        CreatureTemplate const* cinfo = sObjectMgr->GetCreatureTemplate(id);
-        if (cinfo && ((cinfo->flags_extra & CREATURE_FLAG_EXTRA_NPCBOT) || (cinfo->flags_extra & CREATURE_FLAG_EXTRA_NPCBOT_PET)))
-        {
-            handler->PSendSysMessage("You tried to spawn creature %u, which is part of NPCBots mod. To spawn bots use '.npcbot spawn' instead.", id);
-            handler->SetSentErrorMessage(true);
-            return false;
-        }
-        //end npcbot
-
         Player* chr = handler->GetSession()->GetPlayer();
         Map* map = chr->GetMap();
 
@@ -440,16 +430,6 @@ public:
                 handler->SetSentErrorMessage(true);
                 return false;
             }
-
-            //npcbot
-            if (creature->IsNPCBot() || creature->IsNPCBotPet())
-            {
-                handler->SendSysMessage("Selected creature has botAI assigned, use '.npcbot delete' instead");
-                handler->SetSentErrorMessage(true);
-                return false;
-            }
-            //end npcbot
-
             if (TempSummon* summon = creature->ToTempSummon())
             {
                 summon->UnSummon();
