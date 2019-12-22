@@ -125,12 +125,12 @@ void PlayerbotHolder::HandlePlayerBotLoginCallback(QueryResult * dummy, SqlQuery
 #endif
         0, LOCALE_enUS);
 
+    uint32 guid = lqh->GetGuid().GetRawValue();
     botSession->HandlePlayerLogin(lqh); // will delete lqh
 
     Player* bot = botSession->GetPlayer();
     if (!bot)
     {
-        uint32 guid = lqh->GetGuid().GetRawValue();
         sLog.outError("Error logging in bot %d", guid);
         sRandomPlayerbotMgr.OnPlayerLoginError(guid);
         return;

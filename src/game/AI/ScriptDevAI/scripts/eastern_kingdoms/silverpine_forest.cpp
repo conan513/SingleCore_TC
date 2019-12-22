@@ -182,10 +182,10 @@ struct npc_deathstalker_faerleiaAI : public ScriptedAI
     void Reset() override {}
 
     ObjectGuid m_playerGuid;
-    uint32 m_uiWaveTimer;
-    uint32 m_uiSummonCount;
-    uint8  m_uiWaveCount;
-    bool   m_bEventStarted;
+    uint32 m_uiWaveTimer = 0;
+    uint32 m_uiSummonCount = 0;
+    uint8  m_uiWaveCount = 0;
+    bool   m_bEventStarted = false;
 
     void StartEvent(Player* pPlayer)
     {
