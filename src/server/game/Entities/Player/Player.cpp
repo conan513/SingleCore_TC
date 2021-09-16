@@ -41,6 +41,7 @@
 #include "DatabaseEnv.h"
 #include "DisableMgr.h"
 #include "Formulas.h"
+#include "GameClient.h"
 #include "GameEventMgr.h"
 #include "GameObjectAI.h"
 #include "GameTime.h"
@@ -311,9 +312,6 @@ Player::Player(WorldSession* session): Unit(true)
     m_resetTalentsTime = 0;
     m_itemUpdateQueueBlocked = false;
 
-    for (uint8 i = 0; i < MAX_MOVE_TYPE; ++i)
-        m_forced_speed_changes[i] = 0;
-
     /////////////////// Instance System /////////////////////
 
     m_HomebindTimer = 0;
@@ -358,8 +356,6 @@ Player::Player(WorldSession* session): Unit(true)
     // Player summoning
     m_summon_expire = 0;
 
-    m_unitMovedByMe = this;
-    m_playerMovingMe = this;
     m_seer = this;
 
     m_homebindMapId = 0;
@@ -1096,7 +1092,7 @@ void Player::Update(uint32 p_time)
 
     m_achievementMgr->UpdateTimedAchievements(p_time);
 
-    if (HasUnitState(UNIT_STATE_MELEE_ATTACKING) && !HasUnitState(UNIT_STATE_CASTING))
+    if (HasUnitState(UNIT_STATE_MELEE_ATTACKING) && !HasUnitState(UNIT_STATE_CASTING | UNIT_STATE_CHARGING))
     {
         if (Unit* victim = GetVictim())
         {
@@ -1355,7 +1351,6 @@ void Player::Update(uint32 p_time)
     //because we don't want player's ghost teleported from graveyard
     if (IsHasDelayedTeleport() && IsAlive())
         TeleportTo(m_teleport_dest, m_teleport_options);
-
 }
 
 void Player::setDeathState(DeathState s)
@@ -1830,6 +1825,9 @@ bool Player::TeleportTo(uint32 mapid, float x, float y, float z, float orientati
             if (oldmap)
                 oldmap->RemovePlayerFromMap(this, false);
 
+            // players on mount will be dismounted. the speed and height change should not require an ACK and should be applied directly
+            PurgeAndApplyPendingMovementChanges(false);
+
             m_teleport_dest = WorldLocation(mapid, x, y, z, orientation);
             m_teleport_options = options;
             SetFallInformation(0, GetPositionZ());
@@ -1983,15 +1981,15 @@ void Player::SetObjectScale(float scale)
     SetFloatValue(UNIT_FIELD_COMBATREACH, scale * DEFAULT_PLAYER_COMBAT_REACH);
 }
 
-bool Player::IsImmunedToSpellEffect(SpellInfo const* spellInfo, uint32 index, WorldObject const* caster) const
+bool Player::IsImmunedToSpellEffect(SpellInfo const* spellInfo, SpellEffectInfo const& spellEffectInfo, WorldObject const* caster) const
 {
     // players are immune to taunt (the aura and the spell effect)
-    if (spellInfo->Effects[index].IsAura(SPELL_AURA_MOD_TAUNT))
+    if (spellEffectInfo.IsAura(SPELL_AURA_MOD_TAUNT))
         return true;
-    if (spellInfo->Effects[index].IsEffect(SPELL_EFFECT_ATTACK_ME))
+    if (spellEffectInfo.IsEffect(SPELL_EFFECT_ATTACK_ME))
         return true;
 
-    return Unit::IsImmunedToSpellEffect(spellInfo, index, caster);
+    return Unit::IsImmunedToSpellEffect(spellInfo, spellEffectInfo, caster);
 }
 
 void Player::RegenerateAll()
@@ -2281,11 +2279,11 @@ Creature* Player::GetNPCIfCanInteractWith(ObjectGuid const& guid, uint32 npcflag
         return nullptr;
 
     // Deathstate checks
-    if (!IsAlive() && !(creature->GetCreatureTemplate()->type_flags & CREATURE_TYPE_FLAG_GHOST_VISIBLE))
+    if (!IsAlive() && !(creature->GetCreatureTemplate()->type_flags & CREATURE_TYPE_FLAG_VISIBLE_TO_GHOSTS))
         return nullptr;
 
     // alive or spirit healer
-    if (!creature->IsAlive() && !(creature->GetCreatureTemplate()->type_flags & CREATURE_TYPE_FLAG_CAN_INTERACT_WHILE_DEAD))
+    if (!creature->IsAlive() && !(creature->GetCreatureTemplate()->type_flags & CREATURE_TYPE_FLAG_INTERACT_WHILE_DEAD))
         return nullptr;
 
     // appropriate npc type
@@ -2863,8 +2861,8 @@ void Player::InitStatsForLevel(bool reapplyMods)
         UNIT_FLAG_IMMUNE_TO_PC | UNIT_FLAG_IMMUNE_TO_NPC  | UNIT_FLAG_LOOTING          |
         UNIT_FLAG_PET_IN_COMBAT  | UNIT_FLAG_SILENCED     | UNIT_FLAG_PACIFIED         |
         UNIT_FLAG_STUNNED        | UNIT_FLAG_IN_COMBAT    | UNIT_FLAG_DISARMED         |
-        UNIT_FLAG_CONFUSED       | UNIT_FLAG_FLEEING      | UNIT_FLAG_NOT_SELECTABLE   |
-        UNIT_FLAG_SKINNABLE      | UNIT_FLAG_MOUNT        | UNIT_FLAG_TAXI_FLIGHT      );
+        UNIT_FLAG_CONFUSED       | UNIT_FLAG_FLEEING      | UNIT_FLAG_UNINTERACTIBLE   |
+        UNIT_FLAG_SKINNABLE      | UNIT_FLAG_MOUNT        | UNIT_FLAG_ON_TAXI          );
     SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PLAYER_CONTROLLED);   // must be set
 
     SetFlag(UNIT_FIELD_FLAGS_2, UNIT_FLAG2_REGENERATE_POWER);// must be set
@@ -3463,9 +3461,9 @@ bool Player::AddSpell(uint32 spellId, bool active, bool learning, bool dependent
                 LearnDefaultSkill(pSkill->ID, 0);
 
             if (pSkill->ID == SKILL_MOUNTS && !Has310Flyer(false))
-                for (uint8 i = 0; i < MAX_SPELL_EFFECTS; ++i)
-                    if (spellInfo->Effects[i].ApplyAuraName == SPELL_AURA_MOD_INCREASE_MOUNTED_FLIGHT_SPEED &&
-                        spellInfo->Effects[i].CalcValue() == 310)
+                for (SpellEffectInfo const& spellEffectInfo : spellInfo->GetEffects())
+                    if (spellEffectInfo.ApplyAuraName == SPELL_AURA_MOD_INCREASE_MOUNTED_FLIGHT_SPEED &&
+                        spellEffectInfo.CalcValue() == 310)
                         SetHas310Flyer(true);
         }
     }
@@ -3537,9 +3535,9 @@ bool Player::HandlePassiveSpellLearn(SpellInfo const* spellInfo)
     // passive spells which apply aura and have an item requirement are to be added manually, instead of casted
     if (spellInfo->EquippedItemClass >= 0)
     {
-        for (uint8 i = 0; i < MAX_SPELL_EFFECTS; ++i)
+        for (SpellEffectInfo const& spellEffectInfo : spellInfo->GetEffects())
         {
-            if (spellInfo->Effects[i].IsAura())
+            if (spellEffectInfo.IsAura())
             {
                 if (!HasAura(spellInfo->Id) && HasItemFitToSpellRequirements(spellInfo))
                     AddAura(spellInfo->Id, this);
@@ -3712,10 +3710,10 @@ void Player::RemoveSpell(uint32 spell_id, bool disabled, bool learn_low_rank)
 
                 if (_spell_idx->second->SkillLine == SKILL_MOUNTS)
                 {
-                    for (uint8 i = 0; i < MAX_SPELL_EFFECTS; ++i)
+                    for (SpellEffectInfo const& spellEffectInfo : spellInfo->GetEffects())
                     {
-                        if (spellInfo->Effects[i].ApplyAuraName == SPELL_AURA_MOD_INCREASE_MOUNTED_FLIGHT_SPEED &&
-                            spellInfo->Effects[i].CalcValue() == 310)
+                        if (spellEffectInfo.ApplyAuraName == SPELL_AURA_MOD_INCREASE_MOUNTED_FLIGHT_SPEED &&
+                            spellEffectInfo.CalcValue() == 310)
                         {
                             Has310Flyer(true, spell_id);    // with true as first argument its also used to set/remove the flag
                             break;
@@ -3819,13 +3817,15 @@ bool Player::Has310Flyer(bool checkAllSpells, uint32 excludeSpellId)
                     break;  // We can break because mount spells belong only to one skillline (at least 310 flyers do)
 
                 spellInfo = sSpellMgr->AssertSpellInfo(itr->first);
-                for (uint8 i = 0; i < MAX_SPELL_EFFECTS; ++i)
-                    if (spellInfo->Effects[i].ApplyAuraName == SPELL_AURA_MOD_INCREASE_MOUNTED_FLIGHT_SPEED &&
-                        spellInfo->Effects[i].CalcValue() == 310)
+                for (SpellEffectInfo const& spellEffectInfo : spellInfo->GetEffects())
+                {
+                    if (spellEffectInfo.ApplyAuraName == SPELL_AURA_MOD_INCREASE_MOUNTED_FLIGHT_SPEED &&
+                        spellEffectInfo.CalcValue() == 310)
                     {
                         SetHas310Flyer(true);
                         return true;
                     }
+                }
             }
         }
     }
@@ -3940,9 +3940,9 @@ bool Player::ResetTalents(bool no_cost)
                 continue;
             RemoveSpell(talentInfo->SpellRank[rank], true);
             // search for spells that the talent teaches and unlearn them
-            for (uint8 i = 0; i < MAX_SPELL_EFFECTS; ++i)
-                if (_spellEntry->Effects[i].TriggerSpell > 0 && _spellEntry->Effects[i].Effect == SPELL_EFFECT_LEARN_SPELL)
-                    RemoveSpell(_spellEntry->Effects[i].TriggerSpell, true);
+            for (SpellEffectInfo const& spellEffectInfo : _spellEntry->GetEffects())
+                if (spellEffectInfo.IsEffect(SPELL_EFFECT_LEARN_SPELL) && spellEffectInfo.TriggerSpell > 0)
+                    RemoveSpell(spellEffectInfo.TriggerSpell, true);
             // if this talent rank can be found in the PlayerTalentMap, mark the talent as removed so it gets deleted
             PlayerTalentMap::iterator plrTalent = m_talents[m_activeSpec]->find(talentInfo->SpellRank[rank]);
             if (plrTalent != m_talents[m_activeSpec]->end())
@@ -5847,7 +5847,7 @@ void Player::UpdateWeaponSkill(Unit* victim, WeaponAttackType attType)
     if (GetShapeshiftForm() == FORM_TREE)
         return;                                             // use weapon but not skill up
 
-    if (victim->GetTypeId() == TYPEID_UNIT && (victim->ToCreature()->GetCreatureTemplate()->flags_extra & CREATURE_FLAG_EXTRA_NO_SKILLGAIN))
+    if (victim->GetTypeId() == TYPEID_UNIT && (victim->ToCreature()->GetCreatureTemplate()->flags_extra & CREATURE_FLAG_EXTRA_NO_SKILL_GAINS))
         return;
 
     uint32 weapon_skill_gain = sWorld->getIntConfig(CONFIG_SKILL_GAIN_WEAPON);
@@ -8077,11 +8077,9 @@ void Player::CastItemCombatSpell(DamageInfo const& damageInfo, Item* item, ItemT
 
                     int32 const effectPct = std::max(0, 100 - (lvlDifference * lvlPenaltyFactor));
 
-                    for (uint8 i = 0; i < MAX_SPELL_EFFECTS; ++i)
-                    {
-                        if (spellInfo->Effects[i].IsEffect())
-                            args.AddSpellMod(static_cast<SpellValueMod>(SPELLVALUE_BASE_POINT0 + i), CalculatePct(spellInfo->Effects[i].CalcValue(this), effectPct));
-                    }
+                    for (SpellEffectInfo const& spellEffectInfo : spellInfo->GetEffects())
+                        if (spellEffectInfo.IsEffect())
+                            args.AddSpellMod(static_cast<SpellValueMod>(SPELLVALUE_BASE_POINT0 + spellEffectInfo.EffectIndex), CalculatePct(spellEffectInfo.CalcValue(this), effectPct));
                 }
                 CastSpell(target, spellInfo->Id, args);
             }
@@ -12593,7 +12591,7 @@ uint32 Player::DestroyItemCount(uint32 itemEntry, uint32 count, bool update, boo
                     if (IsInWorld() && update)
                         item->SendUpdateToPlayer(this);
                     item->SetState(ITEM_CHANGED, this);
-                    return remcount;
+                    return count;
                 }
             }
         }
@@ -12621,7 +12619,7 @@ uint32 Player::DestroyItemCount(uint32 itemEntry, uint32 count, bool update, boo
                     if (IsInWorld() && update)
                         item->SendUpdateToPlayer(this);
                     item->SetState(ITEM_CHANGED, this);
-                    return remcount;
+                    return count;
                 }
             }
         }
@@ -12654,7 +12652,7 @@ uint32 Player::DestroyItemCount(uint32 itemEntry, uint32 count, bool update, boo
                             if (IsInWorld() && update)
                                 item->SendUpdateToPlayer(this);
                             item->SetState(ITEM_CHANGED, this);
-                            return remcount;
+                            return count;
                         }
                     }
                 }
@@ -12687,7 +12685,7 @@ uint32 Player::DestroyItemCount(uint32 itemEntry, uint32 count, bool update, boo
                     if (IsInWorld() && update)
                         item->SendUpdateToPlayer(this);
                     item->SetState(ITEM_CHANGED, this);
-                    return remcount;
+                    return count;
                 }
             }
         }
@@ -12714,7 +12712,7 @@ uint32 Player::DestroyItemCount(uint32 itemEntry, uint32 count, bool update, boo
                     if (IsInWorld() && update)
                         item->SendUpdateToPlayer(this);
                     item->SetState(ITEM_CHANGED, this);
-                    return remcount;
+                    return count;
                 }
             }
         }
@@ -12747,7 +12745,7 @@ uint32 Player::DestroyItemCount(uint32 itemEntry, uint32 count, bool update, boo
                             if (IsInWorld() && update)
                                 item->SendUpdateToPlayer(this);
                             item->SetState(ITEM_CHANGED, this);
-                            return remcount;
+                            return count;
                         }
                     }
                 }
@@ -16440,21 +16438,20 @@ void Player::ItemRemovedQuestCheck(uint32 entry, uint32 count)
             {
                 QuestStatusData& q_status = m_QuestStatus[questid];
 
-                uint32 reqitemcount = qInfo->RequiredItemCount[j];
-                uint16 curitemcount = q_status.ItemCount[j];
+                uint32 reqItemCount = qInfo->RequiredItemCount[j];
+                uint16 questStatusItemCount = q_status.ItemCount[j];
+                uint16 newItemCount = (count > questStatusItemCount) ? 0 : questStatusItemCount - count;
 
-                if (q_status.ItemCount[j] >= reqitemcount) // we may have more than what the status shows
-                    curitemcount = GetItemCount(entry, false);
+                if (questStatusItemCount >= reqItemCount) // we may have more than what the status shows, we don't need reduce by count
+                    newItemCount = GetItemCount(entry, false);
 
-                uint16 newItemCount = (count > curitemcount) ? 0 : curitemcount - count;
-                newItemCount = std::min<uint16>(newItemCount, reqitemcount);
+                newItemCount = std::min<uint16>(newItemCount, reqItemCount);
                 if (newItemCount != q_status.ItemCount[j])
                 {
                     q_status.ItemCount[j] = newItemCount;
                     m_QuestStatusSave[questid] = QUEST_DEFAULT_SAVE_TYPE;
                     IncompleteQuest(questid);
                 }
-                return;
             }
         }
     }
@@ -19015,7 +19012,7 @@ InstancePlayerBind* Player::BindToInstance(InstanceSave* save, bool permanent, B
         bind.extendState = extendState;
         if (!load)
             TC_LOG_DEBUG("maps", "Player::BindToInstance: Player '%s' (%s) is now bound to map (ID: %d, Instance: %d, Difficulty: %d)",
-                GetName().c_str(), GetGUID().ToString().c_str(), save->GetMapId(), save->GetInstanceId(), save->GetDifficulty());
+                GetName().c_str(), GetGUID().ToString().c_str(), save->GetMapId(), save->GetInstanceId(), static_cast<uint32>(save->GetDifficulty()));
         sScriptMgr->OnPlayerBindToInstance(this, save->GetDifficulty(), save->GetMapId(), permanent, extendState);
         return &bind;
     }
@@ -20314,7 +20311,13 @@ void Player::_SaveStats(CharacterDatabaseTransaction trans) const
     stmt->setFloat(index++, GetFloatValue(PLAYER_PARRY_PERCENTAGE));
     stmt->setFloat(index++, GetFloatValue(PLAYER_CRIT_PERCENTAGE));
     stmt->setFloat(index++, GetFloatValue(PLAYER_RANGED_CRIT_PERCENTAGE));
-    stmt->setFloat(index++, GetFloatValue(PLAYER_SPELL_CRIT_PERCENTAGE1));
+
+    // Store the max spell crit percentage out of all the possible schools
+    float spellCrit = 0.0f;
+    for (int i = 0; i < MAX_SPELL_SCHOOL; ++i)
+        spellCrit = std::max(spellCrit, GetFloatValue(PLAYER_SPELL_CRIT_PERCENTAGE1 + i));
+    stmt->setFloat(index++, spellCrit);
+
     stmt->setUInt32(index++, GetUInt32Value(UNIT_FIELD_ATTACK_POWER));
     stmt->setUInt32(index++, GetUInt32Value(UNIT_FIELD_RANGED_ATTACK_POWER));
     stmt->setUInt32(index++, GetBaseSpellPowerBonus());
@@ -20802,7 +20805,8 @@ void Player::StopCastingCharm()
         TC_LOG_FATAL("entities.player", "Player::StopCastingCharm: Player '%s' (%s) is not able to uncharm unit (%s)", GetName().c_str(), GetGUID().ToString().c_str(), GetCharmedGUID().ToString().c_str());
         if (!charm->GetCharmerGUID().IsEmpty())
         {
-            TC_LOG_FATAL("entities.player", "Player::StopCastingCharm: Charmed unit has charmer %s", charm->GetCharmerGUID().ToString().c_str());
+            TC_LOG_FATAL("entities.player", "Player::StopCastingCharm: Charmed unit has charmer %s\nPlayer debug info: %s\nCharm debug info: %s",
+                charm->GetCharmerGUID().ToString().c_str(), GetDebugInfo().c_str(), charm->GetDebugInfo().c_str());
             ABORT();
         }
 
@@ -21552,7 +21556,7 @@ void Player::CleanupAfterTaxiFlight()
 {
     m_taxi.ClearTaxiDestinations(); // not destinations, clear source node
     Dismount();
-    RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_REMOVE_CLIENT_CONTROL | UNIT_FLAG_TAXI_FLIGHT);
+    RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_REMOVE_CLIENT_CONTROL | UNIT_FLAG_ON_TAXI);
 }
 
 void Player::ContinueTaxiFlight() const
@@ -22396,7 +22400,7 @@ bool Player::IsNeverVisible() const
 bool Player::CanAlwaysSee(WorldObject const* obj) const
 {
     // Always can see self
-    if (GetUnitBeingMoved() == obj)
+    if (GetCharmedOrSelf() == obj)
         return true;
 
     if (ObjectGuid guid = GetGuidValue(PLAYER_FARSIGHT))
@@ -22531,8 +22535,8 @@ void Player::UpdateTriggerVisibility()
         if (itr->IsCreatureOrVehicle())
         {
             Creature* creature = GetMap()->GetCreature(*itr);
-            // Update fields of triggers, transformed units or unselectable units (values dependent on GM state)
-            if (!creature || (!creature->IsTrigger() && !creature->HasAuraType(SPELL_AURA_TRANSFORM) && !creature->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE)))
+            // Update fields of triggers, transformed units or uninteractible units (values dependent on GM state)
+            if (!creature || (!creature->IsTrigger() && !creature->HasAuraType(SPELL_AURA_TRANSFORM) && !creature->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_UNINTERACTIBLE)))
                 continue;
 
             creature->SetFieldNotifyFlag(UF_FLAG_PUBLIC);
@@ -22771,7 +22775,7 @@ void Player::SendInitialPacketsBeforeAddToMap()
     /// SMSG_RESYNC_RUNES
     ResyncRunes();
 
-    SetMovedUnit(this);
+    GetGameClient()->SetMovedUnit(this, true);
 }
 
 void Player::SendInitialPacketsAfterAddToMap()
@@ -23146,9 +23150,9 @@ void Player::LearnQuestRewardedSpells(Quest const* quest)
 
     // check learned spells state
     bool found = false;
-    for (uint8 i = 0; i < MAX_SPELL_EFFECTS; ++i)
+    for (SpellEffectInfo const& spellEffectInfo : spellInfo->GetEffects())
     {
-        if (spellInfo->Effects[i].Effect == SPELL_EFFECT_LEARN_SPELL && !HasSpell(spellInfo->Effects[i].TriggerSpell))
+        if (spellEffectInfo.IsEffect(SPELL_EFFECT_LEARN_SPELL) && !HasSpell(spellEffectInfo.TriggerSpell))
         {
             found = true;
             break;
@@ -23159,7 +23163,7 @@ void Player::LearnQuestRewardedSpells(Quest const* quest)
     if (!found)
         return;
 
-    uint32 learned_0 = spellInfo->Effects[0].TriggerSpell;
+    uint32 learned_0 = spellInfo->GetEffect(EFFECT_0).TriggerSpell;
     if (!HasSpell(learned_0))
     {
         SpellInfo const* learnedInfo = sSpellMgr->GetSpellInfo(learned_0);
@@ -23167,7 +23171,7 @@ void Player::LearnQuestRewardedSpells(Quest const* quest)
             return;
 
        // profession specialization can be re-learned from npc
-       if (learnedInfo->Effects[0].Effect == SPELL_EFFECT_TRADE_SKILL && learnedInfo->Effects[1].Effect == 0 && !learnedInfo->SpellLevel)
+       if (learnedInfo->GetEffect(EFFECT_0).Effect == SPELL_EFFECT_TRADE_SKILL && learnedInfo->GetEffect(EFFECT_1).Effect == 0 && !learnedInfo->SpellLevel)
            return;
     }
 
@@ -23769,11 +23773,9 @@ bool Player::HasItemFitToSpellRequirements(SpellInfo const* spellInfo, Item cons
 
                 // special check to filter things like Shield Wall, the aura is not permanent and must stay even without required item
                 if (!spellInfo->IsPassive())
-                {
-                    for (uint8 i = 0; i < MAX_SPELL_EFFECTS; ++i)
-                        if (spellInfo->Effects[i].IsAura())
+                    for (SpellEffectInfo const& spellEffectInfo : spellInfo->GetEffects())
+                        if (spellEffectInfo.IsAura())
                             return true;
-                }
             }
 
             // tabard not have dependent spells
@@ -24092,7 +24094,7 @@ void Player::SetClientControl(Unit* target, bool allowMove)
             SetViewpoint(target, true);
     }
 
-    SetMovedUnit(target);
+    GetGameClient()->SetMovedUnit(target, allowMove);
 }
 
 void Player::UpdateZoneDependentAuras(uint32 newZone)
@@ -24957,7 +24959,7 @@ void Player::StoreLootItem(uint8 lootSlot, Loot* loot)
 
         // LootItem is being removed (looted) from the container, delete it from the DB.
         if (loot->containerID > 0)
-            sLootItemStorage->RemoveStoredLootItemForContainer(loot->containerID, item->itemid, item->count);
+            sLootItemStorage->RemoveStoredLootItemForContainer(loot->containerID, item->itemid, item->count, item->itemIndex);
 
 #ifdef ELUNA
         sEluna->OnLootItem(this, newitem, item->count, this->GetLootGUID());
@@ -26183,9 +26185,9 @@ void Player::ActivateSpec(uint8 spec)
                 continue;
             RemoveSpell(talentInfo->SpellRank[rank], true); // removes the talent, and all dependant, learned, and chained spells..
             if (SpellInfo const* _spellEntry = sSpellMgr->GetSpellInfo(talentInfo->SpellRank[rank]))
-                for (uint8 i = 0; i < MAX_SPELL_EFFECTS; ++i)                  // search through the SpellInfo for valid trigger spells
-                    if (_spellEntry->Effects[i].TriggerSpell > 0 && _spellEntry->Effects[i].Effect == SPELL_EFFECT_LEARN_SPELL)
-                        RemoveSpell(_spellEntry->Effects[i].TriggerSpell, true); // and remove any spells that the talent teaches
+                for (SpellEffectInfo const& spellEffectInfo : _spellEntry->GetEffects())                  // search through the SpellInfo for valid trigger spells
+                    if (spellEffectInfo.IsEffect(SPELL_EFFECT_LEARN_SPELL) && spellEffectInfo.TriggerSpell > 0)
+                        RemoveSpell(spellEffectInfo.TriggerSpell, true); // and remove any spells that the talent teaches
             // if this talent rank can be found in the PlayerTalentMap, mark the talent as removed so it gets deleted
             //PlayerTalentMap::iterator plrTalent = m_talents[m_activeSpec]->find(talentInfo->RankID[rank]);
             //if (plrTalent != m_talents[m_activeSpec]->end())
@@ -26840,6 +26842,9 @@ Pet* Player::SummonPet(uint32 entry, float x, float y, float z, float ang, PetTy
         return nullptr;
     }
 
+    if (petType == SUMMON_PET && petStable.CurrentPet)
+        RemovePet(nullptr, PET_SAVE_NOT_IN_SLOT);
+
     pet->SetCreatorGUID(GetGUID());
     pet->SetFaction(GetFaction());
 
@@ -27019,4 +27024,9 @@ std::string Player::GetDebugInfo() const
     std::stringstream sstr;
     sstr << Unit::GetDebugInfo();
     return sstr.str();
+}
+
+GameClient* Player::GetGameClient() const
+{
+    return GetSession()->GetGameClient();
 }

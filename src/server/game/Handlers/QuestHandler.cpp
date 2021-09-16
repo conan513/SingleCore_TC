@@ -201,7 +201,7 @@ void WorldSession::HandleQuestgiverAcceptQuestOpcode(WorldPacket& recvData)
                     {
                         Player* player = itr->GetSource();
 
-                        if (!player || player == _player)     // not self
+                        if (!player || player == _player || !player->IsInMap(_player))     // not self and in same map
                             continue;
 
                         if (player->CanTakeQuest(quest, true))
@@ -227,8 +227,6 @@ void WorldSession::HandleQuestgiverAcceptQuestOpcode(WorldPacket& recvData)
     }
 
     CLOSE_GOSSIP_CLEAR_SHARING_INFO();
-
-#undef CLOSE_GOSSIP_CLEAR_SHARING_INFO
 }
 
 void WorldSession::HandleQuestgiverQueryQuestOpcode(WorldPacket& recvData)

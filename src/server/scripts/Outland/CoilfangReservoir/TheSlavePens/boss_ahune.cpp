@@ -253,7 +253,7 @@ struct boss_ahune : public BossAI
         me->RemoveAurasDueToSpell(SPELL_STAY_SUBMERGED);
         DoCastSelf(SPELL_STAND);
         DoCastSelf(SPELL_RESURFACE, true);
-        me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
+        me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_UNINTERACTIBLE);
         events.ScheduleEvent(EVENT_SYNCH_HEALTH, 3s);
     }
 
@@ -299,7 +299,7 @@ struct npc_frozen_core : public ScriptedAI
     {
         if (action == ACTION_AHUNE_RETREAT)
         {
-            me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
+            me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_UNINTERACTIBLE);
             me->SetImmuneToPC(false);
             me->RemoveAurasDueToSpell(SPELL_ICE_SPEAR_AURA);
             _events.ScheduleEvent(EVENT_SYNCH_HEALTH, 3s, 0, PHASE_TWO);
@@ -308,7 +308,7 @@ struct npc_frozen_core : public ScriptedAI
         {
             _events.Reset();
             DoCastSelf(SPELL_ICE_SPEAR_AURA);
-            me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
+            me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_UNINTERACTIBLE);
             me->SetImmuneToPC(true);
         }
     }
@@ -591,37 +591,26 @@ private:
     uint8 _mySpot;
 };
 
-class go_ahune_ice_stone : public GameObjectScript
+struct go_ahune_ice_stone : public GameObjectAI
 {
-public:
-    go_ahune_ice_stone() : GameObjectScript("go_ahune_ice_stone") { }
+    go_ahune_ice_stone(GameObject* go) : GameObjectAI(go), _instance(go->GetInstanceScript()) { }
 
-    struct go_ahune_ice_stoneAI : public GameObjectAI
+    bool OnGossipSelect(Player* player, uint32 /*menuId*/, uint32 /*gossipListId*/) override
     {
-        go_ahune_ice_stoneAI(GameObject* go) : GameObjectAI(go), _instance(go->GetInstanceScript()) { }
+        ClearGossipMenuFor(player);
 
-        bool OnGossipSelect(Player* player, uint32 /*menuId*/, uint32 /*gossipListId*/) override
-        {
-            ClearGossipMenuFor(player);
+        if (Creature* ahuneBunny = _instance->GetCreature(DATA_AHUNE_BUNNY))
+            ahuneBunny->AI()->DoAction(ACTION_START_EVENT);
 
-            if (Creature* ahuneBunny = _instance->GetCreature(DATA_AHUNE_BUNNY))
-                ahuneBunny->AI()->DoAction(ACTION_START_EVENT);
-
-            if (Creature* luma = _instance->GetCreature(DATA_LUMA_SKYMOTHER))
-                luma->CastSpell(player, SPELL_SUMMONING_RHYME_AURA, true);
-            CloseGossipMenuFor(player);
-            me->Delete();
-            return true;
-        }
-
-    private:
-        InstanceScript* _instance;
-    };
-
-    GameObjectAI* GetAI(GameObject* go) const override
-    {
-        return GetSlavePensAI<go_ahune_ice_stoneAI>(go);
+        if (Creature* luma = _instance->GetCreature(DATA_LUMA_SKYMOTHER))
+            luma->CastSpell(player, SPELL_SUMMONING_RHYME_AURA, true);
+        CloseGossipMenuFor(player);
+        me->Delete();
+        return true;
     }
+
+private:
+    InstanceScript* _instance;
 };
 
 // 46430 - Synch Health
@@ -870,7 +859,7 @@ void AddSC_boss_ahune()
     RegisterSlavePensCreatureAI(npc_frozen_core);
     RegisterSlavePensCreatureAI(npc_earthen_ring_flamecaller);
     RegisterSlavePensCreatureAI(npc_ahune_bunny);
-    new go_ahune_ice_stone();
+    RegisterSlavePensGameObjectAI(go_ahune_ice_stone);
     RegisterSpellScript(spell_ahune_synch_health);
     RegisterSpellScript(spell_summoning_rhyme_aura);
     RegisterSpellScript(spell_summon_ice_spear_delayer);
