@@ -27,10 +27,14 @@
 #include "ObjectAccessor.h"
 #include "ObjectMgr.h"
 #include "Opcodes.h"
+#include "Transmogrification.h"
 #include "Player.h"
 #include "ScriptMgr.h"
 #include "Spell.h"
 #include "SpellAuraEffects.h"
+#ifdef ELUNA
+#include "LuaEngine.h"
+#endif
 #include "SpellMgr.h"
 #include "SpellPackets.h"
 #include "Totem.h"
@@ -319,6 +323,10 @@ void WorldSession::HandleGameobjectReportUse(WorldPacket& recvPacket)
 
     if (GameObject* go = GetPlayer()->GetGameObjectIfCanInteractWith(guid))
     {
+#ifdef ELUNA
+        if (sEluna->OnGameObjectUse(_player, go))
+            return;
+#endif
         if (go->AI()->OnReportUse(_player))
             return;
 
@@ -677,7 +685,12 @@ void WorldSession::HandleMirrorImageDataRequest(WorldPacket& recvData)
             else if (*itr == EQUIPMENT_SLOT_BACK && player->HasFlag(PLAYER_FLAGS, PLAYER_FLAGS_HIDE_CLOAK))
                 data << uint32(0);
             else if (Item const* item = player->GetItemByPos(INVENTORY_SLOT_BAG_0, *itr))
-                data << uint32(item->GetTemplate()->DisplayInfoID);
+            {
+                if (auto const * itemTemplate = sObjectMgr->GetItemTemplate(item->transmog))
+                    data << uint32(itemTemplate->DisplayInfoID);
+                else
+                    data << uint32(item->GetTemplate()->DisplayInfoID);
+            }
             else
                 data << uint32(0);
         }

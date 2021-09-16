@@ -86,6 +86,9 @@
 #include "WardenCheckMgr.h"
 #include "WaypointManager.h"
 #include "WeatherMgr.h"
+#ifdef ELUNA
+#include "LuaEngine.h"
+#endif
 #include "WhoListStorage.h"
 #include "WorldSession.h"
 
@@ -1130,6 +1133,10 @@ void World::LoadConfigSettings(bool reload)
     m_bool_configs[CONFIG_QUEST_IGNORE_AUTO_ACCEPT] = sConfigMgr->GetBoolDefault("Quests.IgnoreAutoAccept", false);
     m_bool_configs[CONFIG_QUEST_IGNORE_AUTO_COMPLETE] = sConfigMgr->GetBoolDefault("Quests.IgnoreAutoComplete", false);
 
+    // Custom XP Rates
+    m_int_configs[CONFIG_CUSTOM_RATE_XP_ENABLED] = sConfigMgr->GetIntDefault("CustomXpRate.enabled", 1);
+    // End of Custom XP Rates
+
     m_int_configs[CONFIG_RANDOM_BG_RESET_HOUR] = sConfigMgr->GetIntDefault("Battleground.Random.ResetHour", 6);
     if (m_int_configs[CONFIG_RANDOM_BG_RESET_HOUR] > 23)
     {
@@ -1182,6 +1189,9 @@ void World::LoadConfigSettings(bool reload)
     m_float_configs[CONFIG_LISTEN_RANGE_SAY]       = sConfigMgr->GetFloatDefault("ListenRange.Say", 25.0f);
     m_float_configs[CONFIG_LISTEN_RANGE_TEXTEMOTE] = sConfigMgr->GetFloatDefault("ListenRange.TextEmote", 25.0f);
     m_float_configs[CONFIG_LISTEN_RANGE_YELL]      = sConfigMgr->GetFloatDefault("ListenRange.Yell", 300.0f);
+    // Custom XP Rates
+    m_int_configs[CONFIG_CUSTOM_XP_LEVEL] = sConfigMgr->GetIntDefault("CustomXp.Level", 80);
+    // End of Custom XP Rates
 
     m_bool_configs[CONFIG_BATTLEGROUND_CAST_DESERTER]                = sConfigMgr->GetBoolDefault("Battleground.CastDeserter", true);
     m_bool_configs[CONFIG_BATTLEGROUND_QUEUE_ANNOUNCER_ENABLE]       = sConfigMgr->GetBoolDefault("Battleground.QueueAnnouncer.Enable", false);
@@ -1530,6 +1540,9 @@ void World::LoadConfigSettings(bool reload)
     // prevent character rename on character customization
     m_bool_configs[CONFIG_PREVENT_RENAME_CUSTOMIZATION] = sConfigMgr->GetBoolDefault("PreventRenameCharacterOnCustomization", false);
 
+    // Custom XP Rates
+    m_bool_configs[CONFIG_PLAYER_INDIVIDUAL_XP_RATE_SHOW_ON_LOGIN] = sConfigMgr->GetBoolDefault("Player.ShowXpRateOnLogin", true);
+
     // Allow 5-man parties to use raid warnings
     m_bool_configs[CONFIG_CHAT_PARTY_RAID_WARNINGS] = sConfigMgr->GetBoolDefault("PartyRaidWarnings", false);
 
@@ -1587,6 +1600,12 @@ void World::SetInitialWorldSettings()
         TC_LOG_FATAL("server.loading", "Unable to load critical files - server shutting down !!!");
         exit(1);
     }
+
+#ifdef ELUNA
+    ///- Initialize Lua Engine
+    TC_LOG_INFO("server.loading", "Initialize Eluna Lua Engine...");
+    Eluna::Initialize();
+#endif
 
     ///- Initialize pool manager
     sPoolMgr->Initialize();
@@ -2205,6 +2224,13 @@ void World::SetInitialWorldSettings()
 
     TC_LOG_INFO("server.loading", "Calculate guild limitation(s) reset time...");
     InitGuildResetTime();
+
+#ifdef ELUNA
+    ///- Run eluna scripts.
+    // in multithread foreach: run scripts
+    sEluna->RunScripts();
+    sEluna->OnConfigLoad(false); // Must be done after Eluna is initialized and scripts have run.
+#endif
 
     // Preload all cells, if required for the base maps
     if (sWorld->getBoolConfig(CONFIG_BASEMAP_LOAD_GRIDS))
