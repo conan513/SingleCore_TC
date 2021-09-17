@@ -81,9 +81,6 @@ bool SpellMgr::IsSpellValid(SpellInfo const* spellInfo, Player* player, bool msg
     {
         switch (spellInfo->Effects[i].Effect)
         {
-            case 0:
-                continue;
-
             // craft spell for crafting non-existed item (break client recipes list show)
             case SPELL_EFFECT_CREATE_ITEM:
             case SPELL_EFFECT_CREATE_ITEM_2:
@@ -136,6 +133,8 @@ bool SpellMgr::IsSpellValid(SpellInfo const* spellInfo, Player* player, bool msg
                 }
                 break;
             }
+            default:
+                break;
         }
     }
 
@@ -2654,13 +2653,13 @@ void SpellMgr::LoadSpellInfoCustomAttributes()
         if (!spellInfo)
             continue;
 
-        for (uint8 j = 0; j < MAX_SPELL_EFFECTS; ++j)
+        for (SpellEffectInfo const& effect : spellInfo->GetEffects())
         {
             // all bleed effects and spells ignore armor
-            if (spellInfo->GetEffectMechanicMask(j) & (1 << MECHANIC_BLEED))
+            if (spellInfo->GetEffectMechanicMask(effect.EffectIndex) & (1 << MECHANIC_BLEED))
                 spellInfo->AttributesCu |= SPELL_ATTR0_CU_IGNORE_ARMOR;
 
-            switch (spellInfo->Effects[j].ApplyAuraName)
+            switch (effect.ApplyAuraName)
             {
                 case SPELL_AURA_MOD_POSSESS:
                 case SPELL_AURA_MOD_CONFUSE:
@@ -2670,9 +2669,11 @@ void SpellMgr::LoadSpellInfoCustomAttributes()
                 case SPELL_AURA_MOD_STUN:
                     spellInfo->AttributesCu |= SPELL_ATTR0_CU_AURA_CC;
                     break;
+                default:
+                    break;
             }
 
-            switch (spellInfo->Effects[j].Effect)
+            switch (effect.Effect)
             {
                 case SPELL_EFFECT_SCHOOL_DAMAGE:
                 case SPELL_EFFECT_HEALTH_LEECH:
@@ -2686,9 +2687,11 @@ void SpellMgr::LoadSpellInfoCustomAttributes()
                 case SPELL_EFFECT_HEAL_PCT:
                     spellInfo->AttributesCu |= SPELL_ATTR0_CU_CAN_CRIT;
                     break;
+                default:
+                    break;
             }
 
-            switch (spellInfo->Effects[j].Effect)
+            switch (effect.Effect)
             {
                 case SPELL_EFFECT_SCHOOL_DAMAGE:
                 case SPELL_EFFECT_WEAPON_DAMAGE:
@@ -2726,7 +2729,7 @@ void SpellMgr::LoadSpellInfoCustomAttributes()
                     // only enchanting profession enchantments procs can stack
                     if (IsPartOfSkillLine(SKILL_ENCHANTING, spellInfo->Id))
                     {
-                        uint32 enchantId = spellInfo->Effects[j].MiscValue;
+                        uint32 enchantId = effect.MiscValue;
                         SpellItemEnchantmentEntry const* enchant = sSpellItemEnchantmentStore.LookupEntry(enchantId);
                         if (!enchant)
                             break;
@@ -2751,6 +2754,8 @@ void SpellMgr::LoadSpellInfoCustomAttributes()
                     }
                     break;
                 }
+                default:
+                    break;
             }
         }
 
@@ -3157,7 +3162,7 @@ void SpellMgr::LoadSpellInfoCorrections()
         42835  // Spout, remove damage effect, only anim is needed
     }, [](SpellInfo* spellInfo)
     {
-        spellInfo->Effects[EFFECT_0].Effect = 0;
+        spellInfo->Effects[EFFECT_0].Effect = SPELL_EFFECT_NONE;
     });
 
     ApplySpellFix({
@@ -3454,8 +3459,8 @@ void SpellMgr::LoadSpellInfoCorrections()
         // First two effects apply auras, which shouldn't be there
         // due to NO_TARGET applying aura on current caster (core bug)
         // Just wipe effect data, to mimic blizz-behavior
-        spellInfo->Effects[EFFECT_0].Effect = 0;
-        spellInfo->Effects[EFFECT_1].Effect = 0;
+        spellInfo->Effects[EFFECT_0].Effect = SPELL_EFFECT_NONE;
+        spellInfo->Effects[EFFECT_1].Effect = SPELL_EFFECT_NONE;
     });
 
     // Lock and Load (Rank 1)
@@ -3463,7 +3468,7 @@ void SpellMgr::LoadSpellInfoCorrections()
     {
         // @workaround: Delete dummy effect from rank 1
         // effect apply aura has NO_TARGET but core still applies it to caster (same as above)
-        spellInfo->Effects[EFFECT_2].Effect = 0;
+        spellInfo->Effects[EFFECT_2].Effect = SPELL_EFFECT_NONE;
     });
 
     // Roar of Sacrifice
@@ -3534,6 +3539,25 @@ void SpellMgr::LoadSpellInfoCorrections()
     ApplySpellFix({ 29809 }, [](SpellInfo* spellInfo)
     {
         spellInfo->Effects[EFFECT_0].RadiusEntry = sSpellRadiusStore.LookupEntry(EFFECT_RADIUS_7_YARDS);
+    });
+
+    // In sniff caster hits multiple targets
+    ApplySpellFix({
+        73725, // [DND] Test Cheer
+        73835, // [DND] Test Salute
+        73836  // [DND] Test Roar
+    }, [](SpellInfo* spellInfo)
+    {
+        spellInfo->Effects[EFFECT_0].RadiusEntry = sSpellRadiusStore.LookupEntry(EFFECT_RADIUS_50_YARDS); // 50yd
+    });
+
+    // In sniff caster hits multiple targets
+    ApplySpellFix({
+        73837, // [DND] Test Dance
+        73886  // [DND] Test Stop Dance
+    }, [](SpellInfo* spellInfo)
+    {
+        spellInfo->Effects[EFFECT_0].RadiusEntry = sSpellRadiusStore.LookupEntry(EFFECT_RADIUS_150_YARDS); // 150yd
     });
 
     // Master Shapeshifter: missing stance data for forms other than bear - bear version has correct data
@@ -3882,7 +3906,7 @@ void SpellMgr::LoadSpellInfoCorrections()
     }, [](SpellInfo* spellInfo)
     {
         //! HACK: This spell break quest complete for alliance and on retail not used
-        spellInfo->Effects[EFFECT_0].Effect = 0;
+        spellInfo->Effects[EFFECT_0].Effect = SPELL_EFFECT_NONE;
     });
 
     ApplySpellFix({
@@ -3947,8 +3971,6 @@ void SpellMgr::LoadSpellInfoCorrections()
     });
 
     ApplySpellFix({
-        19503, // Scatter Shot
-        34490, // Silencing Shot
         44327, // Trained Rock Falcon/Hawk Hunting
         44408  // Trained Rock Falcon/Hawk Hunting
     }, [](SpellInfo* spellInfo)
@@ -4314,7 +4336,7 @@ void SpellMgr::LoadSpellInfoCorrections()
     ApplySpellFix({ 72723 }, [](SpellInfo* spellInfo)
     {
         // this spell initially granted Shadow damage immunity, however it was removed but the data was left in client
-        spellInfo->Effects[EFFECT_2].Effect = 0;
+        spellInfo->Effects[EFFECT_2].Effect = SPELL_EFFECT_NONE;
     });
 
     // Coldflame Jets (Traps after Saurfang)
@@ -4354,7 +4376,7 @@ void SpellMgr::LoadSpellInfoCorrections()
     ApplySpellFix({ 71604, 72673, 72674, 72675 }, [](SpellInfo* spellInfo)
     {
         // THIS IS HERE BECAUSE COOLDOWN ON CREATURE PROCS WERE NOT IMPLEMENTED WHEN THE SCRIPT WAS WRITTEN
-        spellInfo->Effects[EFFECT_1].Effect = 0;
+        spellInfo->Effects[EFFECT_1].Effect = SPELL_EFFECT_NONE;
     });
 
     // Mutated Plague (Professor Putricide)
@@ -4678,7 +4700,7 @@ void SpellMgr::LoadSpellInfoCorrections()
         49345  // Call Emerald Drake
     }, [](SpellInfo* spellInfo)
     {
-        spellInfo->Effects[EFFECT_1].Effect = 0;
+        spellInfo->Effects[EFFECT_1].Effect = SPELL_EFFECT_NONE;
     });
     // ENDOF OCULUS SPELLS
 
@@ -4925,6 +4947,12 @@ void SpellMgr::LoadSpellInfoCorrections()
         spellInfo->Attributes |= SPELL_ATTR0_UNAFFECTED_BY_INVULNERABILITY;
     });
 
+    // Sacred Cleansing
+    ApplySpellFix({ 53659 }, [](SpellInfo* spellInfo)
+    {
+        spellInfo->RangeEntry = sSpellRangeStore.LookupEntry(5); // 40yd
+    });
+
     for (uint32 i = 0; i < GetSpellInfoStoreSize(); ++i)
     {
         SpellInfo* spellInfo = mSpellInfoMap[i];
@@ -4965,6 +4993,8 @@ void SpellMgr::LoadSpellInfoCorrections()
                     // special aura updates each 30 seconds
                     if (spellInfo->Effects[j].ApplyAuraName == SPELL_AURA_MOD_ATTACK_POWER_OF_ARMOR)
                         spellInfo->Effects[j].Amplitude = 30 * IN_MILLISECONDS;
+                    break;
+                default:
                     break;
             }
 

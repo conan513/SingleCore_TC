@@ -34,7 +34,7 @@
 #include "Util.h"
 
 Vehicle::Vehicle(Unit* unit, VehicleEntry const* vehInfo, uint32 creatureEntry) :
-UsableSeatNum(0), _me(unit), _vehicleInfo(vehInfo), _creatureEntry(creatureEntry), _status(STATUS_NONE), _lastShootPos()
+UsableSeatNum(0), _me(unit), _vehicleInfo(vehInfo), _creatureEntry(creatureEntry), _status(STATUS_NONE)
 {
     for (uint32 i = 0; i < MAX_VEHICLE_SEATS; ++i)
     {
@@ -959,4 +959,31 @@ Milliseconds Vehicle::GetDespawnDelay()
         return vehicleTemplate->DespawnDelay;
 
     return 1ms;
+}
+
+std::string Vehicle::GetDebugInfo() const
+{
+    std::stringstream sstr;
+    sstr << "Vehicle seats:\n";
+    for (SeatMap::const_iterator itr = Seats.begin(); itr != Seats.end(); itr++)
+    {
+        sstr << "seat " << std::to_string(itr->first) << ": " << (itr->second.IsEmpty() ? "empty" : itr->second.Passenger.Guid.ToString()) << "\n";
+    }
+
+    sstr << "Vehicle pending events:";
+
+    if (_pendingJoinEvents.empty())
+    {
+        sstr << " none";
+    }
+    else
+    {
+        sstr << "\n";
+        for (PendingJoinEventContainer::const_iterator itr = _pendingJoinEvents.begin(); itr != _pendingJoinEvents.end(); ++itr)
+        {
+            sstr << "seat " << std::to_string((*itr)->Seat->first) << ": " << (*itr)->Passenger->GetGUID().ToString() << "\n";
+        }
+    }
+
+    return sstr.str();
 }

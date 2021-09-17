@@ -13,7 +13,7 @@ jobs:
         submodules: 'recursive'
     - name: Dependencies
       run: |
-        sudo apt-get update && sudo apt-get install -yq libboost-all-dev
+        sudo apt-get update && sudo apt-get install -yq libboost-all-dev g++-8
         sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 100 --slave /usr/bin/g++ g++ /usr/bin/g++-8
     - name: Setup
       run: |

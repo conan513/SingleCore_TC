@@ -463,13 +463,9 @@ AuraScript* Aura::GetScriptByName(std::string const& scriptName) const
 void Aura::_InitEffects(uint8 effMask, Unit* caster, int32 const* baseAmount)
 {
     // shouldn't be in constructor - functions in AuraEffect::AuraEffect use polymorphism
-    for (uint8 i = 0; i < MAX_SPELL_EFFECTS; ++i)
-    {
-        if (effMask & (uint8(1) << i))
-            m_effects[i] = new AuraEffect(this, i, baseAmount ? baseAmount + i : nullptr, caster);
-        else
-            m_effects[i] = nullptr;
-    }
+    for (SpellEffectInfo const& spellEffectInfo : GetSpellInfo()->GetEffects())
+        if (effMask & (uint8(1) << spellEffectInfo.EffectIndex))
+            m_effects[spellEffectInfo.EffectIndex] = new AuraEffect(this, spellEffectInfo, baseAmount ? baseAmount + spellEffectInfo.EffectIndex : nullptr, caster);
 }
 
 bool Aura::CanPeriodicTickCrit(Unit const* caster) const
@@ -677,9 +673,9 @@ void Aura::UpdateTargetMap(Unit* caster, bool apply)
     {
         bool addUnit = true;
         // check target immunities
-        for (uint8 effIndex = 0; effIndex < MAX_SPELL_EFFECTS; ++effIndex)
-            if (itr->first->IsImmunedToSpellEffect(GetSpellInfo(), effIndex, caster))
-                itr->second &= ~(1 << effIndex);
+        for (SpellEffectInfo const& spellEffectInfo : GetSpellInfo()->GetEffects())
+            if (itr->first->IsImmunedToSpellEffect(GetSpellInfo(), spellEffectInfo, caster))
+                itr->second &= ~(1 << spellEffectInfo.EffectIndex);
 
         if (!itr->second || itr->first->IsImmunedToSpell(GetSpellInfo(), caster) || !CanBeAppliedOn(itr->first))
             addUnit = false;
@@ -1381,10 +1377,6 @@ void Aura::HandleAuraSpecificMods(AuraApplication const* aurApp, Unit* caster, b
             case SPELLFAMILY_GENERIC:
                 switch (GetId())
                 {
-                    case 32474: // Buffeting Winds of Susurrus
-                        if (target->GetTypeId() == TYPEID_PLAYER)
-                            target->ToPlayer()->ActivateTaxiPathTo(506, GetId());
-                        break;
                     case 33572: // Gronn Lord's Grasp, becomes stoned
                         if (GetStackAmount() >= 5 && !target->HasAura(33652))
                             target->CastSpell(target, 33652, true);
@@ -2689,6 +2681,8 @@ void UnitAura::FillTargetMap(std::unordered_map<Unit*, uint8>& targets, Unit* ca
                             units.push_back(owner);
                 break;
             }
+            default:
+                break;
         }
 
         if (selectionType != TARGET_CHECK_DEFAULT)

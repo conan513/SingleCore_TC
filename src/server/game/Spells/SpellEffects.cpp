@@ -370,7 +370,7 @@ void Spell::EffectSchoolDMG(SpellEffIndex effIndex)
                 // Shockwave
                 else if (m_spellInfo->Id == 46968)
                 {
-                    int32 pct = unitCaster->CalculateSpellDamage(m_spellInfo, EFFECT_2);
+                    int32 pct = unitCaster->CalculateSpellDamage(m_spellInfo->GetEffect(EFFECT_2));
                     if (pct > 0)
                         damage += int32(CalculatePct(unitCaster->GetTotalAttackPowerValue(BASE_ATTACK), pct));
                     break;
@@ -428,10 +428,10 @@ void Spell::EffectSchoolDMG(SpellEffIndex effIndex)
                         // And multiply by amount of ticks to get damage potential
                         pdamage *= aura->GetSpellInfo()->GetMaxTicks();
 
-                        int32 pct_dir = unitCaster->CalculateSpellDamage(m_spellInfo, EFFECT_1);
+                        int32 pct_dir = unitCaster->CalculateSpellDamage(m_spellInfo->GetEffect(EFFECT_1));
                         damage += CalculatePct(pdamage, pct_dir);
 
-                        int32 pct_dot = unitCaster->CalculateSpellDamage(m_spellInfo, EFFECT_2);
+                        int32 pct_dot = unitCaster->CalculateSpellDamage(m_spellInfo->GetEffect(EFFECT_2));
                         int32 const dotBasePoints = CalculatePct(pdamage, pct_dot);
 
                         ASSERT(m_spellInfo->GetMaxTicks() > 0);
@@ -655,7 +655,7 @@ void Spell::EffectSchoolDMG(SpellEffIndex effIndex)
 
                     float average = (minTotal + maxTotal) / 2;
                     // Add main hand dps * effect[2] amount
-                    int32 count = unitCaster->CalculateSpellDamage(m_spellInfo, EFFECT_2);
+                    int32 count = unitCaster->CalculateSpellDamage(m_spellInfo->GetEffect(EFFECT_2));
                     damage += count * int32(average * IN_MILLISECONDS) / unitCaster->GetAttackTime(BASE_ATTACK);
                     break;
                 }
@@ -766,10 +766,6 @@ void Spell::EffectTriggerSpell(SpellEffIndex effIndex)
                 unitTarget->CastSpell(unitTarget, 7870, true);
                 return;
             }
-            // just skip
-            case 23770:                                         // Sayge's Dark Fortune of *
-                // not exist, common cooldown can be implemented in scripts if need.
-                return;
             // Brittle Armor - (need add max stack of 24575 Brittle Armor)
             case 29284:
             {
@@ -985,6 +981,7 @@ void Spell::EffectTriggerRitualOfSummoning(SpellEffIndex effIndex)
 void Spell::CalculateJumpSpeeds(SpellInfo const* spellInfo, uint8 i, float dist, float& speedXY, float& speedZ)
 {
     Unit* unitCaster = GetUnitCasterForEffectHandlers();
+    ASSERT(unitCaster);
     float runSpeed = unitCaster->IsControlledByPlayer() ? playerBaseMoveSpeed[MOVE_RUN] : baseMoveSpeed[MOVE_RUN];
     if (Creature* creature = unitCaster->ToCreature())
         runSpeed *= creature->GetCreatureTemplate()->speed_run;
@@ -1867,7 +1864,7 @@ void Spell::EffectOpenLock(SpellEffIndex effIndex)
     int32 reqSkillValue = 0;
     int32 skillValue;
 
-    SpellCastResult res = CanOpenLock(effIndex, lockId, skillId, reqSkillValue, skillValue);
+    SpellCastResult res = CanOpenLock(m_spellInfo->GetEffect(effIndex), lockId, skillId, reqSkillValue, skillValue);
     if (res != SPELL_CAST_OK)
     {
         SendCastResult(res);
@@ -3036,7 +3033,8 @@ void Spell::EffectWeaponDmg(SpellEffIndex effIndex)
             case SPELL_EFFECT_NORMALIZED_WEAPON_DMG:
             case SPELL_EFFECT_WEAPON_PERCENT_DAMAGE:
                 return;     // we must calculate only at last weapon effect
-            break;
+            default:
+                break;
         }
     }
 
@@ -3058,11 +3056,11 @@ void Spell::EffectWeaponDmg(SpellEffIndex effIndex)
                     unitCaster->CastSpell(unitTarget, 58567, true);
 
                 if (Aura* aur = unitTarget->GetAura(58567, unitCaster->GetGUID()))
-                    fixed_bonus += (aur->GetStackAmount() - 1) * CalculateDamage(EFFECT_2); // subtract 1 so fixed bonus is not applied twice
+                    fixed_bonus += (aur->GetStackAmount() - 1) * CalculateDamage(m_spellInfo->GetEffect(EFFECT_2)); // subtract 1 so fixed bonus is not applied twice
             }
             else if (m_spellInfo->SpellFamilyFlags[0] & 0x8000000) // Mocking Blow
             {
-                if (unitTarget->IsImmunedToSpellEffect(m_spellInfo, EFFECT_1, unitCaster) || unitTarget->GetTypeId() == TYPEID_PLAYER)
+                if (unitTarget->IsImmunedToSpellEffect(m_spellInfo, m_spellInfo->GetEffect(EFFECT_1), unitCaster) || unitTarget->GetTypeId() == TYPEID_PLAYER)
                 {
                     m_damage = 0;
                     return;
@@ -3225,20 +3223,20 @@ void Spell::EffectWeaponDmg(SpellEffIndex effIndex)
 
     bool normalized = false;
     float weaponDamagePercentMod = 1.0f;
-    for (uint8 j = 0; j < MAX_SPELL_EFFECTS; ++j)
+    for (SpellEffectInfo const& spellEffectInfo : m_spellInfo->GetEffects())
     {
-        switch (m_spellInfo->Effects[j].Effect)
+        switch (spellEffectInfo.Effect)
         {
             case SPELL_EFFECT_WEAPON_DAMAGE:
             case SPELL_EFFECT_WEAPON_DAMAGE_NOSCHOOL:
-                fixed_bonus += CalculateDamage(j);
+                fixed_bonus += CalculateDamage(spellEffectInfo);
                 break;
             case SPELL_EFFECT_NORMALIZED_WEAPON_DMG:
-                fixed_bonus += CalculateDamage(j);
+                fixed_bonus += CalculateDamage(spellEffectInfo);
                 normalized = true;
                 break;
             case SPELL_EFFECT_WEAPON_PERCENT_DAMAGE:
-                ApplyPct(weaponDamagePercentMod, CalculateDamage(j));
+                ApplyPct(weaponDamagePercentMod, CalculateDamage(spellEffectInfo));
                 break;
             default:
                 break;                                      // not weapon damage effect, just skip

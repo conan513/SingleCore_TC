@@ -41,6 +41,7 @@
 #include "DatabaseEnv.h"
 #include "DisableMgr.h"
 #include "Formulas.h"
+#include "GameClient.h"
 #include "GameEventMgr.h"
 #include "GameObjectAI.h"
 #include "GameTime.h"
@@ -311,9 +312,6 @@ Player::Player(WorldSession* session): Unit(true)
     m_resetTalentsTime = 0;
     m_itemUpdateQueueBlocked = false;
 
-    for (uint8 i = 0; i < MAX_MOVE_TYPE; ++i)
-        m_forced_speed_changes[i] = 0;
-
     /////////////////// Instance System /////////////////////
 
     m_HomebindTimer = 0;
@@ -358,8 +356,6 @@ Player::Player(WorldSession* session): Unit(true)
     // Player summoning
     m_summon_expire = 0;
 
-    m_unitMovedByMe = this;
-    m_playerMovingMe = this;
     m_seer = this;
 
     m_homebindMapId = 0;
@@ -1355,7 +1351,6 @@ void Player::Update(uint32 p_time)
     //because we don't want player's ghost teleported from graveyard
     if (IsHasDelayedTeleport() && IsAlive())
         TeleportTo(m_teleport_dest, m_teleport_options);
-
 }
 
 void Player::setDeathState(DeathState s)
@@ -1830,6 +1825,9 @@ bool Player::TeleportTo(uint32 mapid, float x, float y, float z, float orientati
             if (oldmap)
                 oldmap->RemovePlayerFromMap(this, false);
 
+            // players on mount will be dismounted. the speed and height change should not require an ACK and should be applied directly
+            PurgeAndApplyPendingMovementChanges(false);
+
             m_teleport_dest = WorldLocation(mapid, x, y, z, orientation);
             m_teleport_options = options;
             SetFallInformation(0, GetPositionZ());
@@ -1983,15 +1981,15 @@ void Player::SetObjectScale(float scale)
     SetFloatValue(UNIT_FIELD_COMBATREACH, scale * DEFAULT_PLAYER_COMBAT_REACH);
 }
 
-bool Player::IsImmunedToSpellEffect(SpellInfo const* spellInfo, uint32 index, WorldObject const* caster) const
+bool Player::IsImmunedToSpellEffect(SpellInfo const* spellInfo, SpellEffectInfo const& spellEffectInfo, WorldObject const* caster) const
 {
     // players are immune to taunt (the aura and the spell effect)
-    if (spellInfo->Effects[index].IsAura(SPELL_AURA_MOD_TAUNT))
+    if (spellEffectInfo.IsAura(SPELL_AURA_MOD_TAUNT))
         return true;
-    if (spellInfo->Effects[index].IsEffect(SPELL_EFFECT_ATTACK_ME))
+    if (spellEffectInfo.IsEffect(SPELL_EFFECT_ATTACK_ME))
         return true;
 
-    return Unit::IsImmunedToSpellEffect(spellInfo, index, caster);
+    return Unit::IsImmunedToSpellEffect(spellInfo, spellEffectInfo, caster);
 }
 
 void Player::RegenerateAll()
@@ -2281,11 +2279,11 @@ Creature* Player::GetNPCIfCanInteractWith(ObjectGuid const& guid, uint32 npcflag
         return nullptr;
 
     // Deathstate checks
-    if (!IsAlive() && !(creature->GetCreatureTemplate()->type_flags & CREATURE_TYPE_FLAG_GHOST_VISIBLE))
+    if (!IsAlive() && !(creature->GetCreatureTemplate()->type_flags & CREATURE_TYPE_FLAG_VISIBLE_TO_GHOSTS))
         return nullptr;
 
     // alive or spirit healer
-    if (!creature->IsAlive() && !(creature->GetCreatureTemplate()->type_flags & CREATURE_TYPE_FLAG_CAN_INTERACT_WHILE_DEAD))
+    if (!creature->IsAlive() && !(creature->GetCreatureTemplate()->type_flags & CREATURE_TYPE_FLAG_INTERACT_WHILE_DEAD))
         return nullptr;
 
     // appropriate npc type
@@ -5847,7 +5845,7 @@ void Player::UpdateWeaponSkill(Unit* victim, WeaponAttackType attType)
     if (GetShapeshiftForm() == FORM_TREE)
         return;                                             // use weapon but not skill up
 
-    if (victim->GetTypeId() == TYPEID_UNIT && (victim->ToCreature()->GetCreatureTemplate()->flags_extra & CREATURE_FLAG_EXTRA_NO_SKILLGAIN))
+    if (victim->GetTypeId() == TYPEID_UNIT && (victim->ToCreature()->GetCreatureTemplate()->flags_extra & CREATURE_FLAG_EXTRA_NO_SKILL_GAINS))
         return;
 
     uint32 weapon_skill_gain = sWorld->getIntConfig(CONFIG_SKILL_GAIN_WEAPON);
@@ -12593,7 +12591,7 @@ uint32 Player::DestroyItemCount(uint32 itemEntry, uint32 count, bool update, boo
                     if (IsInWorld() && update)
                         item->SendUpdateToPlayer(this);
                     item->SetState(ITEM_CHANGED, this);
-                    return remcount;
+                    return count;
                 }
             }
         }
@@ -12621,7 +12619,7 @@ uint32 Player::DestroyItemCount(uint32 itemEntry, uint32 count, bool update, boo
                     if (IsInWorld() && update)
                         item->SendUpdateToPlayer(this);
                     item->SetState(ITEM_CHANGED, this);
-                    return remcount;
+                    return count;
                 }
             }
         }
@@ -12654,7 +12652,7 @@ uint32 Player::DestroyItemCount(uint32 itemEntry, uint32 count, bool update, boo
                             if (IsInWorld() && update)
                                 item->SendUpdateToPlayer(this);
                             item->SetState(ITEM_CHANGED, this);
-                            return remcount;
+                            return count;
                         }
                     }
                 }
@@ -12687,7 +12685,7 @@ uint32 Player::DestroyItemCount(uint32 itemEntry, uint32 count, bool update, boo
                     if (IsInWorld() && update)
                         item->SendUpdateToPlayer(this);
                     item->SetState(ITEM_CHANGED, this);
-                    return remcount;
+                    return count;
                 }
             }
         }
@@ -12714,7 +12712,7 @@ uint32 Player::DestroyItemCount(uint32 itemEntry, uint32 count, bool update, boo
                     if (IsInWorld() && update)
                         item->SendUpdateToPlayer(this);
                     item->SetState(ITEM_CHANGED, this);
-                    return remcount;
+                    return count;
                 }
             }
         }
@@ -12747,7 +12745,7 @@ uint32 Player::DestroyItemCount(uint32 itemEntry, uint32 count, bool update, boo
                             if (IsInWorld() && update)
                                 item->SendUpdateToPlayer(this);
                             item->SetState(ITEM_CHANGED, this);
-                            return remcount;
+                            return count;
                         }
                     }
                 }
@@ -16440,21 +16438,20 @@ void Player::ItemRemovedQuestCheck(uint32 entry, uint32 count)
             {
                 QuestStatusData& q_status = m_QuestStatus[questid];
 
-                uint32 reqitemcount = qInfo->RequiredItemCount[j];
-                uint16 curitemcount = q_status.ItemCount[j];
+                uint32 reqItemCount = qInfo->RequiredItemCount[j];
+                uint16 questStatusItemCount = q_status.ItemCount[j];
+                uint16 newItemCount = (count > questStatusItemCount) ? 0 : questStatusItemCount - count;
 
-                if (q_status.ItemCount[j] >= reqitemcount) // we may have more than what the status shows
-                    curitemcount = GetItemCount(entry, false);
+                if (questStatusItemCount >= reqItemCount) // we may have more than what the status shows, we don't need reduce by count
+                    newItemCount = GetItemCount(entry, false);
 
-                uint16 newItemCount = (count > curitemcount) ? 0 : curitemcount - count;
-                newItemCount = std::min<uint16>(newItemCount, reqitemcount);
+                newItemCount = std::min<uint16>(newItemCount, reqItemCount);
                 if (newItemCount != q_status.ItemCount[j])
                 {
                     q_status.ItemCount[j] = newItemCount;
                     m_QuestStatusSave[questid] = QUEST_DEFAULT_SAVE_TYPE;
                     IncompleteQuest(questid);
                 }
-                return;
             }
         }
     }
@@ -19015,7 +19012,7 @@ InstancePlayerBind* Player::BindToInstance(InstanceSave* save, bool permanent, B
         bind.extendState = extendState;
         if (!load)
             TC_LOG_DEBUG("maps", "Player::BindToInstance: Player '%s' (%s) is now bound to map (ID: %d, Instance: %d, Difficulty: %d)",
-                GetName().c_str(), GetGUID().ToString().c_str(), save->GetMapId(), save->GetInstanceId(), save->GetDifficulty());
+                GetName().c_str(), GetGUID().ToString().c_str(), save->GetMapId(), save->GetInstanceId(), static_cast<uint32>(save->GetDifficulty()));
         sScriptMgr->OnPlayerBindToInstance(this, save->GetDifficulty(), save->GetMapId(), permanent, extendState);
         return &bind;
     }
@@ -20314,7 +20311,13 @@ void Player::_SaveStats(CharacterDatabaseTransaction trans) const
     stmt->setFloat(index++, GetFloatValue(PLAYER_PARRY_PERCENTAGE));
     stmt->setFloat(index++, GetFloatValue(PLAYER_CRIT_PERCENTAGE));
     stmt->setFloat(index++, GetFloatValue(PLAYER_RANGED_CRIT_PERCENTAGE));
-    stmt->setFloat(index++, GetFloatValue(PLAYER_SPELL_CRIT_PERCENTAGE1));
+
+    // Store the max spell crit percentage out of all the possible schools
+    float spellCrit = 0.0f;
+    for (int i = 0; i < MAX_SPELL_SCHOOL; ++i)
+        spellCrit = std::max(spellCrit, GetFloatValue(PLAYER_SPELL_CRIT_PERCENTAGE1 + i));
+    stmt->setFloat(index++, spellCrit);
+
     stmt->setUInt32(index++, GetUInt32Value(UNIT_FIELD_ATTACK_POWER));
     stmt->setUInt32(index++, GetUInt32Value(UNIT_FIELD_RANGED_ATTACK_POWER));
     stmt->setUInt32(index++, GetBaseSpellPowerBonus());
@@ -20802,7 +20805,8 @@ void Player::StopCastingCharm()
         TC_LOG_FATAL("entities.player", "Player::StopCastingCharm: Player '%s' (%s) is not able to uncharm unit (%s)", GetName().c_str(), GetGUID().ToString().c_str(), GetCharmedGUID().ToString().c_str());
         if (!charm->GetCharmerGUID().IsEmpty())
         {
-            TC_LOG_FATAL("entities.player", "Player::StopCastingCharm: Charmed unit has charmer %s", charm->GetCharmerGUID().ToString().c_str());
+            TC_LOG_FATAL("entities.player", "Player::StopCastingCharm: Charmed unit has charmer %s\nPlayer debug info: %s\nCharm debug info: %s",
+                charm->GetCharmerGUID().ToString().c_str(), GetDebugInfo().c_str(), charm->GetDebugInfo().c_str());
             ABORT();
         }
 
@@ -22396,7 +22400,7 @@ bool Player::IsNeverVisible() const
 bool Player::CanAlwaysSee(WorldObject const* obj) const
 {
     // Always can see self
-    if (GetUnitBeingMoved() == obj)
+    if (GetCharmedOrSelf() == obj)
         return true;
 
     if (ObjectGuid guid = GetGuidValue(PLAYER_FARSIGHT))
@@ -22771,7 +22775,7 @@ void Player::SendInitialPacketsBeforeAddToMap()
     /// SMSG_RESYNC_RUNES
     ResyncRunes();
 
-    SetMovedUnit(this);
+    GetGameClient()->SetMovedUnit(this, true);
 }
 
 void Player::SendInitialPacketsAfterAddToMap()
@@ -24092,7 +24096,7 @@ void Player::SetClientControl(Unit* target, bool allowMove)
             SetViewpoint(target, true);
     }
 
-    SetMovedUnit(target);
+    GetGameClient()->SetMovedUnit(target, allowMove);
 }
 
 void Player::UpdateZoneDependentAuras(uint32 newZone)
@@ -24957,7 +24961,7 @@ void Player::StoreLootItem(uint8 lootSlot, Loot* loot)
 
         // LootItem is being removed (looted) from the container, delete it from the DB.
         if (loot->containerID > 0)
-            sLootItemStorage->RemoveStoredLootItemForContainer(loot->containerID, item->itemid, item->count);
+            sLootItemStorage->RemoveStoredLootItemForContainer(loot->containerID, item->itemid, item->count, item->itemIndex);
 
 #ifdef ELUNA
         sEluna->OnLootItem(this, newitem, item->count, this->GetLootGUID());
@@ -26840,6 +26844,9 @@ Pet* Player::SummonPet(uint32 entry, float x, float y, float z, float ang, PetTy
         return nullptr;
     }
 
+    if (petType == SUMMON_PET && petStable.CurrentPet)
+        RemovePet(nullptr, PET_SAVE_NOT_IN_SLOT);
+
     pet->SetCreatorGUID(GetGUID());
     pet->SetFaction(GetFaction());
 
@@ -27019,4 +27026,9 @@ std::string Player::GetDebugInfo() const
     std::stringstream sstr;
     sstr << Unit::GetDebugInfo();
     return sstr.str();
+}
+
+GameClient* Player::GetGameClient() const
+{
+    return GetSession()->GetGameClient();
 }

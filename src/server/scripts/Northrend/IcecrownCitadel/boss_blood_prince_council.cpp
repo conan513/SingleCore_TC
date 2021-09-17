@@ -494,7 +494,7 @@ struct BloodPrincesBossAI : public BossAI
         me->SetHealth(_spawnHealth);
     }
 
-    void DamageTaken(Unit* attacker, uint32& damage) override
+    void DamageTaken(Unit* attacker, uint32& damage, DamageEffectType /*damageType*/, SpellInfo const* /*spellInfo = nullptr*/) override
     {
         if (!_isEmpowered)
         {
@@ -557,8 +557,6 @@ struct BloodPrincesBossAI : public BossAI
                 me->RemoveAurasDueToSpell(SPELL_FEIGN_DEATH);
                 me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
                 me->SetImmuneToPC(false);
-                me->RemoveFlag(UNIT_DYNAMIC_FLAGS, UNIT_DYNFLAG_DEAD);
-                me->RemoveFlag(UNIT_FIELD_FLAGS_2, UNIT_FLAG2_FEIGN_DEATH);
                 me->ForceValuesUpdateAtIndex(UNIT_NPC_FLAGS);   // was in sniff. don't ask why
                 me->m_Events.AddEvent(new StandUpEvent(me), me->m_Events.CalculateTime(1s));
                 break;
@@ -1070,7 +1068,7 @@ struct npc_dark_nucleus : public ScriptedAI
         DoCast(who, SPELL_SHADOW_RESONANCE_RESIST);
     }
 
-    void DamageTaken(Unit* attacker, uint32& /*damage*/) override
+    void DamageTaken(Unit* attacker, uint32& /*damage*/, DamageEffectType /*damageType*/, SpellInfo const* /*spellInfo = nullptr*/) override
     {
         if (attacker == me)
             return;

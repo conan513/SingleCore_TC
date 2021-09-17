@@ -381,10 +381,10 @@ pAuraEffectHandler AuraEffectHandler[TOTAL_AURAS]=
     &AuraEffect::HandleNoImmediateEffect,                         //316 SPELL_AURA_PERIODIC_HASTE implemented in AuraEffect::CalculatePeriodic
 };
 
-AuraEffect::AuraEffect(Aura* base, uint8 effIndex, int32 const* baseAmount, Unit* caster):
-m_base(base), m_spellInfo(base->GetSpellInfo()),
-m_baseAmount(baseAmount ? *baseAmount : m_spellInfo->Effects[effIndex].BasePoints),
-_amount(), m_spellmod(nullptr), _periodicTimer(0), _amplitude(0), _ticksDone(0), m_effIndex(effIndex),
+AuraEffect::AuraEffect(Aura* base, SpellEffectInfo const& spellEfffectInfo, int32 const* baseAmount, Unit* caster):
+m_base(base), m_spellInfo(base->GetSpellInfo()), m_spellEffectInfo(spellEfffectInfo),
+m_baseAmount(baseAmount ? *baseAmount : spellEfffectInfo.BasePoints),
+_amount(), m_spellmod(nullptr), _periodicTimer(0), _amplitude(0), _ticksDone(0),
 m_canBeRecalculated(true), m_isPeriodic(false)
 {
     CalculatePeriodic(caster, true, false);
@@ -425,7 +425,7 @@ void AuraEffect::GetApplicationList(Container& applicationContainer) const
 int32 AuraEffect::CalculateAmount(Unit* caster)
 {
     // default amount calculation
-    int32 amount = m_spellInfo->Effects[m_effIndex].CalcValue(caster, &m_baseAmount);
+    int32 amount = GetSpellEffectInfo().CalcValue(caster, &m_baseAmount);
 
     // check item enchant aura cast
     if (!amount && caster)
@@ -564,7 +564,7 @@ void AuraEffect::ResetPeriodic(bool resetPeriodicTimer /*= false*/)
 
 void AuraEffect::CalculatePeriodic(Unit* caster, bool resetPeriodicTimer /*= true*/, bool load /*= false*/)
 {
-    _amplitude = m_spellInfo->Effects[m_effIndex].Amplitude;
+    _amplitude = GetSpellEffectInfo().Amplitude;
 
     // prepare periodics
     switch (GetAuraType())
@@ -851,7 +851,7 @@ bool AuraEffect::IsAffectedOnSpell(SpellInfo const* spell) const
         return false;
 
     // Check family name and EffectClassMask
-    if (!spell->IsAffected(m_spellInfo->SpellFamilyName, m_spellInfo->Effects[m_effIndex].SpellClassMask))
+    if (!spell->IsAffected(m_spellInfo->SpellFamilyName, GetSpellEffectInfo().SpellClassMask))
         return false;
 
     return true;
@@ -872,7 +872,8 @@ void AuraEffect::PeriodicTick(AuraApplication* aurApp, Unit* caster) const
     Unit* target = aurApp->GetTarget();
 
     // Update serverside orientation of tracking channeled auras on periodic update ticks
-    if (caster && m_spellInfo->IsChanneled() && m_spellInfo->HasAttribute(SPELL_ATTR1_CHANNEL_TRACK_TARGET))
+    // exclude players because can turn during channeling and shouldn't desync orientation client/server
+    if (caster && !caster->IsPlayer() && m_spellInfo->IsChanneled() && m_spellInfo->HasAttribute(SPELL_ATTR1_CHANNEL_TRACK_TARGET))
     {
         ObjectGuid const channelGuid = caster->GetChannelObjectGuid();
         if (!channelGuid.IsEmpty() && channelGuid != caster->GetGUID())
@@ -1363,7 +1364,7 @@ void AuraEffect::HandleModInvisibility(AuraApplication const* aurApp, uint8 mode
     if (apply)
     {
         // apply glow vision
-        if (target->GetTypeId() == TYPEID_PLAYER)
+        if (target->GetTypeId() == TYPEID_PLAYER && type == INVISIBILITY_GENERAL)
             target->SetByteFlag(PLAYER_FIELD_BYTES2, PLAYER_FIELD_BYTES_2_OFFSET_AURA_VISION, PLAYER_FIELD_BYTE2_INVISIBILITY_GLOW);
 
         target->m_invisibility.AddFlag(type);
@@ -1374,7 +1375,7 @@ void AuraEffect::HandleModInvisibility(AuraApplication const* aurApp, uint8 mode
         if (!target->HasAuraType(SPELL_AURA_MOD_INVISIBILITY))
         {
             // if not have different invisibility auras.
-            // remove glow vision
+            // always remove glow vision
             if (target->GetTypeId() == TYPEID_PLAYER)
                 target->RemoveByteFlag(PLAYER_FIELD_BYTES2, PLAYER_FIELD_BYTES_2_OFFSET_AURA_VISION, PLAYER_FIELD_BYTE2_INVISIBILITY_GLOW);
 
@@ -1393,7 +1394,14 @@ void AuraEffect::HandleModInvisibility(AuraApplication const* aurApp, uint8 mode
                 }
             }
             if (!found)
+            {
+                // if not have invisibility auras of type INVISIBILITY_GENERAL
+                // remove glow vision
+                if (target->GetTypeId() == TYPEID_PLAYER && type == INVISIBILITY_GENERAL)
+                    target->RemoveByteFlag(PLAYER_FIELD_BYTES2, PLAYER_FIELD_BYTES_2_OFFSET_AURA_VISION, PLAYER_FIELD_BYTE2_INVISIBILITY_GLOW);
+
                 target->m_invisibility.DelFlag(type);
+            }
         }
 
         target->m_invisibility.AddValue(type, -GetAmount());
@@ -1843,7 +1851,7 @@ void AuraEffect::HandleAuraModShapeshift(AuraApplication const* aurApp, uint8 mo
 
                         SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(itr->first);
                         if (spellInfo && spellInfo->SpellFamilyName == SPELLFAMILY_WARRIOR && spellInfo->SpellIconID == 139)
-                            Rage_val += target->CalculateSpellDamage(spellInfo, EFFECT_0) * 10;
+                            Rage_val += target->CalculateSpellDamage(spellInfo->GetEffect(EFFECT_0)) * 10;
                     }
                 }
                 if (target->GetPower(POWER_RAGE) > Rage_val)
@@ -3178,7 +3186,7 @@ void AuraEffect::HandleAuraModSchoolImmunity(AuraApplication const* aurApp, uint
     else
     {
         // do not remove unit flag if there are more than this auraEffect of that kind on unit
-        if (target->HasAuraType(GetAuraType()))
+        if (target->HasAuraType(GetAuraType()) || target->HasAuraType(SPELL_AURA_DAMAGE_IMMUNITY))
             return;
         target->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE);
     }
@@ -3193,7 +3201,17 @@ void AuraEffect::HandleAuraModDmgImmunity(AuraApplication const* aurApp, uint8 m
     m_spellInfo->ApplyAllSpellImmunitiesTo(target, GetEffIndex(), apply);
 
     if (apply)
+    {
+        target->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE);
         target->GetThreatManager().EvaluateSuppressed();
+    }
+    else
+    {
+        // do not remove unit flag if there are more than this auraEffect of that kind on unit
+        if (target->HasAuraType(GetAuraType()) || target->HasAuraType(SPELL_AURA_SCHOOL_IMMUNITY))
+            return;
+        target->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE);
+    }
 }
 
 void AuraEffect::HandleAuraModDispelImmunity(AuraApplication const* aurApp, uint8 mode, bool apply) const
@@ -4283,7 +4301,7 @@ void AuraEffect::HandleNoReagentUseAura(AuraApplication const* aurApp, uint8 mod
     flag96 mask;
     Unit::AuraEffectList const& noReagent = target->GetAuraEffectsByType(SPELL_AURA_NO_REAGENT_USE);
         for (Unit::AuraEffectList::const_iterator i = noReagent.begin(); i != noReagent.end(); ++i)
-            mask |= (*i)->m_spellInfo->Effects[(*i)->m_effIndex].SpellClassMask;
+            mask |= (*i)->GetSpellEffectInfo().SpellClassMask;
 
     target->SetUInt32Value(PLAYER_NO_REAGENT_COST_1  , mask[0]);
     target->SetUInt32Value(PLAYER_NO_REAGENT_COST_1+1, mask[1]);
@@ -4322,7 +4340,7 @@ void AuraEffect::HandleAuraDummy(AuraApplication const* aurApp, uint8 mode, bool
     // pet auras
     if (target->GetTypeId() == TYPEID_PLAYER && (mode & AURA_EFFECT_HANDLE_REAL))
     {
-        if (PetAura const* petSpell = sSpellMgr->GetPetAura(GetId(), m_effIndex))
+        if (PetAura const* petSpell = sSpellMgr->GetPetAura(GetId(), GetEffIndex()))
         {
             if (apply)
                 target->ToPlayer()->AddPetAura(petSpell);
@@ -4691,11 +4709,11 @@ void AuraEffect::HandleChannelDeathItem(AuraApplication const* aurApp, uint8 mod
     if (GetAmount() <= 0)
         return;
 
-    if (GetSpellInfo()->Effects[m_effIndex].ItemType == 0)
+    if (GetSpellEffectInfo().ItemType == 0)
         return;
 
     // Soul Shard
-    if (GetSpellInfo()->Effects[m_effIndex].ItemType == 6265)
+    if (GetSpellEffectInfo().ItemType == 6265)
     {
         // Soul Shard only from units that grant XP or honor
         if (!plCaster->isHonorOrXPTarget(target) ||
@@ -4717,16 +4735,16 @@ void AuraEffect::HandleChannelDeathItem(AuraApplication const* aurApp, uint8 mod
     uint32 count = GetAmount();
 
     ItemPosCountVec dest;
-    InventoryResult msg = plCaster->CanStoreNewItem(NULL_BAG, NULL_SLOT, dest, GetSpellInfo()->Effects[m_effIndex].ItemType, count, &noSpaceForCount);
+    InventoryResult msg = plCaster->CanStoreNewItem(NULL_BAG, NULL_SLOT, dest, GetSpellEffectInfo().ItemType, count, &noSpaceForCount);
     if (msg != EQUIP_ERR_OK)
     {
         count -= noSpaceForCount;
-        plCaster->SendEquipError(msg, nullptr, nullptr, GetSpellInfo()->Effects[m_effIndex].ItemType);
+        plCaster->SendEquipError(msg, nullptr, nullptr, GetSpellEffectInfo().ItemType);
         if (count == 0)
             return;
     }
 
-    Item* newitem = plCaster->StoreNewItem(dest, GetSpellInfo()->Effects[m_effIndex].ItemType, true);
+    Item* newitem = plCaster->StoreNewItem(dest, GetSpellEffectInfo().ItemType, true);
     if (!newitem)
     {
         plCaster->SendEquipError(EQUIP_ERR_ITEM_NOT_FOUND, nullptr, nullptr);
@@ -4865,7 +4883,7 @@ void AuraEffect::HandleAuraLinked(AuraApplication const* aurApp, uint8 mode, boo
 {
     Unit* target = aurApp->GetTarget();
 
-    uint32 triggeredSpellId = sSpellMgr->GetSpellIdForDifficulty(m_spellInfo->Effects[m_effIndex].TriggerSpell, target);
+    uint32 triggeredSpellId = sSpellMgr->GetSpellIdForDifficulty(GetSpellEffectInfo().TriggerSpell, target);
     SpellInfo const* triggeredSpellInfo = sSpellMgr->GetSpellInfo(triggeredSpellId);
     if (!triggeredSpellInfo)
         return;
@@ -5064,7 +5082,7 @@ void AuraEffect::HandlePeriodicTriggerSpellAuraTick(Unit* target, Unit* caster) 
 
 void AuraEffect::HandlePeriodicTriggerSpellWithValueAuraTick(Unit* target, Unit* caster) const
 {
-    uint32 triggerSpellId = GetSpellInfo()->Effects[m_effIndex].TriggerSpell;
+    uint32 triggerSpellId = GetSpellEffectInfo().TriggerSpell;
     if (triggerSpellId == 0)
     {
         TC_LOG_WARN("spells.aura.effect.nospell", "AuraEffect::HandlePeriodicTriggerSpellWithValueAuraTick: Spell %u [EffectIndex: %u] does not have triggered spell.", GetId(), GetEffIndex());
@@ -5610,7 +5628,7 @@ void AuraEffect::HandlePeriodicPowerBurnAuraTick(Unit* target, Unit* caster) con
 
 void AuraEffect::HandleModAttackPowerOfArmorAuraTick(Unit* target, Unit* caster) const
 {
-    int32 const armorMod = m_spellInfo->Effects[m_effIndex].CalcValue(caster, &m_baseAmount);
+    int32 const armorMod = GetSpellEffectInfo().CalcValue(caster, &m_baseAmount);
     const_cast<AuraEffect*>(this)->SetAmount(target->GetArmor() / armorMod);
 
     target->UpdateAttackPowerAndDamage(false);
