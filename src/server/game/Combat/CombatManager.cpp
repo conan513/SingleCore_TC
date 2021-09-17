@@ -20,6 +20,9 @@
 #include "Unit.h"
 #include "CreatureAI.h"
 #include "Player.h"
+#ifdef ELUNA
+#include "LuaEngine.h"
+#endif
 
 /*static*/ bool CombatManager::CanBeginCombat(Unit const* a, Unit const* b)
 {
@@ -74,6 +77,18 @@ void CombatReference::EndCombat()
     bool const needSecondAI = second->GetCombatManager().UpdateOwnerCombatState();
 
     // ...and if that happened, also notify the AI of it...
+#ifdef ELUNA
+    if (needFirstAI)
+    {
+        if (Player* player = first->ToPlayer())
+            sEluna->OnPlayerLeaveCombat(player);
+    }
+    if (needSecondAI)
+    {
+        if (Player* player = second->ToPlayer())
+            sEluna->OnPlayerLeaveCombat(player);
+    }
+#endif
     if (needFirstAI)
         if (UnitAI* firstAI = first->GetAI())
             firstAI->JustExitedCombat();
@@ -119,8 +134,14 @@ void PvPCombatReference::SuppressFor(Unit* who)
 {
     Suppress(who);
     if (who->GetCombatManager().UpdateOwnerCombatState())
+    {
+#ifdef ELUNA
+        if (Player* player = who->ToPlayer())
+            sEluna->OnPlayerLeaveCombat(player);
+#endif
         if (UnitAI* ai = who->GetAI())
             ai->JustExitedCombat();
+    }
 }
 
 CombatManager::~CombatManager()
@@ -285,8 +306,14 @@ void CombatManager::SuppressPvPCombat()
     for (auto const& pair : _pvpRefs)
         pair.second->Suppress(_owner);
     if (UpdateOwnerCombatState())
+    {
+#ifdef ELUNA
+        if (Player* player = _owner->ToPlayer())
+            sEluna->OnPlayerLeaveCombat(player);
+#endif
         if (UnitAI* ownerAI = _owner->GetAI())
             ownerAI->JustExitedCombat();
+    }
 }
 
 void CombatManager::EndAllPvECombat()
@@ -306,6 +333,10 @@ void CombatManager::EndAllPvPCombat()
 
 /*static*/ void CombatManager::NotifyAICombat(Unit* me, Unit* other)
 {
+#ifdef ELUNA
+    if (Player* player = me->ToPlayer())
+        sEluna->OnPlayerEnterCombat(player, other);
+#endif
     if (UnitAI* ai = me->GetAI())
         ai->JustEnteredCombat(other);
 }

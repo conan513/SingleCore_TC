@@ -31,6 +31,9 @@
 #include "ScriptMgr.h"
 #include "Spell.h"
 #include "SpellAuraEffects.h"
+#ifdef ELUNA
+#include "LuaEngine.h"
+#endif
 #include "SpellMgr.h"
 #include "SpellPackets.h"
 #include "Totem.h"
@@ -319,6 +322,10 @@ void WorldSession::HandleGameobjectReportUse(WorldPacket& recvPacket)
 
     if (GameObject* go = GetPlayer()->GetGameObjectIfCanInteractWith(guid))
     {
+#ifdef ELUNA
+        if (sEluna->OnGameObjectUse(_player, go))
+            return;
+#endif
         if (go->AI()->OnReportUse(_player))
             return;
 
