@@ -1,0 +1,48 @@
+name: automerge
+
+on:
+  schedule:
+    - cron:  '0 0 * * *'
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: 'recursive'
+        fetch-depth: 0
+    - name: Merge TC
+      run: |
+        git status
+        git config user.email "rochet2+ci@post.com" && git config user.name "Rochet2"
+        git remote add Trinity https://github.com/TrinityCore/TrinityCore.git
+        git fetch Trinity 3.3.5
+        git merge -m "Merge TrinityCore 3.3.5 to ElunaTrinityWotlk [skip ci]" Trinity/3.3.5
+        git status
+    - name: Dependencies
+      run: |
+        sudo apt-get update && sudo apt-get install -yq libboost-all-dev g++-8
+        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 100 --slave /usr/bin/g++ g++ /usr/bin/g++-8
+    - name: Setup
+      run: |
+        mkdir bin
+        cd bin
+        cmake ../ -DWITH_WARNINGS=1 -DWITH_COREDEBUG=0 -DUSE_COREPCH=1 -DUSE_SCRIPTPCH=1 -DTOOLS=1 -DSCRIPTS=dynamic -DSERVERS=1 -DNOJEM=0 -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_FLAGS="-Werror" -DCMAKE_CXX_FLAGS="-Werror" -DCMAKE_C_FLAGS_DEBUG="-DNDEBUG" -DCMAKE_CXX_FLAGS_DEBUG="-DNDEBUG" -DCMAKE_INSTALL_PREFIX=check_install -DBUILD_TESTING=1
+        cd ..
+    - name: Build
+      run: |
+        cd bin
+        make -j 4 -k && make install
+    - name: Unit tests
+      run: |
+        cd bin
+        make test
+    - name: Check executables
+      run: |
+        cd bin/check_install/bin
+        ./authserver --version
+        ./worldserver --version
+    - name: Push changes
+      run: |
+          git push
